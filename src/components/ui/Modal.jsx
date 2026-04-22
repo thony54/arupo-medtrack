@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import './ui.css';
 
-export const Modal = ({ isOpen, onClose, title, children }) => {
+export const Modal = ({ isOpen, onClose, title, children, footer }) => {
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -49,6 +49,7 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
           </button>
         </div>
         <div className="modal-body">{children}</div>
+        {footer && <div className="modal-footer">{footer}</div>}
       </div>
     </div>
   );

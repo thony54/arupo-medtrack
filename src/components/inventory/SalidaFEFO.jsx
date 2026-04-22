@@ -140,8 +140,19 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); resetAll(); }}
-      title={actaData ? '📋 Acta de Donación' : '💊 Entregar Donación'}>
+    <Modal 
+      isOpen={isOpen} 
+      onClose={() => { onClose(); resetAll(); }}
+      title={actaData ? '📋 Acta de Donación' : '💊 Entregar Donación'}
+      footer={!actaData && (
+        <>
+          <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
+          <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
+            {loading ? 'Procesando...' : `❤️ Entregar (${cart.length})`}
+          </Button>
+        </>
+      )}
+    >
       {actaData ? (
         <Comprobante
           beneficiario={actaData.beneficiario}
@@ -246,12 +257,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          <div className="modal-footer">
-            <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
-            <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
-              {loading ? 'Procesando...' : `❤️ Confirmar y Entregar (${cart.length})`}
-            </Button>
-          </div>
+
         </div>
       )}
     </Modal>

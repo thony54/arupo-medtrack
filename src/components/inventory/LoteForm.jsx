@@ -156,7 +156,19 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const hoy = new Date().toISOString().split('T')[0];
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); resetAll(); }} title="📥 Registrar Ingreso de Medicina">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={() => { onClose(); resetAll(); }} 
+      title="📥 Registrar Ingreso de Medicina"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
+          <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
+            {loading ? 'Procesando...' : `✅ Guardar (${cart.length})`}
+          </Button>
+        </>
+      }
+    >
       {showScanner ? (
         <QRScanner
           onScan={(code) => { setNumeroLote(code); setShowScanner(false); }}
@@ -311,12 +323,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          <div className="modal-footer">
-            <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
-            <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
-              {loading ? 'Procesando...' : `✅ Confirmar y Guardar (${cart.length})`}
-            </Button>
-          </div>
+
         </div>
       )}
     </Modal>
