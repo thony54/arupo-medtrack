@@ -142,18 +142,20 @@
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  background-color: rgba(15, 23, 42, 0.6);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 100;
+  z-index: 1000;
   animation: fadeIn 0.2s ease-out forwards;
   
-  /* Flexbox para centrado perfecto */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem; /* Evita que el modal toque los bordes en pantallas pequeñas */
+  align-items: center; /* Centrado vertical */
+  justify-content: center; /* Centrado horizontal */
+  padding: 1rem;
 }
 
 .modal-content {
@@ -161,22 +163,22 @@
   border-radius: var(--radius-xl);
   padding: 2rem;
   width: 100%;
-  max-width: 34rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  max-width: 32rem;
+  box-shadow: var(--shadow-lg), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
-  animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   
-  /* SCROLL INTERNO: Si el formulario es muy alto, el scroll ocurre *dentro* del modal */
-  max-height: 95vh;
+  max-height: 85vh; /* Un poco más bajo para asegurar que no se pegue a los bordes */
   overflow-y: auto;
-  
-  text-align: left;
   position: relative;
-  margin: 0;
+  
+  /* Scrollbar discreto interno */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
 }
 
 @keyframes modalPop {
-  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -206,9 +208,16 @@
   transform: rotate(90deg);
 }
 @media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0.5rem;
+    align-items: center; /* Asegura centrado vertical en móvil */
+  }
+
   .modal-content {
     padding: 1.25rem;
+    padding-bottom: 2rem; /* Espacio extra abajo para campos finales */
     border-radius: var(--radius-lg);
+    max-height: 92vh;
   }
 
   .modal-header {
