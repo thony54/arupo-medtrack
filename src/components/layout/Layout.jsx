@@ -35,31 +35,41 @@ export const Layout = () => {
     };
   }, [lastScrollY]);
 
-  // Swipe logic
+  // Swipe logic refined
   const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+    touchStartTime.current = Date.now();
   };
 
-  const handleTouchMove = (e) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
+  const handleTouchEnd = (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const touchEndTime = Date.now();
+    
+    const dx = touchStartX.current - touchEndX;
+    const dy = touchStartY.current - touchEndY;
+    const dt = touchEndTime - touchStartTime.current;
 
-  const handleTouchEnd = () => {
-    const swipeDistance = touchStartX.current - touchEndX.current;
-    const threshold = 100; // px
+    const thresholdX = 120; // Aumentamos umbral horizontal
+    const thresholdY = 60;  // Umbral máximo vertical para evitar detectar scroll como swipe
+    const minTime = 100;    // Evitar taps accidentales
 
-    if (Math.abs(swipeDistance) > threshold) {
+    // Solo navegar si:
+    // 1. Ha pasado suficiente tiempo (no es un tap)
+    // 2. El movimiento horizontal es significativamente mayor que el vertical
+    // 3. El movimiento horizontal supera el umbral
+    if (dt > minTime && Math.abs(dx) > thresholdX && Math.abs(dy) < thresholdY) {
       const currentIndex = routes.indexOf(location.pathname);
       if (currentIndex === -1) return;
 
-      if (swipeDistance > 0 && currentIndex < routes.length - 1) {
-        // Swipe left -> Next page
+      if (dx > 0 && currentIndex < routes.length - 1) {
         navigate(routes[currentIndex + 1]);
-      } else if (swipeDistance < 0 && currentIndex > 0) {
-        // Swipe right -> Previous page
+      } else if (dx < 0 && currentIndex > 0) {
         navigate(routes[currentIndex - 1]);
       }
     }
@@ -72,7 +82,6 @@ export const Layout = () => {
         ref={mainRef}
         className="main-content"
         onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
         <Outlet />
