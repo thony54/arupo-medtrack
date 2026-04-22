@@ -5,6 +5,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { QRScanner } from './QRScanner';
 import { useOfflineCache } from '../../hooks/useOfflineCache';
+import { ActaIngreso } from './ActaIngreso';
 
 export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const [medicinas, setMedicinas] = useState([]);
@@ -26,6 +27,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [actaData, setActaData] = useState(null); // Success state
   const { isOnline, queueOfflineAction } = useOfflineCache();
 
   useEffect(() => {
@@ -54,6 +56,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
     resetCurrentItem();
     setDonanteId('');
     setCart([]);
+    setActaData(null);
   };
 
   const handleAddToCart = (e) => {
@@ -144,7 +147,11 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
         }
       }
 
-      resetAll();
+      // Prepare success data for Acta
+      const donante = donantes.find(d => d.id === donanteId);
+      setActaData({ donante, items: [...cart] });
+      
+      setCart([]); // Clear cart but don't reset donante yet
       onSuccess();
     } catch (err) {
       setError(err.message || 'Error al procesar los lotes.');
@@ -159,17 +166,23 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
     <Modal 
       isOpen={isOpen} 
       onClose={() => { onClose(); resetAll(); }} 
-      title="📥 Registrar Ingreso de Medicina"
-      footer={
+      title={actaData ? '📋 Acta de Ingreso' : '📥 Registrar Ingreso de Medicina'}
+      footer={!actaData && (
         <>
           <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
           <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
             {loading ? 'Procesando...' : `✅ Guardar (${cart.length})`}
           </Button>
         </>
-      }
+      )}
     >
-      {showScanner ? (
+      {actaData ? (
+        <ActaIngreso 
+          donante={actaData.donante}
+          items={actaData.items}
+          onClose={() => { onClose(); resetAll(); }}
+        />
+      ) : showScanner ? (
         <QRScanner
           onScan={(code) => { setNumeroLote(code); setShowScanner(false); }}
           onClose={() => setShowScanner(false)}
