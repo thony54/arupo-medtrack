@@ -155,24 +155,36 @@
 
 .modal-content {
   position: fixed;
-  top: 50%;
+  top: 52%; /* Bajamos un poco el centro para que no toque la barra superior */
   left: 50%;
-  transform: translate(-50%, -50%); /* Centrado absoluto solicitado */
+  transform: translate(-50%, -50%);
   
   background-color: var(--bg-surface);
   border-radius: var(--radius-xl);
-  padding: 2rem;
+  padding: 0; /* Eliminamos el padding general para controlar el scroll */
   width: 95%;
   max-width: 32rem;
   box-shadow: var(--shadow-lg), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
   
-  max-height: 90vh; /* Altura máxima solicitada */
-  overflow-y: auto; /* Scroll interno solicitado */
-  margin: 0; /* Elimina márgenes extra */
-  
+  max-height: 85vh; /* Reducimos altura para evitar cortes */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Evita que el modal completo haga scroll */
+  z-index: 1001;
+}
+
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.modal-body {
+  padding: 1.5rem 2rem;
+  overflow-y: auto; /* Solo el cuerpo hace scroll */
+  flex: 1;
 }
 
 /* Redefinimos la animación para que no entre en conflicto con translate(-50%, -50%) */
@@ -216,15 +228,19 @@
   }
 
   .modal-content {
-    padding: 1.25rem;
-    padding-bottom: 2rem;
-    border-radius: var(--radius-lg);
+    top: 55%; /* Más abajo en móvil para dar espacio a la barra MedTrack */
     width: 92%;
-    max-height: 88vh;
+    max-height: 75vh; /* Menos alto en móvil para asegurar visibilidad total */
+    border-radius: var(--radius-lg);
   }
 
   .modal-header {
-    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+    padding-bottom: 2rem;
   }
 
   .btn {
