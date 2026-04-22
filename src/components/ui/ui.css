@@ -248,13 +248,21 @@
 
   .modal-content {
     top: auto !important;
-    bottom: 90px !important; /* Asegura que esté SIEMPRE sobre el menú inferior */
+    bottom: 110px !important; /* Lo subimos aún más para asegurar visibilidad total */
     left: 50% !important;
     transform: translateX(-50%) !important;
-    width: 94% !important;
-    max-height: 70vh !important;
+    width: 96% !important;
+    max-height: 65vh !important; /* Más bajo para asegurar que no se pierda nada */
     border-radius: var(--radius-lg) !important;
     animation: modalPopMobile 0.3s ease-out forwards !important;
+    border: 2px solid var(--primary-color) !important; /* Borde para identificar los límites */
+  }
+
+  .modal-footer {
+    padding: 1rem 1.25rem !important;
+    background: var(--bg-surface) !important;
+    border-top: 1px solid var(--border-color) !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
   }
 
   .modal-header {
