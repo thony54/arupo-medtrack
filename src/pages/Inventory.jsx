@@ -79,7 +79,7 @@ export const Inventory = () => {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Inventario Médico</h1>
+          <h1 className="page-title">Inventario</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               {filtered.length} de {medicinas.length} productos
@@ -95,10 +95,10 @@ export const Inventory = () => {
             <Camera size={18} /> Escanear
           </Button>
           <Button variant="outline" onClick={() => setShowSalida(true)}>
-            ⚡ Salida FEFO
+            ⚡ Entregar Donación
           </Button>
           <Button variant="primary" onClick={() => setShowLoteForm(true)}>
-            <Plus size={18} /> Entrada con Lote
+            <Plus size={18} /> Registrar Ingreso
           </Button>
         </div>
       </div>

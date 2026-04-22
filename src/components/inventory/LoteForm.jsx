@@ -156,7 +156,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const hoy = new Date().toISOString().split('T')[0];
 
   return (
-    <Modal isOpen={isOpen} onClose={() => { onClose(); resetAll(); }} title="📦 Registrar Donativo Recibido — Nuevo Lote">
+    <Modal isOpen={isOpen} onClose={() => { onClose(); resetAll(); }} title="📥 Registrar Ingreso de Medicina">
       {showScanner ? (
         <QRScanner
           onScan={(code) => { setNumeroLote(code); setShowScanner(false); }}
