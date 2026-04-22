@@ -187,25 +187,27 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
               <Plus size={16} color="var(--primary-color)" /> 2. Añadir Medicamento a la Lista
             </div>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="sf-prod" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Medicamento <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-              <select id="sf-prod" className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
-                value={productoId} onChange={e => setProductoId(e.target.value)} required>
-                <option value="">— Selecciona un medicamento —</option>
-                {medicinas.map(m => (
-                  <option key={m.id} value={m.id}>{m.nombre}{m.concentracion ? ` (${m.concentracion})` : ''} — Disp: {m.stock_actual}</option>
-                ))}
-              </select>
-            </div>
+            <div className="grid-responsive" style={{ gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="sf-prod" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Medicamento <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+                <select id="sf-prod" className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
+                  value={productoId} onChange={e => setProductoId(e.target.value)} required>
+                  <option value="">— Selecciona un medicamento —</option>
+                  {medicinas.map(m => (
+                    <option key={m.id} value={m.id}>{m.nombre}{m.concentracion ? ` (${m.concentracion})` : ''} — Disp: {m.stock_actual}</option>
+                  ))}
+                </select>
+              </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="sf-cant" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Cantidad <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-              <input id="sf-cant" className="input-field" style={{ marginBottom: 0 }}
-                type="number" min="1" value={cantidad} onChange={e => setCantidad(e.target.value)} placeholder="Ej. 30" required />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="sf-cant" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Cantidad <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+                <input id="sf-cant" className="input-field" style={{ marginBottom: 0 }}
+                  type="number" min="1" value={cantidad} onChange={e => setCantidad(e.target.value)} placeholder="Ej. 30" required />
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <Button type="submit" variant="outline" style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}>
+              <Button type="submit" variant="outline" style={{ color: 'var(--primary-color)', borderColor: 'var(--primary-color)', width: '100%' }}>
                 + Añadir a la Lista
               </Button>
             </div>

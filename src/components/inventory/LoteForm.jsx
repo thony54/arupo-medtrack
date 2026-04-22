@@ -210,7 +210,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             {productoId === 'NEW' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem', animation: 'fadeIn 0.2s ease-out' }}>
+              <div className="grid-responsive" style={{ gap: '1rem', animation: 'fadeIn 0.2s ease-out' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                   <input className="input-field" required value={newMedNombre} onChange={e => setNewMedNombre(e.target.value)} placeholder="Ej. Ibuprofeno" style={{ marginBottom: 0, border: '1px dashed var(--primary-color)' }} />
@@ -240,7 +240,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             {/* Cantidad + Fecha en row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="grid-responsive" style={{ gap: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label htmlFor="lf-cantidad" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
                   Cantidad <span style={{ color: 'var(--danger-color)' }}>*</span>

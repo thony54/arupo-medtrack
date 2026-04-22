@@ -92,8 +92,8 @@ export const Donantes = () => {
   );
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
+    <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
+      <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
         <div className="page-header">
           <div>
             <h1 className="page-title">Donantes</h1>
@@ -168,7 +168,7 @@ export const Donantes = () => {
 
       {/* History Panel */}
       {selected && (
-        <div className="card animate-fade-in" style={{ width: '320px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
+        <div className="card animate-fade-in mobile-full-width" style={{ width: '320px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
               <div style={{ fontWeight: '700' }}>{TIPO_ICONS[selected.tipo]} {selected.nombre}</div>
@@ -219,7 +219,7 @@ export const Donantes = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label htmlFor="d-cont" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Contacto</label>
               <input id="d-cont" className="input-field" style={{ marginBottom: 0 }} value={contactoNombre} onChange={e => setContactoNombre(e.target.value)} placeholder="Nombre del responsable" />

@@ -92,9 +92,9 @@ export const Beneficiarios = () => {
   );
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+    <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
       {/* Main Panel */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
         <div className="page-header">
           <div>
             <h1 className="page-title">Beneficiarios</h1>
@@ -169,7 +169,7 @@ export const Beneficiarios = () => {
 
       {/* History Side Panel */}
       {selected && (
-        <div className="card animate-fade-in" style={{ width: '340px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
+        <div className="card animate-fade-in mobile-full-width" style={{ width: '340px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
               <div style={{ fontWeight: '700', fontSize: '1rem' }}>{selected.nombre_completo}</div>
@@ -215,7 +215,7 @@ export const Beneficiarios = () => {
             <input id="b-nombre" className="input-field" style={{ marginBottom: 0 }} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. María García López" required />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label htmlFor="b-cedula" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Cédula / ID</label>
               <input id="b-cedula" className="input-field" style={{ marginBottom: 0 }} value={cedula} onChange={e => setCedula(e.target.value)} placeholder="V-12345678" />
