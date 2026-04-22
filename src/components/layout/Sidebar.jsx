@@ -30,11 +30,21 @@ export const Sidebar = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <img src="/logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
-          <span>MedTrack</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img src="/logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+            <span>MedTrack</span>
+          </div>
+          <div className="header-actions" style={{ display: 'flex', gap: '0.25rem' }}>
+            <Button variant="ghost" className="theme-toggle" onClick={toggleTheme} aria-label="Ajustar tema" style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </Button>
+            <Button variant="ghost" className="logout-btn" onClick={handleLogout} aria-label="Cerrar sesión" style={{ color: 'var(--danger-color)', padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
+              <LogOut size={18} />
+            </Button>
+          </div>
         </div>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.25rem', paddingLeft: '0.25rem', fontWeight: '600' }}>Fundación Arupo</p>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '-1rem', paddingLeft: '0.25rem', fontWeight: '600' }}>Fundación Arupo</p>
       </div>
 
       <nav className="sidebar-nav">
@@ -56,16 +66,7 @@ export const Sidebar = () => {
         {navItem('/donantes', HandHeart, 'Donantes')}
       </nav>
 
-      <div className="sidebar-footer" style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-        <Button variant="ghost" className="theme-toggle" onClick={toggleTheme} aria-label="Ajustar tema">
-          {isDark ? <Sun size={20} /> : <Moon size={20} />}
-          <span>{isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
-        </Button>
-        <Button variant="ghost" className="logout-btn" onClick={handleLogout} aria-label="Cerrar sesión" style={{ color: 'var(--danger-color)' }}>
-          <LogOut size={20} />
-          <span>Salir</span>
-        </Button>
-      </div>
+
     </aside>
   );
 };
