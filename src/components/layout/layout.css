@@ -144,6 +144,16 @@
     align-items: center;
     z-index: 101;
     box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Ocultar barra al hacer scroll */
+  .header-hidden .sidebar-header {
+    transform: translateY(-100%);
+  }
+
+  .header-visible .sidebar-header {
+    transform: translateY(0);
   }
 
   .sidebar-header p {
