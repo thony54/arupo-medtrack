@@ -155,35 +155,36 @@
 
 .modal-content {
   position: fixed;
-  top: 52%; /* Bajamos un poco el centro para que no toque la barra superior */
+  top: 50%; /* Volvemos al 50% para centrado absoluto real */
   left: 50%;
   transform: translate(-50%, -50%);
   
   background-color: var(--bg-surface);
   border-radius: var(--radius-xl);
-  padding: 0; /* Eliminamos el padding general para controlar el scroll */
+  padding: 0;
   width: 95%;
   max-width: 32rem;
   box-shadow: var(--shadow-lg), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--border-color);
   
-  max-height: 85vh; /* Reducimos altura para evitar cortes */
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Evita que el modal completo haga scroll */
+  overflow: hidden;
   z-index: 1001;
 }
 
 .modal-header {
-  padding: 1.5rem 2rem;
+  padding: 1.25rem 1.5rem; /* Un poco menos de padding vertical */
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 0;
   flex-shrink: 0;
+  background: var(--bg-surface);
 }
 
 .modal-body {
-  padding: 1.5rem 2rem;
-  overflow-y: auto; /* Solo el cuerpo hace scroll */
+  padding: 2rem 1.5rem; /* Más padding arriba para separar del header */
+  overflow-y: auto;
   flex: 1;
 }
 

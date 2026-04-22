@@ -141,7 +141,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={() => { onClose(); resetAll(); }}
-      title={actaData ? '📋 Acta de Donación' : '💊 Entregar Donación — Despacho FEFO'}>
+      title={actaData ? '📋 Acta de Donación' : '💊 Entregar Donación'}>
       {actaData ? (
         <Comprobante
           beneficiario={actaData.beneficiario}

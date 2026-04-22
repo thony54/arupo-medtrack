@@ -51,13 +51,13 @@ export const Sidebar = () => {
         <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }}>
           General
         </div>
-        {navItem('/', LayoutDashboard, 'Centro de Operaciones', true)}
+        {navItem('/', LayoutDashboard, 'Inicio', true)}
 
         <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
           Donaciones
         </div>
-        {navItem('/inventory', Package, 'Banco de Medicamentos')}
-        {navItem('/catalog', Database, 'Medicamentos Base')}
+        {navItem('/inventory', Package, 'Inventario')}
+        {navItem('/catalog', Database, 'Catálogo')}
 
         <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
           CRM
