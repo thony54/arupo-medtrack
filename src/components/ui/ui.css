@@ -207,6 +207,11 @@
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
+@keyframes modalPopMobile {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
 .modal-content {
   animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
@@ -236,16 +241,20 @@
   color: var(--danger-color);
   transform: rotate(90deg);
 }
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   .modal-overlay {
     padding: 0;
   }
 
   .modal-content {
-    top: 42%; /* Lo subimos más (antes 50%) para alejarlo de la barra inferior */
-    width: 95%;
-    max-height: 70vh; /* Reducimos altura para asegurar que quepa sobre el teclado y barra nav */
-    border-radius: var(--radius-lg);
+    top: auto !important;
+    bottom: 90px !important; /* Asegura que esté SIEMPRE sobre el menú inferior */
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 94% !important;
+    max-height: 70vh !important;
+    border-radius: var(--radius-lg) !important;
+    animation: modalPopMobile 0.3s ease-out forwards !important;
   }
 
   .modal-header {
