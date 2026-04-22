@@ -311,7 +311,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid var(--border-color)', marginTop: '0.5rem' }}>
+          <div className="modal-footer">
             <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
             <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
               {loading ? 'Procesando...' : `✅ Confirmar y Guardar (${cart.length})`}

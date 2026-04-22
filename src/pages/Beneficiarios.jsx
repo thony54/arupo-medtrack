@@ -248,7 +248,7 @@ export const Beneficiarios = () => {
             <textarea id="b-notas" className="input-field" style={{ marginBottom: 0, resize: 'vertical', minHeight: '70px' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Información relevante..." />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+          <div className="modal-footer">
             <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
             <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : '✅ Registrar Beneficiario'}</Button>
           </div>
