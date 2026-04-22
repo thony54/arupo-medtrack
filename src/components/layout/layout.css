@@ -114,23 +114,23 @@
     right: 0;
     bottom: 0;
     width: 100%;
-    height: 80px;
+    height: auto;
+    min-height: 64px;
     flex-direction: row;
     border-right: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0.5rem 1rem;
-    padding-bottom: env(safe-area-inset-bottom, 0.5rem); /* For iPhones */
-    z-index: 50;
+    border-top: 1px solid var(--border-color);
+    padding: 0.25rem 0.5rem;
+    padding-bottom: env(safe-area-inset-bottom, 0.25rem);
+    z-index: 100;
     
-    /* Glassmorphism for floating feel */
     background: var(--bg-glass-heavy);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.08);
   }
 
   .sidebar-header {
-    display: none; /* Hide logo on mobile bottom nav */
+    display: none;
   }
 
   .sidebar-nav {
@@ -138,45 +138,59 @@
     justify-content: space-around;
     align-items: center;
     width: 100%;
-    margin-right: 0.5rem;
+    gap: 0;
   }
 
   .nav-item {
+    flex: 1;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.5rem;
-    font-size: 0.7rem;
+    gap: 0.2rem;
+    padding: 0.5rem 0.25rem;
+    font-size: 0.65rem;
     border-radius: var(--radius-md);
+    text-align: center;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .nav-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .nav-item svg {
+    width: 18px;
+    height: 18px;
   }
 
   .nav-item:hover {
     transform: none;
+    background: transparent;
   }
 
-  .nav-item.active::before {
-    display: none; /* Hide left bar */
-  }
-
-  /* Optional: Show active indicator on top or background */
   .nav-item.active {
     background-color: transparent;
     color: var(--primary-color);
   }
 
-  .sidebar-footer {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-left: 0.5rem;
-    border-left: 1px solid var(--border-color);
+  .nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 3px 3px 0 0;
   }
 
-  /* Hide text in footer buttons on mobile */
-  .theme-toggle span, .logout-btn span {
-    display: none;
+  .sidebar-footer {
+    display: none; /* Hide footer on mobile bottom nav to save space */
   }
-  
-  .theme-toggle, .logout-btn {
-    padding: 0.5rem;
+
+  .nav-group-title {
+    display: none !important;
   }
 }

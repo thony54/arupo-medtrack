@@ -82,12 +82,12 @@ export const Dashboard = () => {
       )}
 
       {/* KPI Grid */}
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+      <div className="kpi-grid">
         {kpis.map((kpi, i) => (
           <div key={kpi.title} className={`card kpi-card animate-slide-up stagger-${Math.min(i + 1, 3)}`}
             style={kpi.alert ? { border: '1px solid var(--danger-color)' } : {}}>
             <div className="kpi-header">
-              <h3 className="kpi-title">{kpi.title}</h3>
+              <h3 className="kpi-title" style={{ fontSize: '0.85rem' }}>{kpi.title}</h3>
               <div className="kpi-icon" style={{ backgroundColor: kpi.bg, color: kpi.color }}>
                 {kpi.icon}
               </div>
@@ -95,12 +95,12 @@ export const Dashboard = () => {
             <div className="kpi-value" style={{ color: kpi.alert ? 'var(--danger-color)' : kpi.color }}>
               {loading ? '...' : kpi.value}
             </div>
-            <p className="kpi-subtitle">{kpi.subtitle}</p>
+            <p className="kpi-subtitle" style={{ fontSize: '0.75rem' }}>{kpi.subtitle}</p>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '0' }}>
+      <div className="grid-responsive" style={{ marginTop: '1.5rem' }}>
         {/* Últimas Donaciones */}
         <div className="card animate-slide-up stagger-3">
           <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -112,15 +112,15 @@ export const Dashboard = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {ultimasDonaciones.map(d => (
                 <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{d.medicinas?.nombre}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+                  <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.medicinas?.nombre}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {d.beneficiarios?.nombre_completo || d.origen_destino || 'Beneficiario no registrado'}
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: '700', color: 'var(--success-color)' }}>{d.cantidad} u.</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{new Date(d.timestamp).toLocaleDateString('es-ES')}</div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontWeight: '700', color: 'var(--success-color)', fontSize: '0.9rem' }}>{d.cantidad} u.</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{new Date(d.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div>
                   </div>
                 </div>
               ))}
@@ -139,9 +139,9 @@ export const Dashboard = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {alertas.map(a => (
                 <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{a.producto_nombre}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{a.cantidad_actual} unidades disponibles</div>
+                  <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.producto_nombre}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{a.cantidad_actual} unidades</div>
                   </div>
                   <Badge variant={a.dias_restantes <= 15 ? 'danger' : 'warning'}>
                     {a.dias_restantes}d

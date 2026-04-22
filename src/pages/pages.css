@@ -126,14 +126,74 @@
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    margin-bottom: 1.5rem;
+    gap: 1.25rem;
   }
   
-  .page-header button {
+  .page-header > div:first-child {
+    text-align: center;
     width: 100%;
   }
 
+  .page-header .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-header > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .page-header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem;
+  }
+
+  .kpi-card {
+    padding: 1rem !important;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .kpi-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .kpi-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .data-table th:nth-child(n+3), 
+  .data-table td:nth-child(n+3) {
+    display: none; /* Hide non-essential columns on very small mobile */
+  }
+
+  .data-table th:nth-child(1), .data-table td:nth-child(1),
+  .data-table th:nth-child(2), .data-table td:nth-child(2),
+  .data-table th:last-child, .data-table td:last-child {
+    display: table-cell;
+  }
+
   .data-table th, .data-table td {
-    padding: 0.75rem;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
   }
 }

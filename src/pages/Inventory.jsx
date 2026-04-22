@@ -120,41 +120,43 @@ export const Inventory = () => {
       )}
 
       {/* Search + Filters */}
-      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+          <div style={{ flex: '1 1 100%', minWidth: '200px', position: 'relative' }}>
             <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
             <input className="input-field" style={{ paddingLeft: '2.75rem', marginBottom: 0, width: '100%' }}
-              placeholder="Buscar por nombre, categoría, concentración..." value={searchTerm}
+              placeholder="Buscar medicamentos..." value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)} aria-label="Buscar medicamentos" />
           </div>
-          <Button variant={showFilters ? 'primary' : 'outline'} onClick={() => setShowFilters(!showFilters)}>
-            <Filter size={16} />
-            Filtros
-            {activeFilters > 0 && (
-              <span style={{ background: 'white', color: 'var(--primary-color)', borderRadius: '9999px', padding: '0 6px', fontSize: '0.75rem', fontWeight: '700' }}>{activeFilters}</span>
-            )}
-          </Button>
-          {(activeFilters > 0 || searchTerm) && (
-            <Button variant="ghost" onClick={() => { setFiltroCategoria(''); setFiltroEstado(''); setSearchTerm(''); }} style={{ color: 'var(--danger-color)' }}>
-              <X size={16} /> Limpiar
+          <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+            <Button variant={showFilters ? 'primary' : 'outline'} onClick={() => setShowFilters(!showFilters)} style={{ flex: 1 }}>
+              <Filter size={16} />
+              Filtros
+              {activeFilters > 0 && (
+                <span style={{ background: 'white', color: 'var(--primary-color)', borderRadius: '9999px', padding: '0 6px', fontSize: '0.75rem', fontWeight: '700' }}>{activeFilters}</span>
+              )}
             </Button>
-          )}
+            {(activeFilters > 0 || searchTerm) && (
+              <Button variant="ghost" onClick={() => { setFiltroCategoria(''); setFiltroEstado(''); setSearchTerm(''); }} style={{ color: 'var(--danger-color)', flex: 0.4 }}>
+                <X size={16} />
+              </Button>
+            )}
+          </div>
         </div>
 
         {showFilters && (
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-            <div style={{ flex: 1, minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ flex: '1 1 100%', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Categoría</label>
-              <select className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
+              <select className="input-field" style={{ marginBottom: 0, cursor: 'pointer', width: '100%' }}
                 value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}>
                 <option value="">Todas las categorías</option>
                 {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
               </select>
             </div>
-            <div style={{ flex: 1, minWidth: '160px', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <div style={{ flex: '1 1 100%', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Estado de Stock</label>
-              <select className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
+              <select className="input-field" style={{ marginBottom: 0, cursor: 'pointer', width: '100%' }}
                 value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
                 <option value="">Todos</option>
                 <option value="normal">✅ En Stock</option>
@@ -167,7 +169,7 @@ export const Inventory = () => {
       </div>
 
       {/* Quick stats */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem', marginBottom: '1.5rem' }}>
         {[
           { label: 'Total', count: medicinas.length, color: 'var(--primary-color)', bg: 'var(--primary-light)', f: '' },
           { label: 'En Stock', count: medicinas.filter(m => m.stock_actual >= 10).length, color: 'var(--success-color)', bg: 'var(--success-bg)', f: 'normal' },
@@ -175,11 +177,9 @@ export const Inventory = () => {
           { label: 'Agotado', count: medicinas.filter(m => m.stock_actual === 0).length, color: 'var(--danger-color)', bg: 'var(--danger-bg)', f: 'agotado' },
         ].map(s => (
           <button key={s.label} onClick={() => setFiltroEstado(s.f)}
-            style={{ flex: 1, minWidth: '110px', background: s.bg, border: `1px solid ${s.color}33`, borderRadius: 'var(--radius-lg)', padding: '0.875rem 1rem', cursor: 'pointer', textAlign: 'left', transition: 'all var(--transition-fast)' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
-            <div style={{ fontSize: '1.5rem', fontWeight: '700', color: s.color }}>{s.count}</div>
-            <div style={{ fontSize: '0.8rem', fontWeight: '600', color: s.color, opacity: 0.8 }}>{s.label}</div>
+            style={{ background: s.bg, border: `1px solid ${s.color}33`, borderRadius: 'var(--radius-lg)', padding: '0.75rem 1rem', cursor: 'pointer', textAlign: 'center', transition: 'all var(--transition-fast)' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: '700', color: s.color }}>{s.count}</div>
+            <div style={{ fontSize: '0.7rem', fontWeight: '600', color: s.color, opacity: 0.8 }}>{s.label}</div>
           </button>
         ))}
       </div>
