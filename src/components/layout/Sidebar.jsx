@@ -20,8 +20,8 @@ export const Sidebar = () => {
     navigate('/login');
   };
 
-  const navItem = (to, Icon, label, end = false) => (
-    <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end={end}>
+  const navItem = (to, Icon, label, animClass = '', end = false) => (
+    <NavLink to={to} className={({ isActive }) => `nav-item ${animClass} ${isActive ? 'active' : ''}`} end={end}>
       <Icon size={20} />
       <span>{label}</span>
     </NavLink>
@@ -51,29 +51,19 @@ export const Sidebar = () => {
         <div className="nav-group-title animate-reveal stagger-1" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }}>
           General
         </div>
-        <div className="animate-reveal stagger-2">
-          {navItem('/', LayoutDashboard, 'Inicio', true)}
-        </div>
+        {navItem('/', LayoutDashboard, 'Inicio', 'animate-reveal stagger-2', true)}
 
         <div className="nav-group-title animate-reveal stagger-2" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
           Donaciones
         </div>
-        <div className="animate-reveal stagger-3">
-          {navItem('/inventory', Package, 'Inventario')}
-        </div>
-        <div className="animate-reveal stagger-3">
-          {navItem('/catalog', Database, 'Catálogo')}
-        </div>
+        {navItem('/inventory', Package, 'Inventario', 'animate-reveal stagger-3')}
+        {navItem('/catalog', Database, 'Catálogo', 'animate-reveal stagger-3')}
 
         <div className="nav-group-title animate-reveal stagger-3" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
           CRM
         </div>
-        <div className="animate-reveal stagger-4">
-          {navItem('/beneficiarios', Users, 'Beneficiarios')}
-        </div>
-        <div className="animate-reveal stagger-5">
-          {navItem('/donantes', HandHeart, 'Donantes')}
-        </div>
+        {navItem('/beneficiarios', Users, 'Beneficiarios', 'animate-reveal stagger-4')}
+        {navItem('/donantes', HandHeart, 'Donantes', 'animate-reveal stagger-5')}
       </nav>
 
 
