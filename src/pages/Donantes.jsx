@@ -37,13 +37,13 @@ export const Donantes = () => {
       if (err) throw err;
 
       // Count lotes per donante
-      const { data: loteCounts } = await supabase
+      const { data: loteData } = await supabase
         .from('lotes')
-        .select('donante_id, count:id.count()')
+        .select('donante_id')
         .not('donante_id', 'is', null);
 
       const countMap = {};
-      (loteCounts || []).forEach(l => { countMap[l.donante_id] = parseInt(l.count) || 0; });
+      (loteData || []).forEach(l => { countMap[l.donante_id] = (countMap[l.donante_id] || 0) + 1; });
       setDonantes((data || []).map(d => ({ ...d, lotes_count: countMap[d.id] || 0 })));
     } catch { setDonantes([]); } finally { setLoading(false); }
   };
@@ -198,7 +198,24 @@ export const Donantes = () => {
       )}
 
       {/* Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title="🤝 Registrar Donante">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); resetForm(); }}
+        title="🤝 Registrar Donante"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={saving}
+              onClick={() => document.getElementById('d-submit-trigger').click()}
+            >
+              {saving ? 'Guardando...' : '✅ Registrar Donante'}
+            </Button>
+          </>
+        }
+      >
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {error && <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>{error}</div>}
 
@@ -240,10 +257,8 @@ export const Donantes = () => {
             <textarea id="d-notas" className="input-field" style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones..." />
           </div>
 
-          <div className="modal-footer">
-            <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : '✅ Registrar Donante'}</Button>
-          </div>
+          {/* Hidden submit trigger — actual buttons are in footer prop */}
+          <button type="submit" id="d-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
     </div>

@@ -34,18 +34,18 @@ export const Beneficiarios = () => {
       if (!supabase) throw new Error('Sin conexión');
       const { data, error: err } = await supabase
         .from('beneficiarios')
-        .select('*, movimientos(count)')
+        .select('*')
         .order('nombre_completo');
       if (err) throw err;
       // Get donation count per beneficiary
-      const { data: counts } = await supabase
+      const { data: movData } = await supabase
         .from('movimientos')
-        .select('beneficiario_id, count:id.count()')
+        .select('beneficiario_id')
         .eq('tipo', 'Salida')
         .not('beneficiario_id', 'is', null);
 
       const countMap = {};
-      (counts || []).forEach(c => { countMap[c.beneficiario_id] = parseInt(c.count) || 0; });
+      (movData || []).forEach(m => { countMap[m.beneficiario_id] = (countMap[m.beneficiario_id] || 0) + 1; });
       setBeneficiarios((data || []).map(b => ({ ...b, donaciones_count: countMap[b.id] || 0 })));
     } catch { setBeneficiarios([]); } finally { setLoading(false); }
   };
@@ -206,7 +206,24 @@ export const Beneficiarios = () => {
       )}
 
       {/* Add Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title="👤 Registrar Beneficiario">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); resetForm(); }}
+        title="👤 Registrar Beneficiario"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={saving}
+              onClick={() => document.getElementById('b-submit-trigger').click()}
+            >
+              {saving ? 'Guardando...' : '✅ Registrar Beneficiario'}
+            </Button>
+          </>
+        }
+      >
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {error && <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>{error}</div>}
 
@@ -248,10 +265,8 @@ export const Beneficiarios = () => {
             <textarea id="b-notas" className="input-field" style={{ marginBottom: 0, resize: 'vertical', minHeight: '70px' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Información relevante..." />
           </div>
 
-          <div className="modal-footer">
-            <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button type="submit" variant="primary" disabled={saving}>{saving ? 'Guardando...' : '✅ Registrar Beneficiario'}</Button>
-          </div>
+          {/* Hidden submit trigger — actual buttons are in footer prop */}
+          <button type="submit" id="b-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
     </div>
