@@ -76,8 +76,8 @@ export const Sidebar = () => {
         {navItem('/donantes', HandHeart, 'Donantes')}
       </nav>
 
-      <LoteForm isOpen={showLoteForm} onClose={() => setShowLoteForm(false)} onSuccess={() => { setShowLoteForm(false); window.dispatchEvent(new Event('inventory-updated')); }} />
-      <SalidaFEFO isOpen={showSalida} onClose={() => setShowSalida(false)} onSuccess={() => { setShowSalida(false); window.dispatchEvent(new Event('inventory-updated')); }} />
+      <LoteForm isOpen={showLoteForm} onClose={() => setShowLoteForm(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
+      <SalidaFEFO isOpen={showSalida} onClose={() => setShowSalida(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
     </aside>
   );
 };
