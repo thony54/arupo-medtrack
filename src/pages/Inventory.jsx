@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Camera, X, ChevronRight, Package, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Search, Filter, Camera, X, ChevronRight, Package, Wifi, WifiOff, HandHeart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
@@ -93,15 +93,15 @@ export const Inventory = () => {
             </span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Button variant="outline" onClick={() => setShowQR(true)} style={{ minWidth: '44px', minHeight: '44px' }} aria-label="Escanear código">
-            <Camera size={18} /> Escanear
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Button variant="outline" onClick={() => setShowQR(true)} style={{ width: '44px', minWidth: '44px', maxWidth: '44px', height: '44px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }} aria-label="Escanear código" title="Escanear código">
+            <Camera size={20} />
           </Button>
-          <Button variant="outline" onClick={() => setShowSalida(true)}>
-            ⚡ Entregar Donación
+          <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '44px', minWidth: '44px', maxWidth: '44px', height: '44px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación" title="Entregar Donación">
+            <HandHeart size={20} />
           </Button>
-          <Button variant="primary" onClick={() => setShowLoteForm(true)}>
-            <Plus size={18} /> Registrar Ingreso
+          <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '44px', minWidth: '44px', maxWidth: '44px', height: '44px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(16,185,129,0.4)' }} aria-label="Registrar Ingreso" title="Registrar Ingreso">
+            <Plus size={22} strokeWidth={2.5} />
           </Button>
         </div>
       </div>
