@@ -4,9 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { LoteForm } from '../components/inventory/LoteForm';
-import { SalidaFEFO } from '../components/inventory/SalidaFEFO';
-import { QRScanner } from '../components/inventory/QRScanner';
 import { useOfflineCache } from '../hooks/useOfflineCache';
 import './pages.css';
 
@@ -20,12 +17,15 @@ export const Inventory = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
-  const [showLoteForm, setShowLoteForm] = useState(false);
-  const [showSalida, setShowSalida] = useState(false);
-  const [showQR, setShowQR] = useState(false);
   const { isOnline, pendingCount, fetchMedicinas: fetchOffline } = useOfflineCache();
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+    
+    const handleUpdate = () => fetchData();
+    window.addEventListener('inventory-updated', handleUpdate);
+    return () => window.removeEventListener('inventory-updated', handleUpdate);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -92,17 +92,6 @@ export const Inventory = () => {
               {isOnline ? 'Online' : `Offline (${pendingCount} pendientes)`}
             </span>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <Button variant="outline" onClick={() => setShowQR(true)} style={{ width: '44px', minWidth: '44px', maxWidth: '44px', height: '44px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }} aria-label="Escanear código" title="Escanear código">
-            <Camera size={20} />
-          </Button>
-          <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '44px', minWidth: '44px', maxWidth: '44px', height: '44px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación" title="Entregar Donación">
-            <HandHeart size={20} />
-          </Button>
-          <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '44px', minWidth: '44px', maxWidth: '44px', height: '44px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(16,185,129,0.4)' }} aria-label="Registrar Ingreso" title="Registrar Ingreso">
-            <Plus size={22} strokeWidth={2.5} />
-          </Button>
         </div>
       </div>
 
@@ -246,20 +235,6 @@ export const Inventory = () => {
         </table>
       </div>
 
-      {/* Modals */}
-      <LoteForm isOpen={showLoteForm} onClose={() => { setShowLoteForm(false); fetchData(); }} onSuccess={() => { fetchData(); }} />
-      <SalidaFEFO isOpen={showSalida} onClose={() => { setShowSalida(false); fetchData(); }} onSuccess={() => { fetchData(); }} />
-      {showQR && (
-        <div className="modal-overlay" onClick={() => setShowQR(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>📷 Escanear Código</h2>
-              <button className="modal-close" onClick={() => setShowQR(false)} type="button"><X size={20} /></button>
-            </div>
-            <QRScanner onScan={(code) => { console.log('Scanned:', code); setShowQR(false); }} onClose={() => setShowQR(false)} />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
