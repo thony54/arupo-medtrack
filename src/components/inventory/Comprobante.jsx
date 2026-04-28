@@ -13,8 +13,16 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML || '';
-    const win = window.open('', '_blank');
-    win.document.write(`
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
       <html>
         <head>
           <title>Acta de Donación — Fundación Arupo</title>
@@ -46,12 +54,15 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
         <body>${content}</body>
       </html>
     `);
-    win.document.close();
-    win.focus();
+    doc.close();
+
     setTimeout(() => {
-      win.print();
-      win.close();
-    }, 250);
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+    }, 500);
   };
 
   return (
