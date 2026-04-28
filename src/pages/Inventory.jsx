@@ -42,12 +42,15 @@ export const Inventory = () => {
       setAlertas(alertRes.data || []);
     } catch {
       const cached = await fetchOffline();
-      setMedicinas(cached);
-      setMedicinas([
-        { id: '1', nombre: 'Paracetamol', concentracion: '500mg', presentacion: 'Tabletas', stock_actual: 150, categorias: { nombre: 'Analgésicos' } },
-        { id: '2', nombre: 'Amoxicilina', concentracion: '500mg', presentacion: 'Cápsulas', stock_actual: 0, categorias: { nombre: 'Antibióticos' } },
-        { id: '3', nombre: 'Ibuprofeno', concentracion: '400mg', presentacion: 'Tabletas', stock_actual: 8, categorias: { nombre: 'Analgésicos' } },
-      ]);
+      if (cached && cached.length > 0) {
+        setMedicinas(cached);
+      } else {
+        setMedicinas([
+          { id: '1', nombre: 'Paracetamol', concentracion: '500mg', presentacion: 'Tabletas', stock_actual: 150, categorias: { nombre: 'Analgésicos' } },
+          { id: '2', nombre: 'Amoxicilina', concentracion: '500mg', presentacion: 'Cápsulas', stock_actual: 0, categorias: { nombre: 'Antibióticos' } },
+          { id: '3', nombre: 'Ibuprofeno', concentracion: '400mg', presentacion: 'Tabletas', stock_actual: 8, categorias: { nombre: 'Analgésicos' } },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
@@ -244,8 +247,8 @@ export const Inventory = () => {
       </div>
 
       {/* Modals */}
-      <LoteForm isOpen={showLoteForm} onClose={() => setShowLoteForm(false)} onSuccess={() => { setShowLoteForm(false); fetchData(); }} />
-      <SalidaFEFO isOpen={showSalida} onClose={() => setShowSalida(false)} onSuccess={() => { setShowSalida(false); fetchData(); }} />
+      <LoteForm isOpen={showLoteForm} onClose={() => { setShowLoteForm(false); fetchData(); }} onSuccess={() => { fetchData(); }} />
+      <SalidaFEFO isOpen={showSalida} onClose={() => { setShowSalida(false); fetchData(); }} onSuccess={() => { fetchData(); }} />
       {showQR && (
         <div className="modal-overlay" onClick={() => setShowQR(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>

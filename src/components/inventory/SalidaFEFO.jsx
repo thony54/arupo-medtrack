@@ -157,7 +157,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
         <Comprobante
           beneficiario={actaData.beneficiario}
           donaciones={actaData.donaciones}
-          onClose={() => { resetAll(); onSuccess(); }}
+          onClose={() => { onClose(); resetAll(); onSuccess(); }}
         />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

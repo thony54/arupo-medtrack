@@ -201,26 +201,20 @@
   z-index: 10;
 }
 
-/* Redefinimos la animación para que no entre en conflicto con translate(-50%, -50%) */
+/* Desktop modal: fade + scale from center */
 @keyframes modalPop {
   from { opacity: 0; transform: translate(-50%, -48%) scale(0.95); }
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
+/* Mobile modal: slide up from bottom (bottom-sheet style) */
 @keyframes modalPopMobile {
-  from { opacity: 0; transform: translate(-50%, 20px); }
-  to   { opacity: 1; transform: translate(-50%, 0); }
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-content {
   animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
 }
 
 .modal-close {
@@ -244,25 +238,27 @@
 @media (max-width: 800px) {
   .modal-overlay {
     padding: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
   }
 
   .modal-content {
+    position: relative !important;
     top: auto !important;
-    bottom: 110px !important; /* Lo subimos aún más para asegurar visibilidad total */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 96% !important;
-    max-height: 65vh !important; /* Más bajo para asegurar que no se pierda nada */
-    border-radius: var(--radius-lg) !important;
+    bottom: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
     animation: modalPopMobile 0.3s ease-out forwards !important;
-    border: 2px solid var(--primary-color) !important; /* Borde para identificar los límites */
-  }
-
-  .modal-footer {
-    padding: 1rem 1.25rem !important;
-    background: var(--bg-surface) !important;
-    border-top: 1px solid var(--border-color) !important;
-    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+    border-top: 2px solid var(--primary-color) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
   }
 
   .modal-header {
@@ -271,15 +267,16 @@
 
   .modal-body {
     padding: 1rem 1.25rem;
-    padding-bottom: 1.5rem;
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
   }
 
   .modal-footer {
     padding: 0.875rem 1.25rem;
+    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
     position: sticky;
     bottom: 0;
     margin-top: auto;
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.03);
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
   }
 
   .btn {

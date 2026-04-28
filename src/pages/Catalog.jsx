@@ -154,7 +154,26 @@ export const Catalog = () => {
       </div>
 
       {/* Add Medicine Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }} title="Añadir Nueva Medicina">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); resetForm(); }}
+        title="💊 Añadir Nueva Medicina"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={loading}
+              onClick={() => document.getElementById('cat-submit-trigger').click()}
+            >
+              {loading ? 'Guardando...' : '✅ Guardar Medicina'}
+            </Button>
+          </>
+        }
+      >
         <form onSubmit={handleAddMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {error && (
             <div style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -264,14 +283,8 @@ export const Catalog = () => {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-            <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? 'Guardando...' : 'Guardar Medicina'}
-            </Button>
-          </div>
+          {/* Hidden submit trigger */}
+          <button type="submit" id="cat-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
     </div>
