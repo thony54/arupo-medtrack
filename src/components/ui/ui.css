@@ -201,16 +201,10 @@
   z-index: 10;
 }
 
-/* Desktop modal: fade + scale from center */
+/* Desktop modal animation */
 @keyframes modalPop {
   from { opacity: 0; transform: translate(-50%, -48%) scale(0.95); }
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-/* Mobile modal: slide up from bottom (bottom-sheet style) */
-@keyframes modalPopMobile {
-  from { opacity: 0; transform: translateY(30px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 .modal-content {
@@ -235,48 +229,68 @@
   color: var(--danger-color);
   transform: rotate(90deg);
 }
+
+/* ============================================================
+   MOBILE MODAL — Centrado real en pantallas pequeñas
+   Usa la misma técnica que desktop (position: fixed + translate)
+   pero con ancho y alto ajustado a la vista del teléfono.
+   ============================================================ */
 @media (max-width: 800px) {
+
+  /* El overlay no cambia — sigue cubriendo pantalla completa */
   .modal-overlay {
     padding: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
   }
 
+  /* El modal se centra igual que en desktop pero ocupa casi toda la pantalla */
   .modal-content {
-    position: relative !important;
-    top: auto !important;
-    bottom: auto !important;
-    left: auto !important;
-    transform: none !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    max-height: 90vh !important;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
-    animation: modalPopMobile 0.3s ease-out forwards !important;
-    border-top: 2px solid var(--primary-color) !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
-    margin-bottom: 0 !important;
+    /* Mantiene position: fixed y centrado con translate */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+
+    /* Ancho: pantalla completa menos 1.5rem de margen a cada lado */
+    width: calc(100% - 3rem) !important;
+    max-width: calc(100% - 3rem) !important;
+
+    /* Alto máximo: 88% de la altura de la vista */
+    max-height: 88vh !important;
+
+    /* Radio uniforme (no solo arriba como bottom-sheet) */
+    border-radius: var(--radius-xl) !important;
+
+    /* Borde normal como desktop */
+    border: 1px solid var(--border-color) !important;
+
+    /* Animación centrada — igual que desktop pero más sutil */
+    animation: modalPopMobile 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) forwards !important;
   }
 
   .modal-header {
-    padding: 1rem 1.25rem;
+    padding: 1rem 1.125rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .modal-body {
-    padding: 1rem 1.25rem;
-    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+    padding: 1rem 1.125rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-footer {
-    padding: 0.875rem 1.25rem;
+    padding: 0.875rem 1.125rem;
     padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
     position: sticky;
     bottom: 0;
-    margin-top: auto;
-    box-shadow: 0 -4px 10px rgba(0,0,0,0.05);
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    z-index: 10;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
   }
 
   .btn {
@@ -286,6 +300,18 @@
 
   .input-field {
     padding: 0.625rem 0.875rem;
-    font-size: 16px;
+    font-size: 16px; /* Previene zoom automático en iOS */
+  }
+
+  /* Animación mobile: fade + scale sin conflicto con translate(-50%,-50%) */
+  @keyframes modalPopMobile {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -47%) scale(0.93);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
   }
 }
