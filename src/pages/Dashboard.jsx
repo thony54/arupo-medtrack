@@ -65,8 +65,8 @@ export const Dashboard = () => {
   ];
 
   return (
-    <div className="animate-fade-in">
-      <div className="page-header">
+    <div className="animate-blur-in">
+      <div className="page-header animate-reveal">
         <div>
           <h1 className="page-title">Centro de Operaciones</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
@@ -76,7 +76,7 @@ export const Dashboard = () => {
       </div>
 
       {error && (
-        <div style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>
+        <div className="animate-fade-in stagger-1" style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>
           ⚠️ <strong>Aviso:</strong> {error}. Mostrando datos de demostración.
         </div>
       )}
@@ -84,7 +84,7 @@ export const Dashboard = () => {
       {/* KPI Grid */}
       <div className="kpi-grid">
         {kpis.map((kpi, i) => (
-          <div key={kpi.title} className={`card kpi-card animate-slide-up stagger-${Math.min(i + 1, 3)}`}
+          <div key={kpi.title} className={`card kpi-card animate-reveal stagger-${Math.min(i + 1, 5)}`}
             style={kpi.alert ? { border: '1px solid var(--danger-color)' } : {}}>
             <div className="kpi-header">
               <h3 className="kpi-title" style={{ fontSize: '0.85rem' }}>{kpi.title}</h3>
@@ -102,7 +102,7 @@ export const Dashboard = () => {
 
       <div className="grid-responsive" style={{ marginTop: '1.5rem' }}>
         {/* Últimas Donaciones */}
-        <div className="card animate-slide-up stagger-3">
+        <div className="card animate-blur-in stagger-3">
           <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Heart size={18} color="var(--success-color)" /> Últimas Donaciones
           </h2>
@@ -110,8 +110,8 @@ export const Dashboard = () => {
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>No hay donaciones registradas aún.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {ultimasDonaciones.map(d => (
-                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              {ultimasDonaciones.map((d, i) => (
+                <div key={d.id} className={`animate-fade-in stagger-${Math.min(i + 1, 3)}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                   <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
                     <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.medicinas?.nombre}</div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -129,7 +129,7 @@ export const Dashboard = () => {
         </div>
 
         {/* Alertas de Vencimiento */}
-        <div className="card animate-slide-up stagger-3">
+        <div className="card animate-blur-in stagger-4">
           <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <AlertTriangle size={18} color="var(--warning-color)" /> Lotes por Vencer
           </h2>
@@ -137,8 +137,8 @@ export const Dashboard = () => {
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>✅ No hay lotes próximos a vencer.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {alertas.map(a => (
-                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245,158,11,0.2)' }}>
+              {alertas.map((a, i) => (
+                <div key={a.id} className={`animate-fade-in stagger-${Math.min(i + 1, 3)}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245,158,11,0.2)' }}>
                   <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
                     <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.producto_nombre}</div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{a.cantidad_actual} unidades</div>

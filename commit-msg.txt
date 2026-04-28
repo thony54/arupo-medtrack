@@ -1,0 +1,7 @@
+feat: actualiza logo ARUPO y añade animaciones futuristas sutiles
+
+- Cambia favicon a arupo-logo.png
+- Añade animaciones blurFadeIn y revealDown en index.css
+- Implementa logo real y animaciones en Login.jsx
+- Actualiza Sidebar con logo y navegación animada
+- Mejora la entrada del Dashboard con efectos de revelado

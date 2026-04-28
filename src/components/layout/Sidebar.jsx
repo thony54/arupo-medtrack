@@ -28,11 +28,11 @@ export const Sidebar = () => {
   );
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar animate-blur-in">
       <div className="sidebar-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
-          <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <img src="/logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+          <div className="sidebar-title animate-reveal" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
             <span>MedTrack</span>
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: '0.25rem' }}>
@@ -48,22 +48,32 @@ export const Sidebar = () => {
       </div>
 
       <nav className="sidebar-nav">
-        <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }}>
+        <div className="nav-group-title animate-reveal stagger-1" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }}>
           General
         </div>
-        {navItem('/', LayoutDashboard, 'Inicio', true)}
+        <div className="animate-reveal stagger-2">
+          {navItem('/', LayoutDashboard, 'Inicio', true)}
+        </div>
 
-        <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
+        <div className="nav-group-title animate-reveal stagger-2" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
           Donaciones
         </div>
-        {navItem('/inventory', Package, 'Inventario')}
-        {navItem('/catalog', Database, 'Catálogo')}
+        <div className="animate-reveal stagger-3">
+          {navItem('/inventory', Package, 'Inventario')}
+        </div>
+        <div className="animate-reveal stagger-3">
+          {navItem('/catalog', Database, 'Catálogo')}
+        </div>
 
-        <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
+        <div className="nav-group-title animate-reveal stagger-3" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
           CRM
         </div>
-        {navItem('/beneficiarios', Users, 'Beneficiarios')}
-        {navItem('/donantes', HandHeart, 'Donantes')}
+        <div className="animate-reveal stagger-4">
+          {navItem('/beneficiarios', Users, 'Beneficiarios')}
+        </div>
+        <div className="animate-reveal stagger-5">
+          {navItem('/donantes', HandHeart, 'Donantes')}
+        </div>
       </nav>
 
 
