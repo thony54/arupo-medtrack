@@ -76,7 +76,7 @@ export const Layout = () => {
   };
 
   return (
-    <div className={`layout-container animate-fade-in ${showHeader ? 'header-visible' : 'header-hidden'}`}>
+    <div className={`layout-container animate-opacity-in ${showHeader ? 'header-visible' : 'header-hidden'}`}>
       <Sidebar />
       <main 
         ref={mainRef}
