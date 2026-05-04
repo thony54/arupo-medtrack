@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Users, Phone, MapPin, FileText, Search, X } from 'lucide-react';
+import { UserPlus, Users, Phone, MapPin, FileText, Search, X, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -85,6 +85,25 @@ export const Beneficiarios = () => {
     } finally { setSaving(false); }
   };
 
+  const handleDeleteBeneficiario = async (e, id, nombre) => {
+    e.stopPropagation();
+    if (window.confirm(`¿Estás seguro de borrar el beneficiario "${nombre}"? Esta acción no se puede deshacer.`)) {
+      try {
+        setLoading(true);
+        if (supabase) {
+          const { error: delError } = await supabase.from('beneficiarios').delete().eq('id', id);
+          if (delError) throw delError;
+          await fetchBeneficiarios();
+          if (selected?.id === id) setSelected(null);
+        }
+      } catch (err) {
+        alert(err.message || 'Error al borrar.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const filtered = beneficiarios.filter(b =>
     b.nombre_completo.toLowerCase().includes(search.toLowerCase()) ||
     (b.cedula || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -129,14 +148,15 @@ export const Beneficiarios = () => {
                 <th style={{ textAlign: 'center' }}>Donaciones</th>
                 <th>Estado</th>
                 <th>Historial</th>
+                <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando...</td></tr>
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Users size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>No hay beneficiarios registrados aún.</span>
                   </td>
@@ -159,6 +179,15 @@ export const Beneficiarios = () => {
                   <td>
                     <Button variant="ghost" onClick={e => { e.stopPropagation(); fetchHistorial(b); }}
                       style={{ fontSize: '0.8rem' }}>Ver →</Button>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button 
+                      onClick={(e) => handleDeleteBeneficiario(e, b.id, b.nombre_completo)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
+                      title="Borrar Beneficiario"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </td>
                 </tr>
               ))}

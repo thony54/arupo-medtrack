@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Database, FlaskConical, Pill, Tag } from 'lucide-react';
+import { Plus, Database, FlaskConical, Pill, Tag, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -90,6 +90,26 @@ export const Catalog = () => {
     }
   };
 
+  const handleDeleteMedicine = async (id, nombre) => {
+    if (window.confirm(`¿Estás seguro de borrar el medicamento "${nombre}" y todo su historial de movimientos? Esta acción no se puede deshacer.`)) {
+      try {
+        setLoading(true);
+        if (supabase) {
+          // Borrar movimientos primero por la restricción de llave foránea RESTRICT
+          await supabase.from('movimientos').delete().eq('medicina_id', id);
+          // Borrar la medicina (los lotes se borran en cascada automáticamente)
+          const { error: delError } = await supabase.from('medicinas').delete().eq('id', id);
+          if (delError) throw delError;
+          await fetchData();
+        }
+      } catch (err) {
+        alert(err.message || 'Error al borrar la medicina.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const presentacionOptions = ['Tabletas', 'Cápsulas', 'Jarabe', 'Ampolla', 'Crema', 'Gotas', 'Supositorio', 'Parche', 'Otro'];
 
   return (
@@ -123,6 +143,7 @@ export const Catalog = () => {
                 <th>Categoría</th>
                 <th>Concentración</th>
                 <th>Presentación</th>
+                <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -138,11 +159,20 @@ export const Catalog = () => {
                   </td>
                   <td style={{ color: 'var(--text-secondary)' }}>{med.concentracion || '-'}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button 
+                      onClick={() => handleDeleteMedicine(med.id, med.nombre)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
+                      title="Borrar Medicamento"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {medicinas.length === 0 && (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Pill size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>No hay medicinas en el catálogo aún.<br />Añade la primera usando el botón de arriba.</span>
                   </td>

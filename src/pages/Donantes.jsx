@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, Search, X, Users } from 'lucide-react';
+import { Building2, Plus, Search, X, Users, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -85,6 +85,25 @@ export const Donantes = () => {
     } finally { setSaving(false); }
   };
 
+  const handleDeleteDonante = async (e, id, nombre) => {
+    e.stopPropagation();
+    if (window.confirm(`¿Estás seguro de borrar el donante "${nombre}"? Esta acción no se puede deshacer.`)) {
+      try {
+        setLoading(true);
+        if (supabase) {
+          const { error: delError } = await supabase.from('donantes').delete().eq('id', id);
+          if (delError) throw delError;
+          await fetchDonantes();
+          if (selected?.id === id) setSelected(null);
+        }
+      } catch (err) {
+        alert(err.message || 'Error al borrar.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const filtered = donantes.filter(d =>
     d.nombre.toLowerCase().includes(search.toLowerCase()) ||
     d.tipo.toLowerCase().includes(search.toLowerCase()) ||
@@ -136,14 +155,15 @@ export const Donantes = () => {
                 <th style={{ textAlign: 'center' }}>Lotes Aportados</th>
                 <th>Estado</th>
                 <th>Historial</th>
+                <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando...</td></tr>
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Building2 size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>No hay donantes registrados aún.</span>
                   </td>
@@ -159,6 +179,15 @@ export const Donantes = () => {
                   <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--success-color)' }}>{d.lotes_count}</td>
                   <td><Badge variant={d.estado === 'Activo' ? 'success' : 'warning'}>{d.estado}</Badge></td>
                   <td><Button variant="ghost" onClick={e => { e.stopPropagation(); fetchHistorial(d); }} style={{ fontSize: '0.8rem' }}>Ver →</Button></td>
+                  <td style={{ textAlign: 'center' }}>
+                    <button 
+                      onClick={(e) => handleDeleteDonante(e, d.id, d.nombre)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
+                      title="Borrar Donante"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
