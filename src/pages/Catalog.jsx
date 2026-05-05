@@ -331,8 +331,8 @@ export const Catalog = () => {
           {/* Selector de tipo — toggle visual */}
           <div style={{ display: 'flex', gap: '0.75rem' }} role="group" aria-label="Tipo de ítem">
             {[
-              { key: 'medico', label: '💊 Medicamento', icon: <Stethoscope size={14} /> },
-              { key: 'general', label: '🎁 Ítem General', icon: <ShoppingBag size={14} /> },
+              { key: 'medico', label: 'Medicamento', icon: <Stethoscope size={14} /> },
+              { key: 'general', label: 'Ítem General', icon: <ShoppingBag size={14} /> },
             ].map(t => (
               <button
                 key={t.key}

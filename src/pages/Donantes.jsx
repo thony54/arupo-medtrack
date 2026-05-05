@@ -7,7 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import './pages.css';
 
 const TIPOS = ['Hospital', 'Farmacia', 'ONG', 'Gobierno', 'Empresa', 'Particular'];
-const TIPO_ICONS = { Hospital: '🏥', Farmacia: '💊', ONG: '🤝', Gobierno: '🏛️', Empresa: '🏢', Particular: '👤' };
+// Icons removed
 
 export const Donantes = () => {
   const [donantes, setDonantes] = useState([]);
@@ -139,7 +139,7 @@ export const Donantes = () => {
           {TIPOS.map(t => (
             <button key={t} onClick={() => setSearch(search === t ? '' : t)}
               style={{ padding: '0.4rem 0.875rem', borderRadius: 'var(--radius-pill)', border: `1.5px solid ${search === t ? 'var(--primary-color)' : 'var(--border-color)'}`, background: search === t ? 'var(--primary-light)' : 'var(--bg-surface)', color: search === t ? 'var(--primary-hover)' : 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', transition: 'all var(--transition-fast)', fontFamily: 'var(--font-family)' }}>
-              {TIPO_ICONS[t]} {t}
+              {t}
             </button>
           ))}
         </div>
@@ -170,7 +170,7 @@ export const Donantes = () => {
                 </tr>
               ) : filtered.map(d => (
                 <tr key={d.id} style={{ cursor: 'pointer' }} onClick={() => fetchHistorial(d)}>
-                  <td><div style={{ fontWeight: '600' }}>{TIPO_ICONS[d.tipo]} {d.nombre}</div></td>
+                  <td><div style={{ fontWeight: '600' }}>{d.nombre}</div></td>
                   <td>
                     <span style={{ background: 'var(--primary-light)', color: 'var(--primary-hover)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontSize: '0.8rem', fontWeight: '600' }}>{d.tipo}</span>
                   </td>
@@ -200,7 +200,7 @@ export const Donantes = () => {
         <div className="card animate-fade-in mobile-full-width" style={{ width: '320px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
-              <div style={{ fontWeight: '700' }}>{TIPO_ICONS[selected.tipo]} {selected.nombre}</div>
+              <div style={{ fontWeight: '700' }}>{selected.nombre}</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{selected.tipo}</div>
             </div>
             <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={18} /></button>
@@ -230,7 +230,7 @@ export const Donantes = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); resetForm(); }}
-        title="🤝 Registrar Donante"
+        title="Registrar Donante"
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
@@ -240,7 +240,7 @@ export const Donantes = () => {
               disabled={saving}
               onClick={() => document.getElementById('d-submit-trigger').click()}
             >
-              {saving ? 'Guardando...' : '✅ Registrar Donante'}
+              {saving ? 'Guardando...' : 'Registrar Donante'}
             </Button>
           </>
         }
@@ -266,7 +266,7 @@ export const Donantes = () => {
               <option value="" disabled>Selecciona el tipo de donante...</option>
               {TIPOS.map(t => (
                 <option key={t} value={t}>
-                  {TIPO_ICONS[t]} {t}
+                  {t}
                 </option>
               ))}
             </select>

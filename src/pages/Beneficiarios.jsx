@@ -209,7 +209,7 @@ export const Beneficiarios = () => {
 
           {selected.condicion_medica && (
             <div style={{ padding: '0.5rem 0.75rem', background: 'var(--primary-light)', color: 'var(--primary-hover)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', fontWeight: '600', marginBottom: '1rem' }}>
-              🏥 {selected.condicion_medica}
+              {selected.condicion_medica}
             </div>
           )}
 
@@ -238,7 +238,7 @@ export const Beneficiarios = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); resetForm(); }}
-        title="👤 Registrar Beneficiario"
+        title="Registrar Beneficiario"
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>Cancelar</Button>
@@ -248,7 +248,7 @@ export const Beneficiarios = () => {
               disabled={saving}
               onClick={() => document.getElementById('b-submit-trigger').click()}
             >
-              {saving ? 'Guardando...' : '✅ Registrar Beneficiario'}
+              {saving ? 'Guardando...' : 'Registrar Beneficiario'}
             </Button>
           </>
         }
