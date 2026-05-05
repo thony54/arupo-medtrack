@@ -105,7 +105,7 @@
     margin-left: 0;
     margin-bottom: 80px; /* Space for bottom nav */
     padding: 1.5rem 1rem;
-    padding-top: 80px; /* Space for fixed top bar */
+    padding-top: 92px; /* Space for fixed top bar */
   }
 
   .sidebar {
@@ -136,10 +136,12 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: 76px;
+    padding-top: 12px;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border-color);
-    padding: 0 1.25rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
     margin-bottom: 0;
     align-items: center;
     z-index: 101;

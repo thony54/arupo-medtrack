@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethoscope } from 'lucide-react';
+import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethoscope, Edit2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -26,6 +26,7 @@ export const Catalog = () => {
   const [tipoRegistro, setTipoRegistro] = useState('medico'); // 'medico' | 'general'
   const [presentacion, setPresentacion] = useState('');
   const [concentracion, setConcentracion] = useState('');
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -54,7 +55,20 @@ export const Catalog = () => {
     setPresentacion('');
     setConcentracion('');
     setTipoRegistro('medico');
+    setEditingId(null);
     setError('');
+  };
+
+  const handleEditMedicine = (med) => {
+    resetForm();
+    const esMedico = esCategoriaMediaca(med.categorias?.nombre);
+    setTipoRegistro(esMedico ? 'medico' : 'general');
+    setNombre(med.nombre);
+    setCategoriaId(med.categoria_id || '');
+    setPresentacion(med.presentacion || '');
+    setConcentracion(med.concentracion || '');
+    setEditingId(med.id);
+    setIsModalOpen(true);
   };
 
   // Las categorías médicas son las que NO están en CATEGORIAS_GENERALES
@@ -88,13 +102,20 @@ export const Catalog = () => {
         }
 
         // Para ítems generales: concentracion y presentacion quedan como null (opcional)
-        const { error: insertError } = await supabase.from('medicinas').insert({
+        const medData = {
           nombre: nombre.trim(),
           categoria_id: finalCategoriaId,
           presentacion: presentacion.trim() || null,
           concentracion: tipoRegistro === 'medico' ? (concentracion.trim() || null) : null,
-        });
-        if (insertError) throw insertError;
+        };
+
+        if (editingId) {
+          const { error: updateError } = await supabase.from('medicinas').update(medData).eq('id', editingId);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase.from('medicinas').insert(medData);
+          if (insertError) throw insertError;
+        }
         await fetchData();
         setIsModalOpen(false);
         resetForm();
@@ -244,7 +265,15 @@ export const Catalog = () => {
                       {esMedico ? (med.concentracion || '-') : '—'}
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.25rem' }}>
+                      <button
+                        onClick={() => handleEditMedicine(med)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', padding: '0.25rem', opacity: 0.8 }}
+                        title="Editar ítem"
+                        aria-label={`Editar ${med.nombre}`}
+                      >
+                        <Edit2 size={18} />
+                      </button>
                       <button
                         onClick={() => handleDeleteMedicine(med.id, med.nombre)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
@@ -274,7 +303,7 @@ export const Catalog = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); resetForm(); }}
-        title={tipoRegistro === 'general' ? '🎁 Añadir Ítem General' : '💊 Añadir Nueva Medicina'}
+        title={editingId ? 'Editar Ítem/Medicina' : (tipoRegistro === 'general' ? 'Añadir Ítem General' : 'Añadir Nueva Medicina')}
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => { setIsModalOpen(false); resetForm(); }}>
@@ -287,7 +316,7 @@ export const Catalog = () => {
               onClick={() => document.getElementById('cat-submit-trigger').click()}
               style={tipoRegistro === 'general' ? { background: 'linear-gradient(135deg, #7c3aed, #a855f7)' } : {}}
             >
-              {loading ? 'Guardando...' : `Guardar ${tipoRegistro === 'general' ? 'Ítem' : 'Medicina'}`}
+              {loading ? 'Guardando...' : `${editingId ? 'Actualizar' : 'Guardar'} ${tipoRegistro === 'general' ? 'Ítem' : 'Medicina'}`}
             </Button>
           </>
         }

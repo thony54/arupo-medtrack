@@ -476,7 +476,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
           </div>
         </div>
 
-        <p className="footer">Documento generado por Arupo MedTrack — Gestión de Insumos Generales.<br/>Conservar copia para fines de auditoría.</p>
+        <p className="footer">Documento generado por Arupo Med-Track — Gestión de Insumos Generales.<br/>Conservar copia para fines de auditoría.</p>
       </div>
 
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>

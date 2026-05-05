@@ -162,7 +162,7 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
         </div>
 
         <p className="footer" style={{ marginTop: '2.5rem', fontSize: '0.75rem', color: '#9ca3af', borderTop: '1px solid #e5e7eb', paddingTop: '1rem', textAlign: 'center' }}>
-          Documento generado automáticamente por Arupo MedTrack — Trazabilidad FEFO.<br />
+          Documento generado automáticamente por Arupo Med-Track — Trazabilidad FEFO.<br />
           Conservar copia original para fines de auditoría.
         </p>
       </div>

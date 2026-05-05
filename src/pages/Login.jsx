@@ -47,7 +47,7 @@ export const Login = () => {
               style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }} 
             />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.02em' }} className="animate-reveal stagger-1">Arupo MedTrack</h1>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.02em' }} className="animate-reveal stagger-1">Arupo Med-Track</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }} className="animate-reveal stagger-2">Sistema Integral de Donaciones</p>
         </div>
 

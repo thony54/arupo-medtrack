@@ -22,8 +22,8 @@ export const ActaIngreso = ({ donante, items = [], onClose, modoGeneral = false 
   const subtituloDoc = modoGeneral ? 'Fundación Arupo — Gestión de Insumos Generales' : 'Fundación Arupo — Banco de Medicamentos';
   const detalleLabel = modoGeneral ? 'Detalle de Ítems Recibidos' : 'Detalle de Medicamentos Ingresados';
   const footerText = modoGeneral
-    ? 'Documento generado por Arupo MedTrack — Gestión de Insumos Generales.'
-    : 'Documento generado automáticamente por Arupo MedTrack — Sistema de Trazabilidad.';
+    ? 'Documento generado por Arupo Med-Track — Gestión de Insumos Generales.'
+    : 'Documento generado automáticamente por Arupo Med-Track — Sistema de Trazabilidad.';
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML || '';
