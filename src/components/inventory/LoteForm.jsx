@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Camera, Plus, Trash2, ListChecks } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { QRScanner } from './QRScanner';
 import { useOfflineCache } from '../../hooks/useOfflineCache';
 import { ActaIngreso } from './ActaIngreso';
+import { esProductoMedico, FECHA_NO_VENCE, generarLoteGeneral } from '../../utils/itemUtils';
 
 export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const [medicinas, setMedicinas] = useState([]);
@@ -36,9 +37,20 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchMedicinas = async () => {
     if (!supabase) return;
-    const { data } = await supabase.from('medicinas').select('id, nombre, concentracion').order('nombre');
+    // Traer también la categoría para poder detectar si es médico o general
+    const { data } = await supabase
+      .from('medicinas')
+      .select('id, nombre, concentracion, categorias(nombre)')
+      .order('nombre');
     setMedicinas(data || []);
   };
+
+  // ── Detectar si el producto seleccionado actualmente es médico ──
+  const selectedProductoIsMedico = useMemo(() => {
+    if (!productoId || productoId === 'NEW') return true; // Por defecto médico
+    const med = medicinas.find(m => m.id === productoId);
+    return esProductoMedico(med);
+  }, [productoId, medicinas]);
 
   const fetchDonantes = async () => {
     if (!supabase) return;
@@ -66,7 +78,8 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
     if (!productoId) { setError('Selecciona un producto.'); return; }
     if (productoId === 'NEW' && !newMedNombre.trim()) { setError('Ingresa el nombre del nuevo medicamento.'); return; }
     if (!cantidad || Number(cantidad) <= 0) { setError('La cantidad debe ser mayor a 0.'); return; }
-    if (!fechaVencimiento) { setError('La fecha de vencimiento es obligatoria.'); return; }
+    // Solo exigir fecha de vencimiento si el ítem es médico
+    if (selectedProductoIsMedico && !fechaVencimiento) { setError('La fecha de vencimiento es obligatoria para medicamentos.'); return; }
 
     let medNameDisplay = '';
     if (productoId === 'NEW') {
@@ -76,16 +89,26 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
       medNameDisplay = med ? `${med.nombre} ${med.concentracion ? `(${med.concentracion})` : ''}` : 'Medicamento';
     }
 
+    // Para ítems generales: autogenerar lote y usar fecha "no vence"
+    const esMedico = selectedProductoIsMedico;
+    const loteFinal = esMedico
+      ? (numeroLote.trim() || null)
+      : generarLoteGeneral();
+    const fechaFinal = esMedico
+      ? fechaVencimiento
+      : FECHA_NO_VENCE;
+
     const newItem = {
       id: Date.now().toString(),
       productoId,
       newMedNombre: newMedNombre.trim(),
       newMedConcentracion: newMedConcentracion.trim(),
       medNameDisplay,
-      numeroLote: numeroLote.trim() || null,
+      numeroLote: loteFinal,
       cantidad: Number(cantidad),
-      fechaVencimiento,
+      fechaVencimiento: fechaFinal,
       ubicacion: ubicacion.trim() || null,
+      esGeneral: !esMedico,
     };
 
     setCart([...cart, newItem]);
@@ -247,22 +270,29 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
               </div>
             )}
 
-            {/* N° Lote + Scanner */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="lf-lote" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                N° de Lote del Proveedor
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input id="lf-lote" className="input-field" style={{ marginBottom: 0, flex: 1 }}
-                  value={numeroLote} onChange={e => setNumeroLote(e.target.value)}
-                  placeholder="Ej. LOT-2025-001" />
-                <Button type="button" variant="outline" onClick={() => setShowScanner(true)}
-                  style={{ minWidth: '44px', minHeight: '44px', padding: '0.5rem' }}
-                  aria-label="Escanear código de lote">
-                  <Camera size={20} />
-                </Button>
+            {/* N° Lote + Scanner — SOLO para ítems médicos */}
+            {selectedProductoIsMedico ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="lf-lote" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  N° de Lote del Proveedor
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input id="lf-lote" className="input-field" style={{ marginBottom: 0, flex: 1 }}
+                    value={numeroLote} onChange={e => setNumeroLote(e.target.value)}
+                    placeholder="Ej. LOT-2025-001" />
+                  <Button type="button" variant="outline" onClick={() => setShowScanner(true)}
+                    style={{ minWidth: '44px', minHeight: '44px', padding: '0.5rem' }}
+                    aria-label="Escanear código de lote">
+                    <Camera size={20} />
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Para ítems generales: mostrar el lote autogenerado (solo informativo) */
+              <div style={{ padding: '0.6rem 0.875rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--text-secondary)', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontWeight: '600' }}>Lote (auto):</span> Se generará automáticamente (LOTE-GENERAL-YYYY)
+              </div>
+            )}
 
             {/* Cantidad + Fecha en row */}
             <div className="grid-responsive" style={{ gap: '1rem' }}>
@@ -274,14 +304,27 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
                   type="number" min="1" value={cantidad} onChange={e => setCantidad(e.target.value)}
                   placeholder="Ej. 500" required />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label htmlFor="lf-venc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                  Fecha Venc. <span style={{ color: 'var(--danger-color)' }}>*</span>
-                </label>
-                <input id="lf-venc" className="input-field" style={{ marginBottom: 0 }}
-                  type="date" min={hoy} value={fechaVencimiento}
-                  onChange={e => setFechaVencimiento(e.target.value)} required />
-              </div>
+
+              {/* Fecha de vencimiento — SOLO para ítems médicos */}
+              {selectedProductoIsMedico ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="lf-venc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}
+                    aria-required="true">
+                    Fecha Venc. <span style={{ color: 'var(--danger-color)' }}>*</span>
+                  </label>
+                  <input id="lf-venc" className="input-field" style={{ marginBottom: 0 }}
+                    type="date" min={hoy} value={fechaVencimiento}
+                    onChange={e => setFechaVencimiento(e.target.value)}
+                    aria-required="true"
+                    required />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', justifyContent: 'center' }}>
+                  <div style={{ padding: '0.6rem 0.875rem', background: '#f5f3ff', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: '#6d28d9', border: '1px dashed #c4b5fd', textAlign: 'center' }}>
+                    📦 Sin fecha de vencimiento<br/><span style={{ fontSize: '0.75rem', opacity: 0.8 }}>(ítem general)</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Ubicación */}

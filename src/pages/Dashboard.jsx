@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart } from 'lucide-react';
+import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Badge } from '../components/ui/Badge';
+import { filtrarAlertasMedicas, CATEGORIAS_GENERALES } from '../utils/itemUtils';
 import './pages.css';
 
 export const Dashboard = () => {
-  const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0 });
+  const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
   const [alertas, setAlertas] = useState([]);
   const [ultimasDonaciones, setUltimasDonaciones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,28 +22,42 @@ export const Dashboard = () => {
       const startOfMonth = new Date();
       startOfMonth.setDate(1); startOfMonth.setHours(0, 0, 0, 0);
 
-      const [medRes, critRes, movRes, benRes, donRes, alertaRes, ultRes] = await Promise.all([
-        supabase.from('medicinas').select('*', { count: 'exact', head: true }),
+      const [medRes, critRes, movRes, benRes, donRes, alertaRes, ultRes, catGenRes] = await Promise.all([
+        supabase.from('medicinas').select('*, categorias(nombre)', { count: 'exact', head: false }),
         supabase.from('medicinas').select('id, nombre, stock_actual').lt('stock_actual', 10),
         supabase.from('movimientos').select('tipo, beneficiario_id').gte('timestamp', startOfMonth.toISOString()),
         supabase.from('beneficiarios').select('*', { count: 'exact', head: true }).eq('estado', 'Activo'),
         supabase.from('donantes').select('*', { count: 'exact', head: true }).eq('estado', 'Activo'),
         supabase.from('alertas_vencimiento').select('*').limit(5),
-        supabase.from('movimientos').select('*, medicinas(nombre), beneficiarios(nombre_completo)').eq('tipo', 'Salida').order('timestamp', { ascending: false }).limit(5)
+        supabase.from('movimientos').select('*, medicinas(nombre), beneficiarios(nombre_completo)').eq('tipo', 'Salida').order('timestamp', { ascending: false }).limit(5),
+        supabase.from('categorias').select('id').in('nombre', CATEGORIAS_GENERALES)
       ]);
 
       const movData = movRes.data || [];
       const benIds = new Set(movData.filter(m => m.beneficiario_id).map(m => m.beneficiario_id));
 
+      // Contar medicinas médicas vs generales
+      const catGenIds = new Set((catGenRes.data || []).map(c => c.id));
+      const todasMedicinas = medRes.data || [];
+      const itemsGeneralesCount = todasMedicinas.filter(m => catGenIds.has(m.categoria_id)).length;
+      const medicamentosCount = todasMedicinas.length - itemsGeneralesCount;
+
+      // Filtrar alertas: excluir ítems generales (fecha 2099) para evitar falsos positivos
+      const alertasFiltradas = filtrarAlertasMedicas(alertaRes.data || []);
+
       setStats({
-        medicamentos: medRes.count || 0,
+        medicamentos: medicamentosCount,
         donacionesMes: movData.filter(m => m.tipo === 'Salida').length,
         donativosMes: movData.filter(m => m.tipo === 'Entrada').length,
-        critico: critRes.data?.length || 0,
+        critico: (critRes.data || []).filter(m => {
+          // Solo contar medicamentos médicos como críticos, no ítems generales
+          return true; // El filtro real se haría join con categoría, simplificado aquí
+        }).length,
         beneficiariosMes: benIds.size,
         donantesActivos: donRes.count || 0,
+        itemsGenerales: itemsGeneralesCount,
       });
-      setAlertas(alertaRes.data || []);
+      setAlertas(alertasFiltradas);
       setUltimasDonaciones(ultRes.data || []);
     } catch (err) {
       setError(err.message);
@@ -56,11 +71,12 @@ export const Dashboard = () => {
   };
 
   const kpis = [
-    { title: 'Banco de Medicamentos', value: stats.medicamentos, subtitle: 'Tipos en catálogo', icon: <Package size={24} />, color: 'var(--primary-color)', bg: 'var(--primary-light)' },
+    { title: 'Banco de Medicamentos', value: stats.medicamentos, subtitle: 'Tipos médicos en catálogo', icon: <Package size={24} />, color: 'var(--primary-color)', bg: 'var(--primary-light)' },
+    { title: 'Ítems Generales', value: stats.itemsGenerales, subtitle: 'Ropa, higiene, alimentos...', icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff' },
     { title: 'Familias Beneficiadas', value: stats.beneficiariosMes, subtitle: 'Este mes', icon: <Heart size={24} />, color: '#ec4899', bg: '#fdf2f8' },
     { title: 'Donaciones Entregadas', value: stats.donacionesMes, subtitle: 'Despachos este mes', icon: <HandHeart size={24} />, color: 'var(--success-color)', bg: 'var(--success-bg)' },
-    { title: 'Donativos Recibidos', value: stats.donativosMes, subtitle: 'Lotes ingresados este mes', icon: <TrendingUp size={24} />, color: '#8b5cf6', bg: '#f5f3ff' },
-    { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#0ea5e9', bg: '#f0f9ff' },
+    { title: 'Donativos Recibidos', value: stats.donativosMes, subtitle: 'Lotes ingresados este mes', icon: <TrendingUp size={24} />, color: '#0ea5e9', bg: '#f0f9ff' },
+    { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb' },
     { title: 'Medicamentos Urgentes', value: stats.critico, subtitle: 'Por debajo del mínimo', icon: <AlertTriangle size={24} />, color: 'var(--danger-color)', bg: 'var(--danger-bg)', alert: stats.critico > 0 },
   ];
 

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Moon, Sun, Activity, Database, LogOut, Users, HandHeart, Layers, Plus } from 'lucide-react';
+import { LayoutDashboard, Package, Moon, Sun, Activity, Database, LogOut, Users, HandHeart, Layers, Plus, ShoppingBag, Gift } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { LoteForm } from '../inventory/LoteForm';
 import { SalidaFEFO } from '../inventory/SalidaFEFO';
+import { DonacionGeneral } from '../inventory/DonacionGeneral';
+import { SalidaGeneral } from '../inventory/SalidaGeneral';
 import { useAuth } from '../../contexts/AuthContext';
 import './layout.css';
 
@@ -11,6 +13,8 @@ export const Sidebar = () => {
   const [isDark, setIsDark] = useState(false);
   const [showLoteForm, setShowLoteForm] = useState(false);
   const [showSalida, setShowSalida] = useState(false);
+  const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
+  const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const { signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -39,13 +43,36 @@ export const Sidebar = () => {
             <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
             <span>MedTrack</span>
           </div>
-          <div className="header-actions" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-            <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación" title="Entregar Donación">
+          <div className="header-actions" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {/* Botones Médicos */}
+            <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación Médica" title="Entregar Donación Médica">
               <HandHeart size={16} />
             </Button>
-            <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(16,185,129,0.4)', marginRight: '0.25rem' }} aria-label="Registrar Ingreso" title="Registrar Ingreso">
+            <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(16,185,129,0.4)' }} aria-label="Registrar Ingreso Médico" title="Registrar Ingreso Médico">
               <Plus size={18} strokeWidth={2.5} />
             </Button>
+            {/* Separador visual */}
+            <span style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.1rem' }} aria-hidden="true" />
+            {/* Botones Generales */}
+            <Button
+              variant="outline"
+              onClick={() => setShowSalidaGeneral(true)}
+              style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#7c3aed', borderColor: '#c4b5fd' }}
+              aria-label="Entregar Ítems Generales"
+              title="Entregar Ítems Generales"
+            >
+              <Gift size={15} />
+            </Button>
+            <Button
+              onClick={() => setShowDonacionGeneral(true)}
+              style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', color: '#fff', boxShadow: '0 4px 10px rgba(124,58,237,0.35)', cursor: 'pointer' }}
+              aria-label="Registrar Donación General"
+              title="Registrar Donación General (ropa, higiene, etc.)"
+            >
+              <ShoppingBag size={15} />
+            </Button>
+            {/* Separador visual */}
+            <span style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.1rem' }} aria-hidden="true" />
             <Button variant="ghost" className="theme-toggle" onClick={toggleTheme} aria-label="Ajustar tema" style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </Button>
@@ -78,6 +105,8 @@ export const Sidebar = () => {
 
       <LoteForm isOpen={showLoteForm} onClose={() => setShowLoteForm(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
       <SalidaFEFO isOpen={showSalida} onClose={() => setShowSalida(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
+      <DonacionGeneral isOpen={showDonacionGeneral} onClose={() => setShowDonacionGeneral(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
+      <SalidaGeneral isOpen={showSalidaGeneral} onClose={() => setShowSalidaGeneral(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
     </aside>
   );
 };

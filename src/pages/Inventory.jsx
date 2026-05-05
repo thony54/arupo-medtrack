@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Camera, X, ChevronRight, Package, Wifi, WifiOff, HandHeart } from 'lucide-react';
+import { Plus, Search, Filter, Camera, X, ChevronRight, Package, Wifi, WifiOff, HandHeart, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { useOfflineCache } from '../hooks/useOfflineCache';
+import { filtrarAlertasMedicas, esProductoMedico } from '../utils/itemUtils';
 import './pages.css';
 
 export const Inventory = () => {
@@ -39,7 +40,8 @@ export const Inventory = () => {
       if (medRes.error) throw medRes.error;
       setMedicinas(medRes.data || []);
       setCategorias(catRes.data || []);
-      setAlertas(alertRes.data || []);
+      // Filtrar alertas: excluir ítems generales (fecha 2099) para evitar falsos positivos
+      setAlertas(filtrarAlertasMedicas(alertRes.data || []));
     } catch {
       const cached = await fetchOffline();
       if (cached && cached.length > 0) {
@@ -181,7 +183,8 @@ export const Inventory = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Medicamento</th>
+              <th>Producto</th>
+              <th>Tipo</th>
               <th>Categoría</th>
               <th>Presentación</th>
               <th style={{ textAlign: 'center' }}>Cantidad</th>
@@ -200,36 +203,54 @@ export const Inventory = () => {
                 </td>
               </tr>
             ) : (
-              filtered.map(med => (
-                <tr key={med.id}>
-                  <td>
-                    <div style={{ fontWeight: '600' }}>{med.nombre}</div>
-                    {med.concentracion && <div style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>{med.concentracion}</div>}
-                  </td>
-                  <td>
-                    <span style={{ background: 'var(--primary-light)', color: 'var(--primary-hover)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontSize: '0.8rem', fontWeight: '600' }}>
-                      {med.categorias?.nombre || '-'}
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
-                      <span style={{ fontWeight: '700', fontSize: '1.1rem', color: getStockBarColor(med.stock_actual) }}>{med.stock_actual}</span>
-                      <div style={{ width: '60px', height: '5px', backgroundColor: 'var(--border-color)', borderRadius: '9999px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, (med.stock_actual / 200) * 100)}%`, height: '100%', backgroundColor: getStockBarColor(med.stock_actual), borderRadius: '9999px' }} />
+              filtered.map(med => {
+                const esMedico = esProductoMedico(med);
+                return (
+                  <tr key={med.id}>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{med.nombre}</div>
+                      {med.concentracion && <div style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>{med.concentracion}</div>}
+                    </td>
+                    <td>
+                      <span style={{
+                        background: esMedico ? 'var(--primary-light)' : '#f5f3ff',
+                        color: esMedico ? 'var(--primary-hover)' : '#6d28d9',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: 'var(--radius-pill)',
+                        fontSize: '0.75rem',
+                        fontWeight: '700',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                      }}>
+                        {esMedico ? '💊 Médico' : '🎁 General'}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ background: 'var(--bg-surface-hover)', color: 'var(--text-secondary)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontSize: '0.8rem', fontWeight: '600' }}>
+                        {med.categorias?.nombre || '-'}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: '700', fontSize: '1.1rem', color: getStockBarColor(med.stock_actual) }}>{med.stock_actual}</span>
+                        <div style={{ width: '60px', height: '5px', backgroundColor: 'var(--border-color)', borderRadius: '9999px', overflow: 'hidden' }}>
+                          <div style={{ width: `${Math.min(100, (med.stock_actual / 200) * 100)}%`, height: '100%', backgroundColor: getStockBarColor(med.stock_actual), borderRadius: '9999px' }} />
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'center' }}>{getStockBadge(med.stock_actual)}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <Button variant="ghost" onClick={() => navigate(`/lotes/${med.id}`)}
-                      style={{ minWidth: '44px', minHeight: '44px', gap: '0.25rem' }}
-                      aria-label={`Ver lotes de ${med.nombre}`}>
-                      Ver <ChevronRight size={14} />
-                    </Button>
-                  </td>
-                </tr>
-              ))
+                    </td>
+                    <td style={{ textAlign: 'center' }}>{getStockBadge(med.stock_actual)}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <Button variant="ghost" onClick={() => navigate(`/lotes/${med.id}`)}
+                        style={{ minWidth: '44px', minHeight: '44px', gap: '0.25rem' }}
+                        aria-label={`Ver lotes de ${med.nombre}`}>
+                        Ver <ChevronRight size={14} />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
