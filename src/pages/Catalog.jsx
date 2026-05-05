@@ -444,20 +444,100 @@ export const Catalog = () => {
             </div>
           )}
 
-          {/* Presentación */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="cat-pres" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-              Presentación
-            </label>
-            <input
-              id="cat-pres"
-              className="input-field"
-              value={presentacion}
-              onChange={(e) => setPresentacion(e.target.value)}
-              placeholder="Ej. Tabletas, Jarabe..."
-              style={{ marginBottom: 0 }}
-            />
-          </div>
+          {/* Información específica según tipo (la parte estructurada que el usuario pidió mantener) */}
+          {tipoRegistro === 'medico' ? (
+            <div
+              role="group"
+              aria-label="Información Médica"
+              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s ease-out' }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Stethoscope size={13} /> Información Médica (Solo para medicamentos)
+              </div>
+
+              {/* Presentación con Chips */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Presentación
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {['Tabletas', 'Cápsulas', 'Jarabe', 'Ampolla', 'Crema', 'Gotas', 'Supositorio'].map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setPresentacion(opt === presentacion ? '' : opt)}
+                      style={{
+                        padding: '0.4rem 0.875rem',
+                        borderRadius: 'var(--radius-pill)',
+                        border: `1.5px solid ${presentacion === opt ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                        background: presentacion === opt ? 'var(--primary-light)' : 'var(--bg-surface)',
+                        color: presentacion === opt ? 'var(--primary-hover)' : 'var(--text-secondary)',
+                        fontSize: '0.85rem',
+                        fontWeight: presentacion === opt ? '600' : '400',
+                        cursor: 'pointer',
+                        transition: 'all var(--transition-fast)',
+                        fontFamily: 'var(--font-family)'
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  id="cat-presentacion-custom"
+                  className="input-field"
+                  value={presentacion}
+                  onChange={(e) => setPresentacion(e.target.value)}
+                  placeholder="O escribe una presentación personalizada..."
+                  style={{ marginBottom: 0, marginTop: '0.5rem', fontSize: '0.85rem' }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div
+              role="group"
+              aria-label="Descripción de ítem general"
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s ease-out' }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ShoppingBag size={13} /> Detalle del Ítem General
+              </div>
+              <label htmlFor="cat-pres-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Descripción / Talla / Variante (opcional)
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                {['Talla S', 'Talla M', 'Talla L', 'Talla XL', 'Unitario', 'Par', 'Kit', 'Paquete'].map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setPresentacion(opt === presentacion ? '' : opt)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: 'var(--radius-pill)',
+                      border: `1.5px solid ${presentacion === opt ? '#7c3aed' : 'var(--border-color)'}`,
+                      background: presentacion === opt ? '#ede9fe' : 'var(--bg-surface)',
+                      color: presentacion === opt ? '#6d28d9' : 'var(--text-secondary)',
+                      fontSize: '0.82rem',
+                      fontWeight: presentacion === opt ? '600' : '400',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-fast)',
+                      fontFamily: 'var(--font-family)'
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              <input
+                id="cat-pres-gen"
+                className="input-field"
+                value={presentacion}
+                onChange={(e) => setPresentacion(e.target.value)}
+                placeholder="Ej. Talla única, 500ml, 3 piezas..."
+                style={{ marginBottom: 0, fontSize: '0.85rem' }}
+              />
+            </div>
+          )}
 
           {/* Cantidad por presentación y Cantidad Total */}
           <div className="grid-responsive" style={{ gap: '1rem' }}>
@@ -490,7 +570,7 @@ export const Catalog = () => {
             </div>
           </div>
 
-          {/* Lote y Caducidad (Solo si es nuevo) */}
+          {/* Lote y Caducidad (Solo si es nuevo y médico) */}
           {!editingId && tipoRegistro === 'medico' && (
             <div className="grid-responsive" style={{ gap: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -536,7 +616,6 @@ export const Catalog = () => {
               style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }}
             />
           </div>
-
 
           {/* Categoría */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
