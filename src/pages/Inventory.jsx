@@ -223,7 +223,7 @@ export const Inventory = () => {
                         alignItems: 'center',
                         gap: '0.25rem',
                       }}>
-                        {esMedico ? '💊 Médico' : '🎁 General'}
+                        {esMedico ? 'Médico' : 'General'}
                       </span>
                     </td>
                     <td>

@@ -171,7 +171,7 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
         <Button variant="outline" onClick={handlePrint} style={{ gap: '0.5rem' }}>
           <Printer size={16} /> Imprimir Acta
         </Button>
-        <Button variant="primary" onClick={onClose}>✅ Finalizar</Button>
+        <Button variant="primary" onClick={onClose}>Finalizar</Button>
       </div>
     </div>
   );

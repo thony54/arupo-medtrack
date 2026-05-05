@@ -219,7 +219,7 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
     <Modal
       isOpen={isOpen}
       onClose={() => { onClose(); resetAll(); }}
-      title={actaData ? '📋 Acta de Entrega General' : '🎁 Entregar Ítems Generales'}
+      title={actaData ? 'Acta de Entrega General' : 'Entregar Ítems Generales'}
       footer={!actaData && (
         <>
           <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
@@ -229,7 +229,7 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
             disabled={loading || cart.length === 0}
             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', border: 'none', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.35)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            {loading ? 'Procesando...' : `🎁 Entregar (${cart.length})`}
+            {loading ? 'Procesando...' : `Entregar (${cart.length})`}
           </Button>
         </>
       )}
@@ -481,7 +481,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
 
       <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
         <Button variant="outline" onClick={handlePrint} style={{ gap: '0.5rem' }}><Printer size={16} /> Imprimir Acta</Button>
-        <Button variant="primary" onClick={onClose}>✅ Finalizar</Button>
+        <Button variant="primary" onClick={onClose}>Finalizar</Button>
       </div>
     </div>
   );

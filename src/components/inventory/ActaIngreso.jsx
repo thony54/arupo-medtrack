@@ -1,15 +1,29 @@
 import React, { useRef } from 'react';
-import { Printer, PackageCheck } from 'lucide-react';
+import { Printer, PackageCheck, ShoppingBag } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { formatFechaVenc } from '../../utils/itemUtils';
 
-export const ActaIngreso = ({ donante, items = [], onClose }) => {
+/**
+ * ActaIngreso — soporte dual:
+ * - modoGeneral=false (default): Acta de Ingreso de Medicamentos (con lote + vencimiento)
+ * - modoGeneral=true:            Acta de Ingreso de Ítems Generales (sin columna de vencimiento,
+ *                                lote autogenerado se muestra simplificado)
+ */
+export const ActaIngreso = ({ donante, items = [], onClose, modoGeneral = false }) => {
   const printRef = useRef(null);
   const now = new Date();
   const dateStr = now.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-  // Calculate total units across all items
   const totalGeneral = items.reduce((sum, item) => sum + (item.cantidad || 0), 0);
+
+  // Textos según el modo
+  const tituloDoc = modoGeneral ? 'Acta de Ingreso de Ítems Generales' : 'Acta de Ingreso de Medicamentos';
+  const subtituloDoc = modoGeneral ? 'Fundación Arupo — Gestión de Insumos Generales' : 'Fundación Arupo — Banco de Medicamentos';
+  const detalleLabel = modoGeneral ? 'Detalle de Ítems Recibidos' : 'Detalle de Medicamentos Ingresados';
+  const footerText = modoGeneral
+    ? 'Documento generado por Arupo MedTrack — Gestión de Insumos Generales.'
+    : 'Documento generado automáticamente por Arupo MedTrack — Sistema de Trazabilidad.';
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML || '';
@@ -25,7 +39,7 @@ export const ActaIngreso = ({ donante, items = [], onClose }) => {
     doc.write(`
       <html>
         <head>
-          <title>Acta de Ingreso — Fundación Arupo</title>
+          <title>${tituloDoc} — Fundación Arupo</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 2rem; color: #111; max-width: 750px; margin: 0 auto; }
             .header-flex { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 2px solid #059669; padding-bottom: 1.5rem; }
@@ -64,25 +78,32 @@ export const ActaIngreso = ({ donante, items = [], onClose }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', background: 'var(--success-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(16,185,129,0.2)' }}>
-        <PackageCheck size={28} color="var(--success-color)" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', background: modoGeneral ? '#f5f3ff' : 'var(--success-bg)', borderRadius: 'var(--radius-lg)', border: `1px solid ${modoGeneral ? 'rgba(124,58,237,0.2)' : 'rgba(16,185,129,0.2)'}` }}>
+        {modoGeneral
+          ? <ShoppingBag size={28} color="#7c3aed" />
+          : <PackageCheck size={28} color="var(--success-color)" />
+        }
         <div>
-          <div style={{ fontWeight: '700', color: 'var(--success-color)' }}>¡Ingreso registrado con éxito!</div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Se registraron {totalGeneral} unidades en total de {donante?.nombre || 'Origen desconocido'}.</div>
+          <div style={{ fontWeight: '700', color: modoGeneral ? '#7c3aed' : 'var(--success-color)' }}>
+            {modoGeneral ? 'Ingreso general registrado con éxito' : 'Ingreso registrado con éxito'}
+          </div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Se registraron {totalGeneral} {modoGeneral ? 'ítems' : 'unidades'} en total de {donante?.nombre || 'Origen desconocido'}.
+          </div>
         </div>
       </div>
 
       <div ref={printRef} style={{ fontSize: '0.9rem', background: '#fff', color: '#111', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-        
+
         {/* Header con Logo */}
         <div className="header-flex" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid #059669', paddingBottom: '1.5rem' }}>
           <img src="/logo.png" alt="Logo Fundación Arupo" className="logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
           <div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#059669', margin: '0 0 0.25rem 0' }}>
-              Acta de Ingreso de Medicamentos
+              {tituloDoc}
             </h1>
             <p className="subtitle" style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
-              Fundación Arupo — Banco de Medicamentos<br/>
+              {subtituloDoc}<br/>
               Fecha: {dateStr} a las {timeStr}
             </p>
           </div>
@@ -101,14 +122,16 @@ export const ActaIngreso = ({ donante, items = [], onClose }) => {
           </div>
         </div>
 
-        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '1rem', color: '#111' }}>Detalle de Medicamentos Ingresados</div>
-        
+        <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '1rem', color: '#111' }}>{detalleLabel}</div>
+
         <table>
           <thead>
             <tr>
-              <th>Medicamento</th>
+              <th>{modoGeneral ? 'Ítem' : 'Medicamento'}</th>
+              {/* Columna Lote: siempre visible, pero para generales muestra "Auto" */}
               <th>Lote</th>
-              <th>Vencimiento</th>
+              {/* Columna Vencimiento: solo para médicos */}
+              {!modoGeneral && <th>Vencimiento</th>}
               <th style={{ textAlign: 'right' }}>Cant.</th>
             </tr>
           </thead>
@@ -116,20 +139,30 @@ export const ActaIngreso = ({ donante, items = [], onClose }) => {
             {items.map((item, index) => (
               <tr key={index}>
                 <td style={{ fontWeight: '600' }}>{item.medNameDisplay}</td>
-                <td>{item.numeroLote || 'S/N'}</td>
-                <td>{item.fechaVencimiento ? new Date(item.fechaVencimiento).toLocaleDateString('es-ES') : '—'}</td>
+                <td style={{ fontSize: '0.85rem', color: modoGeneral ? '#6b7280' : 'inherit' }}>
+                  {modoGeneral
+                    ? /* Simplificar el lote autogenerado: mostrar solo el año */
+                      (item.numeroLote?.startsWith('LOTE-GENERAL') ? 'Autogenerado' : (item.numeroLote || '—'))
+                    : (item.numeroLote || 'S/N')
+                  }
+                </td>
+                {!modoGeneral && (
+                  <td>{item.fechaVencimiento ? formatFechaVenc(item.fechaVencimiento) : '—'}</td>
+                )}
                 <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{item.cantidad}</td>
               </tr>
             ))}
             <tr className="total-row">
-              <td colSpan="3" style={{ padding: '0.75rem 1rem', fontWeight: 'bold', background: '#f0fdf4', color: '#065f46', borderTop: '2px solid #d1fae5' }}>TOTAL INGRESADO</td>
+              <td colSpan={modoGeneral ? 2 : 3} style={{ padding: '0.75rem 1rem', fontWeight: 'bold', background: '#f0fdf4', color: '#065f46', borderTop: '2px solid #d1fae5' }}>
+                TOTAL {modoGeneral ? 'RECIBIDO' : 'INGRESADO'}
+              </td>
               <td style={{ padding: '0.75rem 1rem', fontWeight: 'bold', background: '#f0fdf4', color: '#065f46', borderTop: '2px solid #d1fae5', textAlign: 'right' }}>{totalGeneral}</td>
             </tr>
           </tbody>
         </table>
 
         <div className="grand-total" style={{ marginTop: '1.5rem', textAlign: 'right', fontSize: '1.1rem', fontWeight: 'bold', padding: '1rem', background: '#ecfdf5', borderRadius: '8px', color: '#065f46', border: '1px dashed #34d399' }}>
-          TOTAL RECIBIDO: {totalGeneral} unidades
+          TOTAL RECIBIDO: {totalGeneral} {modoGeneral ? 'ítems' : 'unidades'}
         </div>
 
         <div className="signatures" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', marginTop: '3.5rem', textAlign: 'center' }}>
@@ -146,7 +179,7 @@ export const ActaIngreso = ({ donante, items = [], onClose }) => {
         </div>
 
         <p className="footer" style={{ marginTop: '2.5rem', fontSize: '0.75rem', color: '#9ca3af', borderTop: '1px solid #e5e7eb', paddingTop: '1rem', textAlign: 'center' }}>
-          Documento generado automáticamente por Arupo MedTrack — Sistema de Trazabilidad.<br />
+          {footerText}<br />
           Conservar copia original para fines de auditoría.
         </p>
       </div>
@@ -155,7 +188,7 @@ export const ActaIngreso = ({ donante, items = [], onClose }) => {
         <Button variant="outline" onClick={handlePrint} style={{ gap: '0.5rem' }}>
           <Printer size={16} /> Imprimir Acta
         </Button>
-        <Button variant="primary" onClick={onClose}>✅ Finalizar</Button>
+        <Button variant="primary" onClick={onClose}>Finalizar</Button>
       </div>
     </div>
   );

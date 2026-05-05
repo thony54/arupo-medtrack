@@ -143,12 +143,12 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
     <Modal 
       isOpen={isOpen} 
       onClose={() => { onClose(); resetAll(); }}
-      title={actaData ? '📋 Acta de Donación' : '💊 Entregar Donación'}
+      title={actaData ? 'Acta de Donación' : 'Entregar Donación'}
       footer={!actaData && (
         <>
           <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
           <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
-            {loading ? 'Procesando...' : `❤️ Entregar (${cart.length})`}
+            {loading ? 'Procesando...' : `Entregar (${cart.length})`}
           </Button>
         </>
       )}
@@ -162,7 +162,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ padding: '0.875rem', background: 'var(--primary-light)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--primary-hover)', border: '1px solid rgba(5,150,105,0.2)' }}>
-            💡 Los medicamentos se tomarán automáticamente de los lotes con <strong>fecha de vencimiento más próxima</strong> (FEFO).
+            Los medicamentos se tomarán automáticamente de los lotes con <strong>fecha de vencimiento más próxima</strong> (FEFO).
           </div>
 
           {error && <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>{error}</div>}

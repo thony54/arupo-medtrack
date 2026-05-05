@@ -217,7 +217,7 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
     <Modal
       isOpen={isOpen}
       onClose={() => { onClose(); resetAll(); }}
-      title={actaData ? '📋 Acta de Ingreso General' : '🎁 Registrar Donación General'}
+      title={actaData ? 'Acta de Ingreso General' : 'Registrar Donación General'}
       footer={!actaData && (
         <>
           <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
@@ -228,7 +228,7 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
             disabled={loading || cart.length === 0}
             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}
           >
-            {loading ? 'Procesando...' : `✅ Guardar (${cart.length})`}
+            {loading ? 'Procesando...' : `Guardar (${cart.length})`}
           </Button>
         </>
       )}

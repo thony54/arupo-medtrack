@@ -189,12 +189,12 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
     <Modal 
       isOpen={isOpen} 
       onClose={() => { onClose(); resetAll(); }} 
-      title={actaData ? '📋 Acta de Ingreso' : '📥 Registrar Ingreso de Medicina'}
+      title={actaData ? 'Acta de Ingreso' : 'Registrar Ingreso de Medicina'}
       footer={!actaData && (
         <>
           <Button type="button" variant="ghost" onClick={() => { onClose(); resetAll(); }}>Cancelar</Button>
           <Button type="button" variant="primary" onClick={handleSubmitAll} disabled={loading || cart.length === 0}>
-            {loading ? 'Procesando...' : `✅ Guardar (${cart.length})`}
+            {loading ? 'Procesando...' : `Guardar (${cart.length})`}
           </Button>
         </>
       )}
