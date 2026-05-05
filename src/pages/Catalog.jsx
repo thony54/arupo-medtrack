@@ -27,7 +27,11 @@ export const Catalog = () => {
   const [presentacion, setPresentacion] = useState('');
   const [concentracion, setConcentracion] = useState('');
   const [laboratorio, setLaboratorio] = useState('');
-  const [cantidad, setCantidad] = useState('');
+  const [cantidadPorPresentacion, setCantidadPorPresentacion] = useState('');
+  const [cantidadTotal, setCantidadTotal] = useState('');
+  const [numeroLote, setNumeroLote] = useState('');
+  const [fechaVencimiento, setFechaVencimiento] = useState('');
+  const [observaciones, setObservaciones] = useState('');
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -57,7 +61,11 @@ export const Catalog = () => {
     setPresentacion('');
     setConcentracion('');
     setLaboratorio('');
-    setCantidad('');
+    setCantidadPorPresentacion('');
+    setCantidadTotal('');
+    setNumeroLote('');
+    setFechaVencimiento('');
+    setObservaciones('');
     setTipoRegistro('medico');
     setEditingId(null);
     setError('');
@@ -72,7 +80,9 @@ export const Catalog = () => {
     setPresentacion(med.presentacion || '');
     setConcentracion(med.concentracion || '');
     setLaboratorio(med.laboratorio || '');
-    setCantidad(med.stock_actual || '');
+    setCantidadPorPresentacion(med.cantidad_por_presentacion || '');
+    setCantidadTotal(med.stock_actual || '');
+    setObservaciones(med.observaciones || '');
     setEditingId(med.id);
     setIsModalOpen(true);
   };
@@ -113,17 +123,46 @@ export const Catalog = () => {
           categoria_id: finalCategoriaId,
           presentacion: presentacion.trim() || null,
           concentracion: tipoRegistro === 'medico' ? (concentracion.trim() || null) : null,
-          laboratorio: laboratorio.trim() || null,
-          stock_actual: cantidad ? Number(cantidad) : 0,
+          laboratorio: tipoRegistro === 'medico' ? (laboratorio.trim() || null) : null,
+          cantidad_por_presentacion: cantidadPorPresentacion.trim() || null,
+          observaciones: observaciones.trim() || null,
+          stock_actual: cantidadTotal ? Number(cantidadTotal) : 0,
         };
+
+        let savedMedId = editingId;
 
         if (editingId) {
           const { error: updateError } = await supabase.from('medicinas').update(medData).eq('id', editingId);
           if (updateError) throw updateError;
         } else {
-          const { error: insertError } = await supabase.from('medicinas').insert(medData);
+          const { data: newMed, error: insertError } = await supabase.from('medicinas').insert(medData).select().single();
           if (insertError) throw insertError;
+          savedMedId = newMed.id;
         }
+
+        // Si se proporcionó lote o cantidad total y NO estamos editando (o si el usuario quiere crear un lote inicial)
+        // Solo creamos lote si hay cantidad o número de lote
+        if (!editingId && (cantidadTotal || numeroLote)) {
+          const esMedico = esCategoriaMediaca(finalCategoriaNombre);
+          const loteData = {
+            producto_id: savedMedId,
+            numero_lote: esMedico ? (numeroLote.trim() || 'S/N') : generarLoteGeneral(),
+            cantidad_actual: cantidadTotal ? Number(cantidadTotal) : 0,
+            fecha_vencimiento: esMedico ? (fechaVencimiento || FECHA_NO_VENCE) : FECHA_NO_VENCE,
+            estado: 'Disponible'
+          };
+          await supabase.from('lotes').insert(loteData);
+          
+          if (cantidadTotal && Number(cantidadTotal) > 0) {
+            await supabase.from('movimientos').insert({
+              medicina_id: savedMedId,
+              tipo: 'Entrada',
+              cantidad: Number(cantidadTotal),
+              origen_destino: `Registro inicial - Lote: ${loteData.numero_lote}`
+            });
+          }
+        }
+
         await fetchData();
         setIsModalOpen(false);
         resetForm();
@@ -395,11 +434,11 @@ export const Catalog = () => {
             />
           </div>
 
-          {/* Laboratorio y Cantidad (Fila responsive) */}
-          <div className="grid-responsive" style={{ gap: '1rem' }}>
+          {/* Laboratorio (Solo médico) */}
+          {tipoRegistro === 'medico' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label htmlFor="cat-lab" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Laboratorio / Marca
+                Laboratorio
               </label>
               <input
                 id="cat-lab"
@@ -410,21 +449,118 @@ export const Catalog = () => {
                 style={{ marginBottom: 0 }}
               />
             </div>
+          )}
+
+          {/* Presentación y Concentración */}
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="cat-cant" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Cantidad Inicial
+              <label htmlFor="cat-pres" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Presentación
               </label>
               <input
-                id="cat-cant"
+                id="cat-pres"
+                className="input-field"
+                value={presentacion}
+                onChange={(e) => setPresentacion(e.target.value)}
+                placeholder="Ej. Tabletas, Jarabe..."
+                style={{ marginBottom: 0 }}
+              />
+            </div>
+            {tipoRegistro === 'medico' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-conc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Concentración
+                </label>
+                <input
+                  id="cat-conc"
+                  className="input-field"
+                  value={concentracion}
+                  onChange={(e) => setConcentracion(e.target.value)}
+                  placeholder="Ej. 500mg"
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Cantidad por presentación y Cantidad Total */}
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="cat-cpp" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Cantidad por presentación
+              </label>
+              <input
+                id="cat-cpp"
+                className="input-field"
+                value={cantidadPorPresentacion}
+                onChange={(e) => setCantidadPorPresentacion(e.target.value)}
+                placeholder="Ej. Caja x 30"
+                style={{ marginBottom: 0 }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="cat-ct" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Cantidad Total (Stock Inicial)
+              </label>
+              <input
+                id="cat-ct"
                 type="number"
                 className="input-field"
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
+                value={cantidadTotal}
+                onChange={(e) => setCantidadTotal(e.target.value)}
                 placeholder="0"
                 style={{ marginBottom: 0 }}
               />
             </div>
           </div>
+
+          {/* Lote y Caducidad (Solo si es nuevo) */}
+          {!editingId && tipoRegistro === 'medico' && (
+            <div className="grid-responsive" style={{ gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-lote" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Lote
+                </label>
+                <input
+                  id="cat-lote"
+                  className="input-field"
+                  value={numeroLote}
+                  onChange={(e) => setNumeroLote(e.target.value)}
+                  placeholder="Ej. L12345"
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-venc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Caducidad
+                </label>
+                <input
+                  id="cat-venc"
+                  type="date"
+                  className="input-field"
+                  value={fechaVencimiento}
+                  onChange={(e) => setFechaVencimiento(e.target.value)}
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Observaciones */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label htmlFor="cat-obs" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              Observaciones
+            </label>
+            <textarea
+              id="cat-obs"
+              className="input-field"
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              placeholder="Notas adicionales..."
+              style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }}
+            />
+          </div>
+
 
           {/* Categoría */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
