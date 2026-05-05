@@ -25,7 +25,6 @@ export const Catalog = () => {
   const [newCategoriaNombre, setNewCategoriaNombre] = useState('');
   const [tipoRegistro, setTipoRegistro] = useState('medico'); // 'medico' | 'general'
   const [presentacion, setPresentacion] = useState('');
-  const [concentracion, setConcentracion] = useState('');
   const [laboratorio, setLaboratorio] = useState('');
   const [cantidadPorPresentacion, setCantidadPorPresentacion] = useState('');
   const [cantidadTotal, setCantidadTotal] = useState('');
@@ -59,7 +58,6 @@ export const Catalog = () => {
     setCategoriaId('');
     setNewCategoriaNombre('');
     setPresentacion('');
-    setConcentracion('');
     setLaboratorio('');
     setCantidadPorPresentacion('');
     setCantidadTotal('');
@@ -78,7 +76,6 @@ export const Catalog = () => {
     setNombre(med.nombre);
     setCategoriaId(med.categoria_id || '');
     setPresentacion(med.presentacion || '');
-    setConcentracion(med.concentracion || '');
     setLaboratorio(med.laboratorio || '');
     setCantidadPorPresentacion(med.cantidad_por_presentacion || '');
     setCantidadTotal(med.stock_actual || '');
@@ -122,7 +119,7 @@ export const Catalog = () => {
           nombre: nombre.trim(),
           categoria_id: finalCategoriaId,
           presentacion: presentacion.trim() || null,
-          concentracion: tipoRegistro === 'medico' ? (concentracion.trim() || null) : null,
+          concentracion: null,
           laboratorio: tipoRegistro === 'medico' ? (laboratorio.trim() || null) : null,
           cantidad_por_presentacion: cantidadPorPresentacion.trim() || null,
           observaciones: observaciones.trim() || null,
@@ -274,7 +271,6 @@ export const Catalog = () => {
                 <th>Tipo</th>
                 <th>Categoría</th>
                 <th>Laboratorio</th>
-                <th>Detalle</th>
                 <th>Stock</th>
                 <th>Presentación</th>
                 <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
@@ -311,9 +307,6 @@ export const Catalog = () => {
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{med.laboratorio || '—'}</td>
-                    <td style={{ color: 'var(--text-secondary)' }}>
-                      {esMedico ? (med.concentracion || '-') : '—'}
-                    </td>
                     <td style={{ textAlign: 'center' }}>
                       <span style={{ fontWeight: '700', color: med.stock_actual > 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>
                         {med.stock_actual || 0}
@@ -451,36 +444,19 @@ export const Catalog = () => {
             </div>
           )}
 
-          {/* Presentación y Concentración */}
-          <div className="grid-responsive" style={{ gap: '1rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="cat-pres" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Presentación
-              </label>
-              <input
-                id="cat-pres"
-                className="input-field"
-                value={presentacion}
-                onChange={(e) => setPresentacion(e.target.value)}
-                placeholder="Ej. Tabletas, Jarabe..."
-                style={{ marginBottom: 0 }}
-              />
-            </div>
-            {tipoRegistro === 'medico' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label htmlFor="cat-conc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                  Concentración
-                </label>
-                <input
-                  id="cat-conc"
-                  className="input-field"
-                  value={concentracion}
-                  onChange={(e) => setConcentracion(e.target.value)}
-                  placeholder="Ej. 500mg"
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-            )}
+          {/* Presentación */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label htmlFor="cat-pres" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              Presentación
+            </label>
+            <input
+              id="cat-pres"
+              className="input-field"
+              value={presentacion}
+              onChange={(e) => setPresentacion(e.target.value)}
+              placeholder="Ej. Tabletas, Jarabe..."
+              style={{ marginBottom: 0 }}
+            />
           </div>
 
           {/* Cantidad por presentación y Cantidad Total */}
