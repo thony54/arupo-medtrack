@@ -26,6 +26,8 @@ export const Catalog = () => {
   const [tipoRegistro, setTipoRegistro] = useState('medico'); // 'medico' | 'general'
   const [presentacion, setPresentacion] = useState('');
   const [concentracion, setConcentracion] = useState('');
+  const [laboratorio, setLaboratorio] = useState('');
+  const [cantidad, setCantidad] = useState('');
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -54,6 +56,8 @@ export const Catalog = () => {
     setNewCategoriaNombre('');
     setPresentacion('');
     setConcentracion('');
+    setLaboratorio('');
+    setCantidad('');
     setTipoRegistro('medico');
     setEditingId(null);
     setError('');
@@ -67,6 +71,8 @@ export const Catalog = () => {
     setCategoriaId(med.categoria_id || '');
     setPresentacion(med.presentacion || '');
     setConcentracion(med.concentracion || '');
+    setLaboratorio(med.laboratorio || '');
+    setCantidad(med.stock_actual || '');
     setEditingId(med.id);
     setIsModalOpen(true);
   };
@@ -107,6 +113,8 @@ export const Catalog = () => {
           categoria_id: finalCategoriaId,
           presentacion: presentacion.trim() || null,
           concentracion: tipoRegistro === 'medico' ? (concentracion.trim() || null) : null,
+          laboratorio: laboratorio.trim() || null,
+          stock_actual: cantidad ? Number(cantidad) : 0,
         };
 
         if (editingId) {
@@ -226,7 +234,9 @@ export const Catalog = () => {
                 <th>Nombre</th>
                 <th>Tipo</th>
                 <th>Categoría</th>
+                <th>Laboratorio</th>
                 <th>Detalle</th>
+                <th>Stock</th>
                 <th>Presentación</th>
                 <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
               </tr>
@@ -261,8 +271,14 @@ export const Catalog = () => {
                         {med.categorias?.nombre || '-'}
                       </span>
                     </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{med.laboratorio || '—'}</td>
                     <td style={{ color: 'var(--text-secondary)' }}>
                       {esMedico ? (med.concentracion || '-') : '—'}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ fontWeight: '700', color: med.stock_actual > 0 ? 'var(--success-color)' : 'var(--danger-color)' }}>
+                        {med.stock_actual || 0}
+                      </span>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
                     <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.25rem' }}>
@@ -377,6 +393,37 @@ export const Catalog = () => {
               placeholder={tipoRegistro === 'general' ? 'Ej. Camiseta Talla M, Kit de Higiene...' : 'Ej. Paracetamol'}
               style={{ marginBottom: 0 }}
             />
+          </div>
+
+          {/* Laboratorio y Cantidad (Fila responsive) */}
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="cat-lab" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Laboratorio / Marca
+              </label>
+              <input
+                id="cat-lab"
+                className="input-field"
+                value={laboratorio}
+                onChange={(e) => setLaboratorio(e.target.value)}
+                placeholder="Ej. Pfizer, Bayer, Genérico..."
+                style={{ marginBottom: 0 }}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="cat-cant" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Cantidad Inicial
+              </label>
+              <input
+                id="cat-cant"
+                type="number"
+                className="input-field"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                placeholder="0"
+                style={{ marginBottom: 0 }}
+              />
+            </div>
           </div>
 
           {/* Categoría */}
