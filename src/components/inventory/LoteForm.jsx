@@ -131,16 +131,24 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
         // Si es medicamento nuevo, insertarlo primero
         if (item.productoId === 'NEW') {
           if (isOnline && supabase) {
-            // Check if it exists just in case
-            const { data: existing } = await supabase.from('medicinas').select('id').ilike('nombre', item.newMedNombre).single();
+            // Check if it exists with the same name and concentration
+            let query = supabase.from('medicinas').select('id').ilike('nombre', item.newMedNombre.trim());
+            if (item.newMedConcentracion) {
+              query = query.eq('concentracion', item.newMedConcentracion.trim());
+            } else {
+              query = query.is('concentracion', null);
+            }
+            const { data: existingList } = await query.limit(1);
+            const existing = existingList && existingList.length > 0 ? existingList[0] : null;
+
             if (existing) {
               finalProductoId = existing.id;
             } else {
               const { data: newMed, error: medErr } = await supabase.from('medicinas')
-                .insert({ nombre: item.newMedNombre, concentracion: item.newMedConcentracion || null })
-                .select().single();
+                .insert({ nombre: item.newMedNombre.trim(), concentracion: item.newMedConcentracion || null })
+                .select().maybeSingle();
               if (medErr) throw medErr;
-              finalProductoId = newMed.id;
+              finalProductoId = newMed ? newMed.id : null;
             }
           }
         }

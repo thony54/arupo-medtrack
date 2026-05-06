@@ -103,15 +103,32 @@ export const Catalog = () => {
       setLoading(true);
       if (supabase) {
         let finalCategoriaId = categoriaId;
+        let finalCategoriaNombre = '';
 
         // Crear categoría si es nueva
         if (categoriaId === 'NEW') {
-          const { data: catData, error: catError } = await supabase.from('categorias')
-            .insert({ nombre: newCategoriaNombre.trim(), descripcion: tipoRegistro === 'general' ? 'Categoría general añadida manualmente' : 'Categoría médica añadida manualmente' })
-            .select()
-            .single();
-          if (catError) throw catError;
-          finalCategoriaId = catData.id;
+          const catName = newCategoriaNombre.trim();
+          // Primero, verificar si ya existe (insensible a mayúsculas)
+          const { data: existingCat } = await supabase.from('categorias')
+            .select('*')
+            .ilike('nombre', catName)
+            .maybeSingle();
+            
+          if (existingCat) {
+            finalCategoriaId = existingCat.id;
+            finalCategoriaNombre = existingCat.nombre;
+          } else {
+            const { data: catData, error: catError } = await supabase.from('categorias')
+              .insert({ nombre: catName, descripcion: tipoRegistro === 'general' ? 'Categoría general añadida manualmente' : 'Categoría médica añadida manualmente' })
+              .select()
+              .single();
+            if (catError) throw catError;
+            finalCategoriaId = catData.id;
+            finalCategoriaNombre = catData.nombre;
+          }
+        } else {
+          const catSeleccionada = categorias.find(c => c.id === categoriaId);
+          finalCategoriaNombre = catSeleccionada ? catSeleccionada.nombre : '';
         }
 
         // Para ítems generales: concentracion y presentacion quedan como null (opcional)

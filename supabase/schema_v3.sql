@@ -167,3 +167,12 @@ ORDER BY d.nombre, l.created_at DESC;
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_movimientos_beneficiario ON public.movimientos (beneficiario_id);
 CREATE INDEX IF NOT EXISTS idx_lotes_donante            ON public.lotes (donante_id);
+
+-- ============================================================
+-- 9. COLUMNAS COMPLEMENTARIAS EN MEDICINAS
+-- ============================================================
+ALTER TABLE public.medicinas
+  ADD COLUMN IF NOT EXISTS cantidad_por_presentacion TEXT,
+  ADD COLUMN IF NOT EXISTS laboratorio TEXT;
+
+

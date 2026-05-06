@@ -155,15 +155,15 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
           const { data: catExist } = await supabase
             .from('categorias')
             .select('id')
-            .eq('nombre', item.nuevaCategoria)
-            .single();
+            .ilike('nombre', item.nuevaCategoria.trim())
+            .maybeSingle();
 
           if (catExist) {
             catId = catExist.id;
           } else {
             const { data: newCat, error: catErr } = await supabase
               .from('categorias')
-              .insert({ nombre: item.nuevaCategoria, descripcion: 'Categoría general añadida automáticamente' })
+              .insert({ nombre: item.nuevaCategoria.trim(), descripcion: 'Categoría general añadida automáticamente' })
               .select()
               .single();
             if (catErr) throw catErr;
