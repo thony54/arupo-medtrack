@@ -258,18 +258,47 @@ export const Catalog = () => {
         }
         setDetectedCategory(foundCategory);
         
-        // Leer la hoja de Excel como objetos JSON comenzando en la fila de cabeceras identificada
-        const rows = XLSX.utils.sheet_to_json(ws, { range: headerRowIndex });
-        
-        if (rows.length === 0) {
-          throw new Error('El archivo Excel está vacío o no tiene un formato válido.');
+        // Extraer los encabezados de forma segura directamente desde la fila de cabeceras identificada en rows2D
+        const headers = (rows2D[headerRowIndex] || [])
+          .map(h => h ? h.toString().trim() : '')
+          .filter(h => h !== ''); // filtrar celdas vacías
+          
+        if (headers.length === 0) {
+          throw new Error('No se pudieron identificar cabeceras válidas en el archivo Excel.');
         }
         
-        const headers = Object.keys(rows[0]);
+        // Mapear manualmente las filas de datos siguientes usando los encabezados de la fila identificada
+        const parsedRows = [];
+        for (let i = headerRowIndex + 1; i < rows2D.length; i++) {
+          const rowData = rows2D[i];
+          if (!rowData || rowData.length === 0) continue;
+          
+          const rowObj = {};
+          let hasContent = false;
+          
+          rows2D[headerRowIndex].forEach((headerName, colIdx) => {
+            if (headerName !== undefined && headerName !== null && headerName !== '') {
+              const val = rowData[colIdx];
+              rowObj[headerName.toString().trim()] = val !== undefined ? val : '';
+              if (val !== undefined && val !== '') {
+                hasContent = true;
+              }
+            }
+          });
+          
+          if (hasContent) {
+            parsedRows.push(rowObj);
+          }
+        }
+        
+        if (parsedRows.length === 0) {
+          throw new Error('El archivo Excel no contiene filas de datos válidas.');
+        }
+        
         const initialMapping = autoMapHeaders(headers);
         
         setImportHeaders(headers);
-        setImportRows(rows);
+        setImportRows(parsedRows);
         setColumnMapping(initialMapping);
         setImportStep(2);
       } catch (err) {
