@@ -12,13 +12,15 @@ const CATEGORIAS_MEDICAS_SUGERIDAS = ['Analgésicos', 'Antibióticos', 'Antiinfl
 
 // Sinónimos inteligentes para mapear automáticamente las columnas del archivo Excel
 const COLUMN_SYNONYMS = {
-  nombre: ['nombre', 'name', 'medicina', 'medicamento', 'producto', 'item', 'descripción', 'descripcion', 'artículo', 'articulo', 'desc'],
+  nombre: ['nombre del medicamento', 'nombre del medicamento.', 'nombre', 'name', 'medicina', 'medicamento', 'producto', 'item', 'descripción', 'descripcion', 'artículo', 'articulo', 'desc'],
   categoria: ['categoría', 'categoria', 'grupo', 'tipo', 'clase', 'category', 'department', 'seccion'],
-  laboratorio: ['laboratorio', 'lab', 'fabricante', 'marca', 'laboratory', 'maker', 'brand'],
-  presentacion: ['presentación', 'presentacion', 'formato', 'envase', 'tipo envase', 'presentation', 'unit'],
-  cantidad: ['cantidad', 'stock', 'cantidad total', 'total', 'cant', 'quantity', 'inventario', 'inicial', 'qty'],
+  laboratorio: ['laboratorio.', 'laboratorio', 'lab', 'fabricante', 'marca', 'laboratory', 'maker', 'brand'],
+  presentacion: ['presentación.', 'presentación', 'presentacion', 'formato', 'envase', 'tipo envase', 'presentation', 'unit'],
+  concentracion: ['concentración.', 'concentración', 'concentracion', 'concentración del medicamento', 'concentration'],
+  cantidad_por_presentacion: ['cantidad x presentación', 'cantidad x presentacion', 'cant x pres', 'cantidad por presentación', 'cantidad por presentacion', 'cpp'],
+  cantidad: ['cant. total', 'cant total', 'cantidad total', 'stock', 'cantidad', 'total', 'cant', 'quantity', 'inventario', 'inicial', 'qty'],
   lote: ['lote', 'lote nro', 'lote #', 'numero lote', 'número lote', 'batch', 'lot', 'serial'],
-  fecha_vencimiento: ['fecha vencimiento', 'vencimiento', 'caducidad', 'vence', 'fecha caducidad', 'fecha de vencimiento', 'expiration', 'expiry', 'fecha', 'venc'],
+  fecha_vencimiento: ['caducidad.', 'caducidad', 'fecha vencimiento', 'vencimiento', 'vence', 'fecha caducidad', 'fecha de vencimiento', 'expiration', 'expiry', 'fecha', 'venc'],
   observaciones: ['observaciones', 'notas', 'comentarios', 'observación', 'observacion', 'notes', 'comments', 'obs']
 };
 
@@ -26,10 +28,20 @@ const autoMapHeaders = (excelHeaders) => {
   const mapping = {};
   Object.keys(COLUMN_SYNONYMS).forEach(field => {
     const synonyms = COLUMN_SYNONYMS[field];
-    const matchedHeader = excelHeaders.find(h => {
-      const hNorm = h.toString().trim().toLowerCase();
-      return synonyms.includes(hNorm) || synonyms.some(syn => hNorm.includes(syn));
+    // Primero buscar coincidencia exacta limpia (reemplazando puntos finales)
+    let matchedHeader = excelHeaders.find(h => {
+      if (!h) return false;
+      const hNorm = h.toString().trim().toLowerCase().replace(/\.$/, '');
+      return synonyms.some(syn => syn.replace(/\.$/, '') === hNorm);
     });
+    // Si no hay coincidencia exacta, buscar coincidencia parcial
+    if (!matchedHeader) {
+      matchedHeader = excelHeaders.find(h => {
+        if (!h) return false;
+        const hNorm = h.toString().trim().toLowerCase();
+        return synonyms.some(syn => hNorm.includes(syn));
+      });
+    }
     mapping[field] = matchedHeader || '';
   });
   return mapping;
@@ -109,6 +121,7 @@ export const Catalog = () => {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState('');
   const [importSuccessCount, setImportSuccessCount] = useState(0);
+  const [detectedCategory, setDetectedCategory] = useState('Otros');
 
   useEffect(() => {
     fetchData();
@@ -155,6 +168,7 @@ export const Catalog = () => {
     setImportLoading(false);
     setImportError('');
     setImportSuccessCount(0);
+    setDetectedCategory('Otros');
   };
 
   const handleEditMedicine = (med) => {
@@ -186,7 +200,66 @@ export const Catalog = () => {
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const rows = XLSX.utils.sheet_to_json(ws);
+        
+        // Leer como array 2D para escanear títulos y cabeceras
+        const rows2D = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        
+        let headerRowIndex = -1;
+        let foundCategory = 'Otros';
+        
+        // Escanear las primeras 15 filas buscando la cabecera real
+        for (let i = 0; i < Math.min(rows2D.length, 15); i++) {
+          const row = rows2D[i];
+          if (!row) continue;
+          const hasNombre = row.some(cell => cell && cell.toString().trim().toLowerCase().replace(/\.$/, '').includes('nombre del medicamento'));
+          const hasLab = row.some(cell => cell && cell.toString().trim().toLowerCase().replace(/\.$/, '').includes('laboratorio'));
+          if (hasNombre || hasLab) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+        
+        // Si no se encuentra con la cabecera exacta, buscar la primera fila que tenga más de 3 elementos con contenido
+        if (headerRowIndex === -1) {
+          for (let i = 0; i < rows2D.length; i++) {
+            const row = rows2D[i];
+            if (row && row.filter(c => c !== '').length > 3) {
+              headerRowIndex = i;
+              break;
+            }
+          }
+        }
+        
+        if (headerRowIndex === -1) headerRowIndex = 0;
+        
+        // Extraer categoría de las filas previas a la cabecera (título como "INVENTARIO MEDICAMENTOS - ANTIINFLAMATORIOS")
+        for (let i = 0; i < headerRowIndex; i++) {
+          const row = rows2D[i];
+          if (!row) continue;
+          for (const cell of row) {
+            if (cell) {
+              const str = cell.toString().trim();
+              if (str.toUpperCase().includes('INVENTARIO MEDICAMENTOS')) {
+                if (str.includes('-')) {
+                  foundCategory = str.split('-')[1].trim();
+                } else {
+                  foundCategory = str.replace(/INVENTARIO MEDICAMENTOS/i, '').replace(/[-_:]/g, '').trim() || 'Otros';
+                }
+              } else if (str.includes('-') && str.length > 5 && str.length < 50) {
+                foundCategory = str.split('-')[1].trim();
+              }
+            }
+          }
+        }
+        
+        // Formatear categoría (ej. ANTIINFLAMATORIOS -> Antiinflamatorios)
+        if (foundCategory && foundCategory !== 'Otros') {
+          foundCategory = foundCategory.charAt(0).toUpperCase() + foundCategory.slice(1).toLowerCase();
+        }
+        setDetectedCategory(foundCategory);
+        
+        // Leer la hoja de Excel como objetos JSON comenzando en la fila de cabeceras identificada
+        const rows = XLSX.utils.sheet_to_json(ws, { range: headerRowIndex });
         
         if (rows.length === 0) {
           throw new Error('El archivo Excel está vacío o no tiene un formato válido.');
@@ -235,15 +308,17 @@ export const Catalog = () => {
         const rawCategoria = row[columnMapping.categoria];
         const rawLab = row[columnMapping.laboratorio];
         const rawPres = row[columnMapping.presentacion];
+        const rawConcentracion = row[columnMapping.concentracion];
+        const rawCPP = row[columnMapping.cantidad_por_presentacion];
         const rawCant = row[columnMapping.cantidad];
         const rawLote = row[columnMapping.lote];
         const rawVenc = row[columnMapping.fecha_vencimiento];
         const rawObs = row[columnMapping.observaciones];
         
-        // Resolver Categoría
+        // Resolver Categoría (si la fila no la trae, usar la detectada en el título del Excel)
         let finalCatId = null;
         let finalCatNombre = '';
-        const catName = rawCategoria ? rawCategoria.toString().trim() : 'Otros';
+        const catName = rawCategoria ? rawCategoria.toString().trim() : detectedCategory;
         
         // Verificar en caché (insensible a mayúsculas/minúsculas)
         const cachedCat = categoryCache.find(c => c.nombre.trim().toLowerCase() === catName.toLowerCase());
@@ -281,9 +356,9 @@ export const Catalog = () => {
           nombre: nombreVal,
           categoria_id: finalCatId,
           presentacion: rawPres ? rawPres.toString().trim() : (esMedico ? 'Tabletas' : 'Unidad'),
-          concentracion: null,
+          concentracion: rawConcentracion ? rawConcentracion.toString().trim() : null,
           laboratorio: esMedico ? (rawLab ? rawLab.toString().trim() : null) : null,
-          cantidad_por_presentacion: null,
+          cantidad_por_presentacion: rawCPP ? rawCPP.toString().trim() : null,
           observaciones: rawObs ? rawObs.toString().trim() : 'Importado vía Excel',
           stock_actual: stockVal
         };
