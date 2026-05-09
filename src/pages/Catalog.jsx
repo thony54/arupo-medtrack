@@ -16,7 +16,6 @@ const COLUMN_SYNONYMS = {
   categoria: ['categoría', 'categoria', 'grupo', 'tipo', 'clase', 'category', 'department', 'seccion'],
   laboratorio: ['laboratorio.', 'laboratorio', 'lab', 'fabricante', 'marca', 'laboratory', 'maker', 'brand'],
   presentacion: ['presentación.', 'presentación', 'presentacion', 'formato', 'envase', 'tipo envase', 'presentation', 'unit'],
-  concentracion: ['concentración.', 'concentración', 'concentracion', 'concentración del medicamento', 'concentration'],
   cantidad_por_presentacion: ['cantidad x presentación', 'cantidad x presentacion', 'cant x pres', 'cantidad por presentación', 'cantidad por presentacion', 'cpp'],
   cantidad: ['cant. total', 'cant total', 'cantidad total', 'stock', 'cantidad', 'total', 'cant', 'quantity', 'inventario', 'inicial', 'qty'],
   lote: ['lote', 'lote nro', 'lote #', 'numero lote', 'número lote', 'batch', 'lot', 'serial'],
@@ -169,6 +168,10 @@ export const Catalog = () => {
     setImportError('');
     setImportSuccessCount(0);
     setDetectedCategory('Otros');
+    
+    // Clear file input value so the same file can be selected again
+    const fileInput = document.getElementById('excel-file-input');
+    if (fileInput) fileInput.value = '';
   };
 
   const handleEditMedicine = (med) => {
@@ -337,7 +340,6 @@ export const Catalog = () => {
         const rawCategoria = row[columnMapping.categoria];
         const rawLab = row[columnMapping.laboratorio];
         const rawPres = row[columnMapping.presentacion];
-        const rawConcentracion = row[columnMapping.concentracion];
         const rawCPP = row[columnMapping.cantidad_por_presentacion];
         const rawCant = row[columnMapping.cantidad];
         const rawLote = row[columnMapping.lote];
@@ -385,7 +387,6 @@ export const Catalog = () => {
           nombre: nombreVal,
           categoria_id: finalCatId,
           presentacion: rawPres ? rawPres.toString().trim() : (esMedico ? 'Tabletas' : 'Unidad'),
-          concentracion: rawConcentracion ? rawConcentracion.toString().trim() : null,
           laboratorio: esMedico ? (rawLab ? rawLab.toString().trim() : null) : null,
           cantidad_por_presentacion: rawCPP ? rawCPP.toString().trim() : null,
           observaciones: rawObs ? rawObs.toString().trim() : 'Importado vía Excel',
@@ -582,7 +583,8 @@ export const Catalog = () => {
   });
 
   return (
-    <div className="animate-fade-in">
+    <>
+      <div className="animate-fade-in">
       <div className="page-header">
         <div>
           <h1 className="page-title">Catálogo Maestro</h1>
@@ -742,9 +744,10 @@ export const Catalog = () => {
           </table>
         </div>
       </div>
+    </div>
 
-      {/* ─── Modal de Importación desde Excel (Exclusivo) ─── */}
-      <Modal
+    {/* ─── Modal de Importación desde Excel (Exclusivo) ─── */}
+    <Modal
         isOpen={isImportModalOpen}
         onClose={resetImportState}
         title="Importar Catálogo desde Excel"
@@ -1203,6 +1206,6 @@ export const Catalog = () => {
           <button type="submit" id="cat-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
-    </div>
+    </>
   );
 };

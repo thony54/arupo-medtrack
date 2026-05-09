@@ -111,7 +111,8 @@ export const Donantes = () => {
   );
 
   return (
-    <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
+    <>
+      <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
       <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
         <div className="page-header">
           <div>
@@ -225,6 +226,7 @@ export const Donantes = () => {
           )}
         </div>
       )}
+      </div>
 
       {/* Modal */}
       <Modal
@@ -297,6 +299,6 @@ export const Donantes = () => {
           <button type="submit" id="d-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
-    </div>
+    </>
   );
 };

@@ -111,7 +111,8 @@ export const Beneficiarios = () => {
   );
 
   return (
-    <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
+    <>
+      <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
       {/* Main Panel */}
       <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
         <div className="page-header">
@@ -233,6 +234,7 @@ export const Beneficiarios = () => {
           )}
         </div>
       )}
+      </div>
 
       {/* Add Modal */}
       <Modal
@@ -302,6 +304,6 @@ export const Beneficiarios = () => {
           <button type="submit" id="b-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
-    </div>
+    </>
   );
 };

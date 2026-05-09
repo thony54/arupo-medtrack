@@ -8,15 +8,22 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+    // Check active session with catch/finally protection to prevent blank/blue screen hangs
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setSession(session);
+      })
+      .catch((err) => {
+        console.error('Error checking auth session:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
