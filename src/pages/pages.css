@@ -141,14 +141,21 @@
   }
 
   .page-header > div:last-child {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-    width: 100%;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    padding-bottom: 0.25rem !important;
+    -webkit-overflow-scrolling: touch;
   }
 
   .page-header button {
-    width: 100%;
+    width: auto !important;
+    flex: 1 0 auto !important;
+    padding: 0.5rem 0.85rem !important;
+    font-size: 0.85rem !important;
+    white-space: nowrap !important;
     justify-content: center;
   }
 
