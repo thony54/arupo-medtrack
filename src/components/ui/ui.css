@@ -252,11 +252,11 @@ select.input-field option {
 }
 
 /* ============================================================
-   MOBILE MODAL — Bottom Sheet de alta gama para teléfonos
+   MOBILE MODAL — Floating Bottom Sheet de alta gama para teléfonos
    ============================================================ */
 @media (max-width: 800px) {
   .modal-overlay {
-    padding: 0;
+    padding: 0.75rem;
     display: flex;
     align-items: flex-end; /* Alinear al fondo para Bottom Sheet */
     justify-content: center;
@@ -270,19 +270,24 @@ select.input-field option {
     
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 90vh !important;
+    max-height: 85vh !important;
     
-    border-radius: 28px 28px 0 0 !important; /* Esquinas redondeadas solo arriba */
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-bottom: none !important;
+    border-radius: 24px !important; /* Esquinas redondeadas en los 4 costados */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    margin-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important; /* Flotar sobre área segura */
     
     background-color: var(--bg-surface) !important;
-    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 40px rgba(16, 185, 129, 0.15) !important;
     
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUpMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    animation: slideUpMobile 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  }
+
+  .dark .modal-content {
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 40px rgba(52, 211, 153, 0.2) !important;
   }
 
   /* Manija táctil superior típica de apps nativas premium */
