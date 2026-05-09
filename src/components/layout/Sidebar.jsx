@@ -10,7 +10,16 @@ import { useAuth } from '../../contexts/AuthContext';
 import './layout.css';
 
 export const Sidebar = () => {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true; // Default to TRUE (dark mode) on first load
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
   const [showLoteForm, setShowLoteForm] = useState(false);
   const [showSalida, setShowSalida] = useState(false);
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
@@ -19,8 +28,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
 
   const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark', !isDark);
+    setIsDark(prev => !prev);
   };
 
   const handleLogout = async () => {

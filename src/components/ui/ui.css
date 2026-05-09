@@ -146,44 +146,61 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 1000;
-  animation: fadeIn 0.2s ease-out forwards;
+  background-color: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .modal-content {
   position: fixed;
-  top: 50%; /* Volvemos al 50% para centrado absoluto real */
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   
   background-color: var(--bg-surface);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%);
   border-radius: var(--radius-xl);
   padding: 0;
   width: 95%;
   max-width: 32rem;
-  box-shadow: var(--shadow-lg), 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 30px rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 1001;
+  z-index: 10000;
+  animation: modalPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.dark .modal-content {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 40px rgba(52, 211, 153, 0.15);
 }
 
 .modal-header {
-  padding: 1.25rem 1.5rem; /* Un poco menos de padding vertical */
+  padding: 1.5rem 1.75rem;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 0;
   flex-shrink: 0;
   background: var(--bg-surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 .modal-body {
-  padding: 1.5rem 1.5rem;
+  padding: 1.75rem;
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
@@ -191,8 +208,15 @@
   min-width: 0;
 }
 
+/* Ensure dropdown options are always readable in dark mode */
+select.input-field option {
+  background-color: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  padding: 0.5rem;
+}
+
 .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.75rem;
   border-top: 1px solid var(--border-color);
   background: var(--bg-surface);
   flex-shrink: 0;
@@ -204,12 +228,8 @@
 
 /* Desktop modal animation */
 @keyframes modalPop {
-  from { opacity: 0; transform: translate(-50%, -48%) scale(0.95); }
+  from { opacity: 0; transform: translate(-50%, -46%) scale(0.94); }
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-
-.modal-content {
-  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .modal-close {
@@ -228,7 +248,7 @@
 .modal-close:hover {
   background-color: var(--danger-bg);
   color: var(--danger-color);
-  transform: rotate(90deg);
+  transform: rotate(90deg) scale(1.05);
 }
 
 /* ============================================================
@@ -237,81 +257,53 @@
    pero con ancho y alto ajustado a la vista del teléfono.
    ============================================================ */
 @media (max-width: 800px) {
-
-  /* El overlay no cambia — sigue cubriendo pantalla completa */
   .modal-overlay {
     padding: 0;
   }
 
-  /* El modal se centra igual que en desktop pero ocupa casi toda la pantalla */
   .modal-content {
-    /* Mantiene position: fixed y centrado con translate */
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-
-    /* Ancho: pantalla completa menos 1.5rem de margen a cada lado */
-    width: calc(100% - 3rem) !important;
-    max-width: calc(100% - 3rem) !important;
-
-    /* Alto máximo: 88% de la altura de la vista */
-    max-height: 88vh !important;
-
-    /* Radio uniforme (no solo arriba como bottom-sheet) */
+    width: calc(100% - 2rem) !important;
+    max-width: calc(100% - 2rem) !important;
+    max-height: 85vh !important;
     border-radius: var(--radius-xl) !important;
-
-    /* Borde normal como desktop */
-    border: 1px solid var(--border-color) !important;
-
-    /* Animación centrada — igual que desktop pero más sutil */
-    animation: modalPopMobile 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) forwards !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    animation: modalPopMobile 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) forwards !important;
   }
 
   .modal-header {
-    padding: 1rem 1.125rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 1.25rem 1.5rem;
   }
 
   .modal-body {
-    padding: 1rem 1.125rem;
-    overflow-y: auto;
-    overflow-x: hidden;
-    min-height: 0;
-    min-width: 0;
-    -webkit-overflow-scrolling: touch;
+    padding: 1.25rem 1.5rem;
   }
 
   .modal-footer {
-    padding: 0.875rem 1.125rem;
-    padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+    padding: 1.125rem 1.5rem;
+    padding-bottom: calc(1.125rem + env(safe-area-inset-bottom, 0px));
     position: sticky;
     bottom: 0;
     background: var(--bg-surface);
     border-top: 1px solid var(--border-color);
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
-    z-index: 10;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
   }
 
   .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    padding: 0.55rem 1.15rem;
+    font-size: 0.9rem;
   }
 
   .input-field {
-    padding: 0.625rem 0.875rem;
+    padding: 0.7rem 0.95rem;
     font-size: 16px; /* Previene zoom automático en iOS */
   }
 
-  /* Animación mobile: fade + scale sin conflicto con translate(-50%,-50%) */
   @keyframes modalPopMobile {
     from {
       opacity: 0;
-      transform: translate(-50%, -47%) scale(0.93);
+      transform: translate(-50%, -46%) scale(0.92);
     }
     to {
       opacity: 1;
