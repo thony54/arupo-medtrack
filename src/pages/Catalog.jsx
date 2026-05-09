@@ -828,42 +828,7 @@ export const Catalog = () => {
             </div>
           )}
 
-          {/* Selector de tipo — toggle visual (Deshabilitado en edición para mantener tipo e integridad) */}
-          <div style={{ display: 'flex', gap: '0.75rem' }} role="group" aria-label="Tipo de ítem">
-            {[
-              { key: 'medico', label: 'Medicamento', icon: <Stethoscope size={14} /> },
-              { key: 'general', label: 'Ítem General', icon: <ShoppingBag size={14} /> },
-            ].map(t => (
-              <button
-                key={t.key}
-                type="button"
-                disabled={!!editingId}
-                onClick={() => { setTipoRegistro(t.key); setCategoriaId(''); }}
-                aria-pressed={tipoRegistro === t.key}
-                style={{
-                  flex: 1,
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: `2px solid ${tipoRegistro === t.key ? (t.key === 'general' ? '#7c3aed' : 'var(--primary-color)') : 'var(--border-color)'}`,
-                  background: tipoRegistro === t.key ? (t.key === 'general' ? '#f5f3ff' : 'var(--primary-light)') : 'var(--bg-surface)',
-                  color: tipoRegistro === t.key ? (t.key === 'general' ? '#6d28d9' : 'var(--primary-hover)') : 'var(--text-secondary)',
-                  fontWeight: tipoRegistro === t.key ? '700' : '400',
-                  cursor: editingId ? 'not-allowed' : 'pointer',
-                  fontSize: '0.875rem',
-                  transition: 'all var(--transition-fast)',
-                  fontFamily: 'var(--font-family)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.4rem',
-                  opacity: editingId && tipoRegistro !== t.key ? 0.4 : 1
-                }}
-              >
-                {t.icon}
-                {t.label}
-              </button>
-            ))}
-          </div>
+
 
           {/* Nombre */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
