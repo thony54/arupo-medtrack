@@ -1,13 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethoscope, Edit2 } from 'lucide-react';
+import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethoscope, Edit2, Upload, HelpCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { CATEGORIAS_GENERALES, esCategoriaMediaca } from '../utils/itemUtils';
+import { CATEGORIAS_GENERALES, esCategoriaMediaca, generarLoteGeneral, FECHA_NO_VENCE } from '../utils/itemUtils';
+import * as XLSX from 'xlsx';
 import './pages.css';
 
 // Categorías médicas predefinidas para orientar al usuario
 const CATEGORIAS_MEDICAS_SUGERIDAS = ['Analgésicos', 'Antibióticos', 'Antiinflamatorios', 'Antiparasitarios', 'Vitaminas', 'Antihistamínicos', 'Cardiovasculares', 'Otro'];
+
+// Sinónimos inteligentes para mapear automáticamente las columnas del archivo Excel
+const COLUMN_SYNONYMS = {
+  nombre: ['nombre', 'name', 'medicina', 'medicamento', 'producto', 'item', 'descripción', 'descripcion', 'artículo', 'articulo', 'desc'],
+  categoria: ['categoría', 'categoria', 'grupo', 'tipo', 'clase', 'category', 'department', 'seccion'],
+  laboratorio: ['laboratorio', 'lab', 'fabricante', 'marca', 'laboratory', 'maker', 'brand'],
+  presentacion: ['presentación', 'presentacion', 'formato', 'envase', 'tipo envase', 'presentation', 'unit'],
+  cantidad: ['cantidad', 'stock', 'cantidad total', 'total', 'cant', 'quantity', 'inventario', 'inicial', 'qty'],
+  lote: ['lote', 'lote nro', 'lote #', 'numero lote', 'número lote', 'batch', 'lot', 'serial'],
+  fecha_vencimiento: ['fecha vencimiento', 'vencimiento', 'caducidad', 'vence', 'fecha caducidad', 'fecha de vencimiento', 'expiration', 'expiry', 'fecha', 'venc'],
+  observaciones: ['observaciones', 'notas', 'comentarios', 'observación', 'observacion', 'notes', 'comments', 'obs']
+};
+
+const autoMapHeaders = (excelHeaders) => {
+  const mapping = {};
+  Object.keys(COLUMN_SYNONYMS).forEach(field => {
+    const synonyms = COLUMN_SYNONYMS[field];
+    const matchedHeader = excelHeaders.find(h => {
+      const hNorm = h.toString().trim().toLowerCase();
+      return synonyms.includes(hNorm) || synonyms.some(syn => hNorm.includes(syn));
+    });
+    mapping[field] = matchedHeader || '';
+  });
+  return mapping;
+};
+
+const parseExcelDate = (excelDate) => {
+  if (!excelDate) return null;
+  if (excelDate instanceof Date) {
+    return excelDate.toISOString().split('T')[0];
+  }
+  if (typeof excelDate === 'string') {
+    const d = new Date(excelDate);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+    const parts = excelDate.split(/[-/]/);
+    if (parts.length === 3) {
+      if (parts[2].length === 4) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const dateObj = new Date(year, month, day);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj.toISOString().split('T')[0];
+        }
+      }
+      if (parts[0].length === 4) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const dateObj = new Date(year, month, day);
+        if (!isNaN(dateObj.getTime())) {
+          return dateObj.toISOString().split('T')[0];
+        }
+      }
+    }
+  }
+  if (typeof excelDate === 'number') {
+    const dateObj = new Date((excelDate - 25569) * 86400 * 1000);
+    if (!isNaN(dateObj.getTime())) {
+      return dateObj.toISOString().split('T')[0];
+    }
+  }
+  return null;
+};
 
 export const Catalog = () => {
   const [medicinas, setMedicinas] = useState([]);
@@ -33,6 +100,16 @@ export const Catalog = () => {
   const [observaciones, setObservaciones] = useState('');
   const [editingId, setEditingId] = useState(null);
 
+  // Excel Import states
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importRows, setImportRows] = useState([]);
+  const [importHeaders, setImportHeaders] = useState([]);
+  const [columnMapping, setColumnMapping] = useState({});
+  const [importStep, setImportStep] = useState(1); // 1: upload, 2: mapping/preview, 3: success
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importSuccessCount, setImportSuccessCount] = useState(0);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -49,7 +126,7 @@ export const Catalog = () => {
       setMedicinas(medRes.data || []);
       setCategorias(catRes.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Error al cargar datos:', err);
     }
   };
 
@@ -69,6 +146,17 @@ export const Catalog = () => {
     setError('');
   };
 
+  const resetImportState = () => {
+    setIsImportModalOpen(false);
+    setImportRows([]);
+    setImportHeaders([]);
+    setColumnMapping({});
+    setImportStep(1);
+    setImportLoading(false);
+    setImportError('');
+    setImportSuccessCount(0);
+  };
+
   const handleEditMedicine = (med) => {
     resetForm();
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
@@ -84,7 +172,170 @@ export const Catalog = () => {
     setIsModalOpen(true);
   };
 
-  // Las categorías médicas son las que NO están en CATEGORIAS_GENERALES
+  const handleExcelFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setImportError('');
+    setImportLoading(true);
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const rows = XLSX.utils.sheet_to_json(ws);
+        
+        if (rows.length === 0) {
+          throw new Error('El archivo Excel está vacío o no tiene un formato válido.');
+        }
+        
+        const headers = Object.keys(rows[0]);
+        const initialMapping = autoMapHeaders(headers);
+        
+        setImportHeaders(headers);
+        setImportRows(rows);
+        setColumnMapping(initialMapping);
+        setImportStep(2);
+      } catch (err) {
+        setImportError(err.message || 'Error al procesar el archivo Excel.');
+      } finally {
+        setImportLoading(false);
+      }
+    };
+    
+    reader.onerror = () => {
+      setImportError('Error de lectura del archivo.');
+      setImportLoading(false);
+    };
+    
+    reader.readAsBinaryString(file);
+  };
+
+  const executeImport = async () => {
+    setImportLoading(true);
+    setImportError('');
+    let successCount = 0;
+    
+    try {
+      // 1. Cargar categorías existentes para prevenir duplicación
+      const { data: currentCats, error: catError } = await supabase.from('categorias').select('*');
+      if (catError) throw catError;
+      
+      const categoryCache = [...(currentCats || [])];
+      
+      for (const row of importRows) {
+        // Obtener campos mapeados
+        const rawNombre = row[columnMapping.nombre];
+        if (!rawNombre) continue; // Omitir filas sin nombre
+        
+        const nombreVal = rawNombre.toString().trim();
+        const rawCategoria = row[columnMapping.categoria];
+        const rawLab = row[columnMapping.laboratorio];
+        const rawPres = row[columnMapping.presentacion];
+        const rawCant = row[columnMapping.cantidad];
+        const rawLote = row[columnMapping.lote];
+        const rawVenc = row[columnMapping.fecha_vencimiento];
+        const rawObs = row[columnMapping.observaciones];
+        
+        // Resolver Categoría
+        let finalCatId = null;
+        let finalCatNombre = '';
+        const catName = rawCategoria ? rawCategoria.toString().trim() : 'Otros';
+        
+        // Verificar en caché (insensible a mayúsculas/minúsculas)
+        const cachedCat = categoryCache.find(c => c.nombre.trim().toLowerCase() === catName.toLowerCase());
+        if (cachedCat) {
+          finalCatId = cachedCat.id;
+          finalCatNombre = cachedCat.nombre;
+        } else {
+          // Crear nueva categoría si no existe
+          const isMed = esCategoriaMediaca(catName);
+          const { data: newCatList, error: newCatErr } = await supabase.from('categorias')
+            .insert({ 
+              nombre: catName, 
+              descripcion: isMed ? 'Categoría médica importada vía Excel' : 'Categoría general importada vía Excel' 
+            })
+            .select();
+          
+          if (newCatErr) {
+            console.error('Error al crear categoría durante la importación:', newCatErr);
+            continue;
+          }
+          if (newCatList && newCatList.length > 0) {
+            finalCatId = newCatList[0].id;
+            finalCatNombre = newCatList[0].nombre;
+            categoryCache.push(newCatList[0]);
+          } else {
+            continue;
+          }
+        }
+        
+        const esMedico = esCategoriaMediaca(finalCatNombre);
+        const stockVal = rawCant ? Number(rawCant) : 0;
+        
+        // Insertar Medicina/Ítem
+        const medData = {
+          nombre: nombreVal,
+          categoria_id: finalCatId,
+          presentacion: rawPres ? rawPres.toString().trim() : (esMedico ? 'Tabletas' : 'Unidad'),
+          concentracion: null,
+          laboratorio: esMedico ? (rawLab ? rawLab.toString().trim() : null) : null,
+          cantidad_por_presentacion: null,
+          observaciones: rawObs ? rawObs.toString().trim() : 'Importado vía Excel',
+          stock_actual: stockVal
+        };
+        
+        const { data: newMedList, error: medInsertErr } = await supabase.from('medicinas').insert(medData).select();
+        if (medInsertErr) {
+          console.error('Error al insertar medicina:', medInsertErr);
+          continue;
+        }
+        
+        if (newMedList && newMedList.length > 0) {
+          const savedMedId = newMedList[0].id;
+          successCount++;
+          
+          // Crear Lote para el stock inicial
+          const parsedVenc = parseExcelDate(rawVenc);
+          const loteNum = rawLote ? rawLote.toString().trim() : (esMedico ? 'S/N' : generarLoteGeneral());
+          const vencDate = esMedico ? (parsedVenc || FECHA_NO_VENCE) : FECHA_NO_VENCE;
+          
+          const loteData = {
+            producto_id: savedMedId,
+            numero_lote: loteNum,
+            cantidad_actual: stockVal,
+            fecha_vencimiento: vencDate,
+            estado: 'Disponible'
+          };
+          
+          await supabase.from('lotes').insert(loteData);
+          
+          // Crear Movimiento de entrada
+          if (stockVal > 0) {
+            await supabase.from('movimientos').insert({
+              medicina_id: savedMedId,
+              tipo: 'Entrada',
+              cantidad: stockVal,
+              origen_destino: `Importación Excel - Lote: ${loteNum}`
+            });
+          }
+        }
+      }
+      
+      setImportSuccessCount(successCount);
+      setImportStep(3);
+      await fetchData();
+    } catch (err) {
+      setImportError(err.message || 'Ocurrió un error inesperado durante la importación.');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  // Categorías médicas son las que NO están en CATEGORIAS_GENERALES
   const categoriasMedicas = categorias.filter(c => esCategoriaMediaca(c.nombre));
   const categoriasGenerales = categorias.filter(c => !esCategoriaMediaca(c.nombre));
 
@@ -109,22 +360,25 @@ export const Catalog = () => {
         if (categoriaId === 'NEW') {
           const catName = newCategoriaNombre.trim();
           // Primero, verificar si ya existe (insensible a mayúsculas)
-          const { data: existingCat } = await supabase.from('categorias')
+          const { data: existingCatList, error: findError } = await supabase.from('categorias')
             .select('*')
-            .ilike('nombre', catName)
-            .maybeSingle();
+            .ilike('nombre', catName);
             
-          if (existingCat) {
-            finalCategoriaId = existingCat.id;
-            finalCategoriaNombre = existingCat.nombre;
+          if (findError) throw findError;
+            
+          if (existingCatList && existingCatList.length > 0) {
+            finalCategoriaId = existingCatList[0].id;
+            finalCategoriaNombre = existingCatList[0].nombre;
           } else {
             const { data: catData, error: catError } = await supabase.from('categorias')
               .insert({ nombre: catName, descripcion: tipoRegistro === 'general' ? 'Categoría general añadida manualmente' : 'Categoría médica añadida manualmente' })
-              .select()
-              .single();
+              .select();
             if (catError) throw catError;
-            finalCategoriaId = catData.id;
-            finalCategoriaNombre = catData.nombre;
+            if (!catData || catData.length === 0) {
+              throw new Error('La categoría fue creada, pero no se pudo recuperar de la base de datos.');
+            }
+            finalCategoriaId = catData[0].id;
+            finalCategoriaNombre = catData[0].nombre;
           }
         } else {
           const catSeleccionada = categorias.find(c => c.id === categoriaId);
@@ -149,9 +403,12 @@ export const Catalog = () => {
           const { error: updateError } = await supabase.from('medicinas').update(medData).eq('id', editingId);
           if (updateError) throw updateError;
         } else {
-          const { data: newMed, error: insertError } = await supabase.from('medicinas').insert(medData).select().single();
+          const { data: newMed, error: insertError } = await supabase.from('medicinas').insert(medData).select();
           if (insertError) throw insertError;
-          savedMedId = newMed.id;
+          if (!newMed || newMed.length === 0) {
+            throw new Error('El ítem fue guardado, pero no se pudo recuperar el ID. Intenta recargar la página.');
+          }
+          savedMedId = newMed[0].id;
         }
 
         // Si se proporcionó lote o cantidad total y NO estamos editando (o si el usuario quiere crear un lote inicial)
@@ -165,15 +422,18 @@ export const Catalog = () => {
             fecha_vencimiento: esMedico ? (fechaVencimiento || FECHA_NO_VENCE) : FECHA_NO_VENCE,
             estado: 'Disponible'
           };
-          await supabase.from('lotes').insert(loteData);
+          
+          const { error: loteError } = await supabase.from('lotes').insert(loteData);
+          if (loteError) throw loteError;
           
           if (cantidadTotal && Number(cantidadTotal) > 0) {
-            await supabase.from('movimientos').insert({
+            const { error: movError } = await supabase.from('movimientos').insert({
               medicina_id: savedMedId,
               tipo: 'Entrada',
               cantidad: Number(cantidadTotal),
               origen_destino: `Registro inicial - Lote: ${loteData.numero_lote}`
             });
+            if (movError) throw movError;
           }
         }
 
@@ -193,7 +453,9 @@ export const Catalog = () => {
       try {
         setLoading(true);
         if (supabase) {
+          // Borrar recursiva/manualmente movimientos y lotes para blindar restricciones de FK
           await supabase.from('movimientos').delete().eq('medicina_id', id);
+          await supabase.from('lotes').delete().eq('producto_id', id);
           const { error: delError } = await supabase.from('medicinas').delete().eq('id', id);
           if (delError) throw delError;
           await fetchData();
@@ -225,6 +487,17 @@ export const Catalog = () => {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Botón Importar Excel — Función Exclusiva */}
+          <Button
+            variant="outline"
+            onClick={() => { resetImportState(); setIsImportModalOpen(true); }}
+            style={{ color: '#16a34a', borderColor: '#16a34a', background: '#f0fdf4', gap: '0.4rem', display: 'flex', alignItems: 'center', fontWeight: '700' }}
+            aria-label="Importar catálogo desde archivo Excel"
+          >
+            <Upload size={16} />
+            Importar Excel
+          </Button>
+
           {/* Botón Registrar Donación General — acceso rápido */}
           <Button
             variant="outline"
@@ -290,7 +563,7 @@ export const Catalog = () => {
                 <th>Laboratorio</th>
                 <th>Stock</th>
                 <th>Presentación</th>
-                <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
+                <th style={{ width: '80px', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -330,30 +603,32 @@ export const Catalog = () => {
                       </span>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
-                    <td style={{ textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '0.25rem' }}>
-                      <button
-                        onClick={() => handleEditMedicine(med)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', padding: '0.25rem', opacity: 0.8 }}
-                        title="Editar ítem"
-                        aria-label={`Editar ${med.nombre}`}
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMedicine(med.id, med.nombre)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
-                        title="Borrar ítem"
-                        aria-label={`Borrar ${med.nombre}`}
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem' }}>
+                        <button
+                          onClick={() => handleEditMedicine(med)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', padding: '0.25rem', opacity: 0.8 }}
+                          title="Editar ítem"
+                          aria-label={`Editar ${med.nombre}`}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMedicine(med.id, med.nombre)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
+                          title="Borrar ítem"
+                          aria-label={`Borrar ${med.nombre}`}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
               {medicinasFiltered.length === 0 && (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Pill size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>No hay ítems en esta categoría.<br />Añade el primero usando los botones de arriba.</span>
                   </td>
@@ -364,7 +639,167 @@ export const Catalog = () => {
         </div>
       </div>
 
-      {/* ─── Modal Unificado con Formulario Dinámico ─── */}
+      {/* ─── Modal de Importación desde Excel (Exclusivo) ─── */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={resetImportState}
+        title="Importar Catálogo desde Excel"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={resetImportState} disabled={importLoading}>
+              {importStep === 3 ? 'Cerrar' : 'Cancelar'}
+            </Button>
+            {importStep === 2 && (
+              <Button
+                type="button"
+                variant="primary"
+                disabled={importLoading || !columnMapping.nombre}
+                onClick={executeImport}
+                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none' }}
+              >
+                {importLoading ? 'Importando...' : 'Iniciar Importación'}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div style={{ minHeight: '260px' }}>
+          {importError && (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', backgroundColor: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', border: '1px solid rgba(239,68,68,0.2)' }}>
+              {importError}
+            </div>
+          )}
+
+          {/* Paso 1: Subir Archivo */}
+          {importStep === 1 && (
+            <div>
+              <div 
+                style={{
+                  border: '2px dashed #16a34a',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '3.5rem 2rem',
+                  textAlign: 'center',
+                  background: '#f0fdf4',
+                  cursor: 'pointer',
+                  transition: 'all var(--transition-fast)',
+                }}
+                onClick={() => document.getElementById('excel-file-input').click()}
+              >
+                <Upload size={48} style={{ color: '#16a34a', marginBottom: '1rem' }} />
+                <h3 style={{ color: '#15803d', fontWeight: '700', marginBottom: '0.5rem' }}>Subir documento Excel</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Arrastra tu archivo aquí o haz clic para buscar. Soporta .xlsx, .xls y .csv.
+                </p>
+                <input 
+                  id="excel-file-input"
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleExcelFileChange}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              <div style={{ marginTop: '1.5rem', background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <HelpCircle size={15} style={{ color: '#16a34a' }} /> Recomendaciones de columnas:
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                  <div>• <strong>Nombre</strong> <span style={{ color: 'var(--danger-color)' }}>*</span></div>
+                  <div>• <strong>Categoría</strong></div>
+                  <div>• <strong>Laboratorio</strong></div>
+                  <div>• <strong>Presentación</strong></div>
+                  <div>• <strong>Cantidad</strong></div>
+                  <div>• <strong>Lote</strong></div>
+                  <div>• <strong>Vencimiento</strong></div>
+                  <div>• <strong>Observaciones</strong></div>
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', lineHeight: '1.3' }}>
+                  * El sistema mapeará tus columnas automáticamente por sinonimia (ej: "Stock" se asociará a "Cantidad", "Vence" a "Vencimiento", etc.). Podrás revisar y corregir las columnas en el siguiente paso.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Paso 2: Mapeo y Vista Previa */}
+          {importStep === 2 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ background: '#f0fdf4', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>📊</span>
+                <div>
+                  <h4 style={{ fontWeight: '700', color: '#15803d', fontSize: '0.9rem' }}>¡Archivo procesado con éxito!</h4>
+                  <p style={{ fontSize: '0.8rem', color: '#166534' }}>Detectamos <strong>{importRows.length}</strong> fila(s) en tu documento. Verifica el mapeo de columnas abajo:</p>
+                </div>
+              </div>
+
+              {/* Contenedor de Mapeo */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', background: 'var(--bg-surface-hover)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                {Object.keys(COLUMN_SYNONYMS).map(field => (
+                  <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
+                      {field.replace('_', ' ')} {field === 'nombre' && <span style={{ color: 'var(--danger-color)' }}>*</span>}
+                    </label>
+                    <select
+                      className="input-field"
+                      style={{ marginBottom: 0, fontSize: '0.825rem', padding: '0.35rem', cursor: 'pointer' }}
+                      value={columnMapping[field] || ''}
+                      onChange={(e) => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
+                    >
+                      <option value="">— No importar —</option>
+                      {importHeaders.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {/* Vista Previa de Datos */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <h4 style={{ fontSize: '0.825rem', fontWeight: '700', color: 'var(--text-secondary)' }}>Vista previa de las primeras 4 filas:</h4>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', maxHeight: '180px' }}>
+                  <table style={{ width: '100%', fontSize: '0.725rem', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-color)' }}>
+                        <th style={{ padding: '0.5rem' }}>Nombre</th>
+                        <th style={{ padding: '0.5rem' }}>Categoría</th>
+                        <th style={{ padding: '0.5rem' }}>Laboratorio</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'center' }}>Stock</th>
+                        <th style={{ padding: '0.5rem' }}>Vencimiento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.slice(0, 4).map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: idx < 3 ? '1px solid var(--border-color)' : 'none' }}>
+                          <td style={{ padding: '0.5rem', fontWeight: '600' }}>{row[columnMapping.nombre] || <span style={{ color: 'var(--danger-color)', fontStyle: 'italic' }}>Vacío (se omitirá)</span>}</td>
+                          <td style={{ padding: '0.5rem' }}>{row[columnMapping.categoria] || 'Otros'}</td>
+                          <td style={{ padding: '0.5rem' }}>{row[columnMapping.laboratorio] || '—'}</td>
+                          <td style={{ padding: '0.5rem', fontWeight: '700', textAlign: 'center' }}>{row[columnMapping.cantidad] || 0}</td>
+                          <td style={{ padding: '0.5rem' }}>{parseExcelDate(row[columnMapping.fecha_vencimiento]) || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Paso 3: Éxito */}
+          {importStep === 3 && (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+              <div style={{ width: '64px', height: '64px', background: '#dcfce7', color: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: '2rem', fontWeight: 'bold' }}>
+                ✓
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#15803d', marginBottom: '0.5rem' }}>¡Importación Finalizada!</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto', lineHeight: '1.4' }}>
+                Se han registrado exitosamente <strong>{importSuccessCount}</strong> medicina(s)/ítem(s) en tu catálogo y se han creado automáticamente sus respectivos lotes de control de inventario inicial.
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* ─── Modal Unificado con Formulario Dinámico de Registro ─── */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); resetForm(); }}
@@ -379,7 +814,7 @@ export const Catalog = () => {
               variant="primary"
               disabled={loading}
               onClick={() => document.getElementById('cat-submit-trigger').click()}
-              style={tipoRegistro === 'general' ? { background: 'linear-gradient(135deg, #7c3aed, #a855f7)' } : {}}
+              style={tipoRegistro === 'general' ? { background: 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none' } : {}}
             >
               {loading ? 'Guardando...' : `${editingId ? 'Actualizar' : 'Guardar'} ${tipoRegistro === 'general' ? 'Ítem' : 'Medicina'}`}
             </Button>
@@ -393,7 +828,7 @@ export const Catalog = () => {
             </div>
           )}
 
-          {/* Selector de tipo — toggle visual */}
+          {/* Selector de tipo — toggle visual (Deshabilitado en edición para mantener tipo e integridad) */}
           <div style={{ display: 'flex', gap: '0.75rem' }} role="group" aria-label="Tipo de ítem">
             {[
               { key: 'medico', label: 'Medicamento', icon: <Stethoscope size={14} /> },
@@ -402,6 +837,7 @@ export const Catalog = () => {
               <button
                 key={t.key}
                 type="button"
+                disabled={!!editingId}
                 onClick={() => { setTipoRegistro(t.key); setCategoriaId(''); }}
                 aria-pressed={tipoRegistro === t.key}
                 style={{
@@ -412,7 +848,7 @@ export const Catalog = () => {
                   background: tipoRegistro === t.key ? (t.key === 'general' ? '#f5f3ff' : 'var(--primary-light)') : 'var(--bg-surface)',
                   color: tipoRegistro === t.key ? (t.key === 'general' ? '#6d28d9' : 'var(--primary-hover)') : 'var(--text-secondary)',
                   fontWeight: tipoRegistro === t.key ? '700' : '400',
-                  cursor: 'pointer',
+                  cursor: editingId ? 'not-allowed' : 'pointer',
                   fontSize: '0.875rem',
                   transition: 'all var(--transition-fast)',
                   fontFamily: 'var(--font-family)',
@@ -420,8 +856,10 @@ export const Catalog = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.4rem',
+                  opacity: editingId && tipoRegistro !== t.key ? 0.4 : 1
                 }}
               >
+                {t.icon}
                 {t.label}
               </button>
             ))}
@@ -573,16 +1011,17 @@ export const Catalog = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label htmlFor="cat-ct" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Cantidad Total (Stock Inicial)
+                Cantidad Total (Stock Inicial) {editingId && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>(Editar en Inventario)</span>}
               </label>
               <input
                 id="cat-ct"
                 type="number"
                 className="input-field"
                 value={cantidadTotal}
+                disabled={!!editingId}
                 onChange={(e) => setCantidadTotal(e.target.value)}
                 placeholder="0"
-                style={{ marginBottom: 0 }}
+                style={{ marginBottom: 0, cursor: editingId ? 'not-allowed' : 'text' }}
               />
             </div>
           </div>
