@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 import './ui.css';
 
@@ -23,7 +24,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className="modal-overlay"
       onClick={(e) => {
@@ -51,6 +52,8 @@ export const Modal = ({ isOpen, onClose, title, children, footer }) => {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+

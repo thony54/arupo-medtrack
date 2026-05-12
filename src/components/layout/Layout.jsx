@@ -77,6 +77,11 @@ export const Layout = () => {
 
   return (
     <div className={`layout-container animate-opacity-in ${showHeader ? 'header-visible' : 'header-hidden'}`}>
+      {/* Decorative Ambient Background Elements */}
+      <div className="ambient-glow glow-1"></div>
+      <div className="ambient-glow glow-2"></div>
+      <div className="ambient-glow glow-3"></div>
+      
       <Sidebar />
       <main 
         ref={mainRef}
