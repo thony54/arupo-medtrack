@@ -8,49 +8,52 @@
   overflow-x: hidden;
 }
 
-/* Ambient Visual Elements */
+/* Ambient Visual Elements - Performance Optimized */
 .ambient-glow {
   position: fixed;
-  width: 400px;
-  height: 400px;
-  border-radius: 50%;
-  filter: blur(100px);
-  opacity: 0.08;
   z-index: 0;
   pointer-events: none;
-  animation: floatingGlow 20s infinite ease-in-out alternate;
-}
-
-.dark .ambient-glow {
-  opacity: 0.15;
+  will-change: transform;
+  transform: translateZ(0); /* Promotes to GPU layer for 60fps animation */
+  animation: floatingGlow 25s infinite ease-in-out alternate;
+  border-radius: 50%;
 }
 
 .glow-1 {
-  background: var(--primary-color);
-  top: -10%;
-  right: -5%;
+  width: 550px;
+  height: 550px;
+  top: -100px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(13, 148, 136, 0.12) 0%, rgba(13, 148, 136, 0.04) 40%, rgba(13, 148, 136, 0) 75%);
 }
 
 .glow-2 {
-  background: #0ea5e9; /* Sky blue */
-  bottom: 10%;
-  left: 15%;
-  width: 300px;
-  height: 300px;
+  width: 500px;
+  height: 500px;
+  bottom: 5%;
+  left: 10%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, rgba(14, 165, 233, 0.03) 40%, rgba(14, 165, 233, 0) 75%);
   animation-delay: -5s;
 }
 
 .glow-3 {
-  background: #8b5cf6; /* Violet */
-  bottom: -5%;
-  right: 20%;
-  animation-delay: -10s;
+  width: 450px;
+  height: 450px;
+  bottom: -50px;
+  right: 15%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(139, 92, 246, 0.02) 40%, rgba(139, 92, 246, 0) 75%);
+  animation-delay: -12s;
 }
 
+.dark .glow-1 { background: radial-gradient(circle, rgba(20, 184, 166, 0.18) 0%, rgba(20, 184, 166, 0.05) 45%, rgba(20, 184, 166, 0) 80%); }
+.dark .glow-2 { background: radial-gradient(circle, rgba(14, 165, 233, 0.15) 0%, rgba(14, 165, 233, 0.04) 45%, rgba(14, 165, 233, 0) 80%); }
+.dark .glow-3 { background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.03) 45%, rgba(139, 92, 246, 0) 80%); }
+
 @keyframes floatingGlow {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(20px, 40px) scale(1.1); }
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(30px, 45px, 0) scale(1.1); }
 }
+
 
 .main-content {
   flex: 1;
