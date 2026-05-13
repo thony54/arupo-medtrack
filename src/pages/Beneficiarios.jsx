@@ -43,9 +43,9 @@ export const Beneficiarios = () => {
         .from('beneficiarios')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (err) throw err;
-      
+
       // Get donation count per beneficiary
       const { data: movData } = await supabase
         .from('movimientos')
@@ -56,10 +56,10 @@ export const Beneficiarios = () => {
       const countMap = {};
       (movData || []).forEach(m => { countMap[m.beneficiario_id] = (countMap[m.beneficiario_id] || 0) + 1; });
       setBeneficiarios((data || []).map(b => ({ ...b, donaciones_count: countMap[b.id] || 0 })));
-    } catch { 
-      setBeneficiarios([]); 
-    } finally { 
-      setLoading(false); 
+    } catch {
+      setBeneficiarios([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,7 +86,7 @@ export const Beneficiarios = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) { setError('El Nombre/Organización es obligatorio.'); return; }
-    
+
     try {
       setSaving(true);
       const { error: err } = await supabase.from('beneficiarios').insert({
@@ -131,138 +131,138 @@ export const Beneficiarios = () => {
   const filtered = beneficiarios.filter(b => {
     const s = search.toLowerCase();
     return (b.nombre || '').toLowerCase().includes(s) ||
-           (b.codigo || '').toLowerCase().includes(s) ||
-           (b.cedula || '').toLowerCase().includes(s) ||
-           (b.discapacidad_tipo || '').toLowerCase().includes(s) ||
-           (b.condicion_medica || '').toLowerCase().includes(s) ||
-           (b.contacto_responsable || '').toLowerCase().includes(s);
+      (b.codigo || '').toLowerCase().includes(s) ||
+      (b.cedula || '').toLowerCase().includes(s) ||
+      (b.discapacidad_tipo || '').toLowerCase().includes(s) ||
+      (b.condicion_medica || '').toLowerCase().includes(s) ||
+      (b.contacto_responsable || '').toLowerCase().includes(s);
   });
 
   return (
     <>
       <div className="animate-fade-in flex-responsive" style={{ alignItems: 'flex-start' }}>
-      {/* Main Panel */}
-      <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
-        <div className="page-header">
-          <div>
-            <h1 className="page-title">Beneficiarios</h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
-            <UserPlus size={18} /> Añadir Beneficiario
-          </Button>
-        </div>
-
-        {/* Search */}
-        <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ position: 'relative' }}>
-            <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-            <input className="input-field" style={{ paddingLeft: '2.75rem', marginBottom: 0, width: '100%' }}
-              placeholder="Buscar por código, nombre, cédula, discapacidad o condición..."
-              value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Código</th>
-                <th>Nombre / Organización</th>
-                <th>Tipo</th>
-                <th>Contacto & ID</th>
-                <th>Info Médica</th>
-                <th style={{ textAlign: 'center' }}>Donaciones</th>
-                <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando datos de beneficiarios...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <Users size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)' }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>No se encontraron beneficiarios.</span>
-                  </td>
-                </tr>
-              ) : filtered.map(b => (
-                <tr key={b.id} style={{ cursor: 'pointer' }} onClick={() => fetchHistorial(b)}>
-                  <td style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{b.codigo || '—'}</td>
-                  <td>
-                    <div style={{ fontWeight: '600' }}>{b.nombre}</div>
-                    {b.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{b.email}</div>}
-                  </td>
-                  <td><span style={{ fontSize: '0.8rem', background: 'var(--bg-surface-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{b.tipo}</span></td>
-                  <td>
-                    <div style={{ fontSize: '0.85rem' }}>{b.contacto_responsable || '—'}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {b.cedula || 'N/A'} • {b.telefono || '—'}</div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start' }}>
-                      {b.condicion_medica ? <span style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>{b.condicion_medica}</span> : null}
-                      {b.discapacidad_tipo ? <span style={{ background: 'var(--danger-bg)', color: 'var(--danger-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><IdCard size={12}/> {b.discapacidad_tipo} {b.tiene_carnet_discapacidad && '(Con Carnet)'}</span> : null}
-                      {!b.condicion_medica && !b.discapacidad_tipo && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>Sin condiciones</span>}
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--primary-color)' }}>{b.donaciones_count}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <button 
-                      onClick={(e) => handleDeleteBeneficiario(e, b.id, b.nombre)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
-                      title="Borrar Beneficiario"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* History Side Panel */}
-      {selected && (
-        <div className="card animate-fade-in mobile-full-width" style={{ width: '340px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+        {/* Main Panel */}
+        <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
+          <div className="page-header">
             <div>
-              <div style={{ color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: '700', marginBottom: '0.2rem' }}>{selected.codigo}</div>
-              <div style={{ fontWeight: '700', fontSize: '1rem', lineHeight: '1.2' }}>{selected.nombre}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>{selected.tipo} • ID: {selected.cedula || 'N/A'}</div>
+              <h1 className="page-title">Beneficiarios</h1>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+                {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
+              </p>
             </div>
-            <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={18} /></button>
+            <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
+              <UserPlus size={18} /> Añadir Beneficiario
+            </Button>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
-            {selected.contacto_responsable && <div style={{ fontSize: '0.85rem' }}><strong style={{color: 'var(--text-secondary)'}}>Contacto:</strong> {selected.contacto_responsable}</div>}
-            {selected.telefono && <div style={{ fontSize: '0.85rem' }}><strong style={{color: 'var(--text-secondary)'}}>Tel:</strong> {selected.telefono}</div>}
-            {selected.direccion && <div style={{ fontSize: '0.85rem' }}><strong style={{color: 'var(--text-secondary)'}}>Dir:</strong> {selected.direccion}</div>}
+          {/* Search */}
+          <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+              <input className="input-field" style={{ paddingLeft: '2.75rem', marginBottom: 0, width: '100%' }}
+                placeholder="Buscar por código, nombre, cédula, discapacidad o condición..."
+                value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
           </div>
 
-          <div style={{ fontWeight: '600', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-            Historial de Donaciones Recibidas
+          {/* Table */}
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre / Organización</th>
+                  <th>Tipo</th>
+                  <th>Contacto & ID</th>
+                  <th>Info Médica</th>
+                  <th style={{ textAlign: 'center' }}>Donaciones</th>
+                  <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando datos de beneficiarios...</td></tr>
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
+                      <Users size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)' }} />
+                      <span style={{ color: 'var(--text-secondary)' }}>No se encontraron beneficiarios.</span>
+                    </td>
+                  </tr>
+                ) : filtered.map(b => (
+                  <tr key={b.id} style={{ cursor: 'pointer' }} onClick={() => fetchHistorial(b)}>
+                    <td style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{b.codigo || '—'}</td>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{b.nombre}</div>
+                      {b.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{b.email}</div>}
+                    </td>
+                    <td><span style={{ fontSize: '0.8rem', background: 'var(--bg-surface-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{b.tipo}</span></td>
+                    <td>
+                      <div style={{ fontSize: '0.85rem' }}>{b.contacto_responsable || '—'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {b.cedula || 'N/A'} • {b.telefono || '—'}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start' }}>
+                        {b.condicion_medica ? <span style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>{b.condicion_medica}</span> : null}
+                        {b.discapacidad_tipo ? <span style={{ background: 'var(--danger-bg)', color: 'var(--danger-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><IdCard size={12} /> {b.discapacidad_tipo} {b.tiene_carnet_discapacidad && '(Con Carnet)'}</span> : null}
+                        {!b.condicion_medica && !b.discapacidad_tipo && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>Sin condiciones</span>}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--primary-color)' }}>{b.donaciones_count}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      <button
+                        onClick={(e) => handleDeleteBeneficiario(e, b.id, b.nombre)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger-color)', padding: '0.25rem', opacity: 0.8 }}
+                        title="Borrar Beneficiario"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          {historial.length === 0 ? (
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>Aún no ha recibido donaciones registradas.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-              {historial.map(h => (
-                <div key={h.id} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', background: 'var(--bg-surface)' }}>
-                  <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{h.medicinas?.nombre}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', marginTop: '0.35rem' }}>
-                    <span>{new Date(h.timestamp).toLocaleDateString('es-ES')}</span>
-                    <span style={{ fontWeight: '700', color: 'var(--success-color)' }}>+{h.cantidad} u.</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-      )}
+
+        {/* History Side Panel */}
+        {selected && (
+          <div className="card animate-fade-in mobile-full-width" style={{ width: '340px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div>
+                <div style={{ color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: '700', marginBottom: '0.2rem' }}>{selected.codigo}</div>
+                <div style={{ fontWeight: '700', fontSize: '1rem', lineHeight: '1.2' }}>{selected.nombre}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>{selected.tipo} • ID: {selected.cedula || 'N/A'}</div>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={18} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              {selected.contacto_responsable && <div style={{ fontSize: '0.85rem' }}><strong style={{ color: 'var(--text-secondary)' }}>Contacto:</strong> {selected.contacto_responsable}</div>}
+              {selected.telefono && <div style={{ fontSize: '0.85rem' }}><strong style={{ color: 'var(--text-secondary)' }}>Tel:</strong> {selected.telefono}</div>}
+              {selected.direccion && <div style={{ fontSize: '0.85rem' }}><strong style={{ color: 'var(--text-secondary)' }}>Dir:</strong> {selected.direccion}</div>}
+            </div>
+
+            <div style={{ fontWeight: '600', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              Historial de Donaciones Recibidas
+            </div>
+            {historial.length === 0 ? (
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>Aún no ha recibido donaciones registradas.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                {historial.map(h => (
+                  <div key={h.id} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', background: 'var(--bg-surface)' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{h.medicinas?.nombre}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', marginTop: '0.35rem' }}>
+                      <span>{new Date(h.timestamp).toLocaleDateString('es-ES')}</span>
+                      <span style={{ fontWeight: '700', color: 'var(--success-color)' }}>+{h.cantidad} u.</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Add Modal */}
@@ -327,8 +327,8 @@ export const Beneficiarios = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="b-dir" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Dirección</label>
-            <input id="b-dir" className="input-field" style={{ marginBottom: 0 }} value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Avenida, Sector, Ciudad" />
+            <label htmlFor="b-dir" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Dirección <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+            <input id="b-dir" className="input-field" style={{ marginBottom: 0 }} value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Sector ciudad y provincia, calles del domicilio." required />
           </div>
 
           {/* Información Médica */}
@@ -336,7 +336,7 @@ export const Beneficiarios = () => {
             <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Información Médica (Opcional)
             </div>
-            
+
             <div className="grid-responsive" style={{ gap: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label htmlFor="b-condicion" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Condición Médica</label>
@@ -348,14 +348,14 @@ export const Beneficiarios = () => {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label htmlFor="b-discapacidad" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Discapacidad</label>
-                <input 
-                  list="discapacidades-list" 
-                  id="b-discapacidad" 
-                  className="input-field" 
-                  style={{ marginBottom: 0 }} 
-                  value={discapacidad} 
-                  onChange={e => setDiscapacidad(e.target.value)} 
-                  placeholder="Escriba o seleccione..." 
+                <input
+                  list="discapacidades-list"
+                  id="b-discapacidad"
+                  className="input-field"
+                  style={{ marginBottom: 0 }}
+                  value={discapacidad}
+                  onChange={e => setDiscapacidad(e.target.value)}
+                  placeholder="Escriba o seleccione..."
                 />
                 <datalist id="discapacidades-list">
                   {DISCAPACIDADES.map(d => <option key={d} value={d} />)}
@@ -364,13 +364,13 @@ export const Beneficiarios = () => {
             </div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: '0.25rem' }}>
-              <input 
-                type="checkbox" 
-                checked={tieneCarnet} 
-                onChange={e => setTieneCarnet(e.target.checked)} 
+              <input
+                type="checkbox"
+                checked={tieneCarnet}
+                onChange={e => setTieneCarnet(e.target.checked)}
                 style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)' }}
               />
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Posee Carnet de Discapacidad (CONADIS / MSP)</span>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Posee Carnet de Discapacidad</span>
             </label>
           </div>
 

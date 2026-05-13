@@ -325,8 +325,8 @@ export const Donantes = () => {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="d-dir" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Dirección</label>
-            <input id="d-dir" className="input-field" style={{ marginBottom: 0 }} value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Avenida, Sector, Ciudad" />
+            <label htmlFor="d-dir" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Dirección <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+            <input id="d-dir" className="input-field" style={{ marginBottom: 0 }} value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Sector ciudad y provincia, calles del domicilio." required />
           </div>
 
           {/* Información Médica */}
