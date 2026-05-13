@@ -70,19 +70,42 @@ export const Usuarios = () => {
     setSuccess('');
 
     try {
-      // Llamar al RPC creado en supabase/schema_v4.sql
-      const { data, error: rpcError } = await supabase.rpc('crear_usuario_completo', {
-        p_email: email.trim(),
-        p_password: password,
-        p_nombre: nombre.trim(),
-        p_rol: rol
+      // Usar cliente secundario para no cerrar la sesión del Super Admin
+      const { createClient } = await import('@supabase/supabase-js');
+      const authClient = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_ANON_KEY,
+        {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
+        }
+      );
+
+      // Crear usuario de fábrica
+      const { data, error: signUpError } = await authClient.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            nombre: nombre.trim(),
+            rol: rol
+          }
+        }
       });
 
-      if (rpcError) {
-        if (rpcError.message.includes('crear_usuario_completo')) {
-          throw new Error('El script SQL de roles no ha sido instalado en Supabase. Contacta al administrador para ejecutar schema_v4.sql.');
-        }
-        throw rpcError;
+      if (signUpError) throw signUpError;
+
+      // Asegurarnos que el perfil se actualice (por si el trigger tarda)
+      if (data?.user) {
+        await supabase.from('perfiles').upsert({
+          id: data.user.id,
+          email: email.trim(),
+          nombre: nombre.trim(),
+          rol: rol
+        });
       }
 
       setSuccess('¡Usuario creado con éxito!');
@@ -93,8 +116,8 @@ export const Usuarios = () => {
       }, 1500);
 
     } catch (err) {
-      console.error(err);
-      setError(err.message || 'Error al crear el usuario.');
+      console.error('Error al crear el usuario:', err);
+      setError(err.message || 'Error al crear el usuario. Verifica si el correo ya existe.');
     } finally {
       setSaving(false);
     }
