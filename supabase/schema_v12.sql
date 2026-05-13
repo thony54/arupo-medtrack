@@ -4,7 +4,6 @@
 -- ============================================================
 
 -- 1. LIMPIEZA TOTAL DE DISPARADORES (TRIGGERS)
--- Eliminamos cualquier trigger que pueda estar bloqueando la creación de usuarios
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS handle_new_user_trigger ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
@@ -28,7 +27,6 @@ CREATE TABLE public.perfiles (
 ALTER TABLE public.perfiles DISABLE ROW LEVEL SECURITY;
 
 -- 4. NUEVO DISPARADOR (TRIGGER) SIMPLIFICADO
--- Este trigger creará el perfil automáticamente cada vez que registres a alguien
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -50,7 +48,6 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- 5. RECONSTRUCCIÓN DE IDENTIDADES (FIX DE LOGIN)
--- Esto permite que usuarios creados manualmente puedan entrar
 INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, created_at, updated_at)
 SELECT 
   gen_random_uuid(), 
@@ -66,10 +63,7 @@ WHERE NOT EXISTS (
 );
 
 -- 6. ASIGNAR ROL SUPER ADMIN A TI
--- Ejecuta esto reemplazando 'TU_EMAIL' por tu correo real si quieres forzarlo.
--- UPDATE public.perfiles SET rol = 'super_admin' WHERE email = 'tu_email@ejemplo.com';
-
--- 7. SINCRONIZAR PERFILES EXISTENTES
+-- INSERTAR PERFILES PARA USUARIOS EXISTENTES
 INSERT INTO public.perfiles (id, email, nombre, rol)
 SELECT id, email, COALESCE(raw_user_meta_data->>'nombre', email), 'super_admin'
 FROM auth.users

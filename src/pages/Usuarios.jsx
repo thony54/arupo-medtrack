@@ -38,7 +38,7 @@ export const Usuarios = () => {
         .from('perfiles')
         .select('*')
         .order('created_at', { ascending: false });
-      
+
       if (err) throw err;
       setUsuarios(data || []);
     } catch (err) {
@@ -70,7 +70,7 @@ export const Usuarios = () => {
     setSuccess('');
 
     try {
-      // 1. Cliente temporal (stateless) para no cerrar tu sesión
+      // 1. Cliente temporal para no cerrar tu sesión
       const { createClient } = await import('@supabase/supabase-js');
       const authClient = createClient(
         import.meta.env.VITE_SUPABASE_URL,
@@ -78,7 +78,7 @@ export const Usuarios = () => {
         { auth: { persistSession: false } }
       );
 
-      // 2. Registro (El trigger handle_new_user en la DB se encarga del resto)
+      // 2. Registro (El trigger en DB se encarga del perfil)
       const { data, error: signUpError } = await authClient.auth.signUp({
         email: email.trim().toLowerCase(),
         password: password,
@@ -92,7 +92,7 @@ export const Usuarios = () => {
 
       if (signUpError) throw signUpError;
 
-      // 3. Pequeña espera para que el trigger termine de procesar el perfil
+      // 3. Espera breve para sincronización de DB
       await new Promise(resolve => setTimeout(resolve, 800));
 
       setSuccess('¡Personal registrado con éxito!');
@@ -142,12 +142,12 @@ export const Usuarios = () => {
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ position: 'relative' }}>
           <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input 
-            className="input-field" 
+          <input
+            className="input-field"
             style={{ paddingLeft: '2.75rem', marginBottom: 0, width: '100%' }}
             placeholder="Buscar por nombre, email o rol..."
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
           />
         </div>
       </div>
@@ -182,11 +182,11 @@ export const Usuarios = () => {
               <tr key={u.id}>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '50%', 
-                      backgroundColor: 'var(--primary-light)', 
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--primary-light)',
                       color: 'var(--primary-hover)',
                       display: 'flex',
                       alignItems: 'center',
@@ -258,44 +258,44 @@ export const Usuarios = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label htmlFor="u-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre Completo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input 
-              id="u-nombre" 
-              className="input-field" 
-              style={{ marginBottom: 0 }} 
-              value={nombre} 
-              onChange={e => setNombre(e.target.value)} 
-              placeholder="Ej. Juan Pérez" 
-              required 
+            <input
+              id="u-nombre"
+              className="input-field"
+              style={{ marginBottom: 0 }}
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              placeholder="Ej. Juan Pérez"
+              required
               disabled={saving}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label htmlFor="u-email" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Correo Electrónico <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input 
-              id="u-email" 
+            <input
+              id="u-email"
               type="email"
-              className="input-field" 
-              style={{ marginBottom: 0 }} 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-              placeholder="correo@fundacion.org" 
-              required 
+              className="input-field"
+              style={{ marginBottom: 0 }}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="correo@fundacion.org"
+              required
               disabled={saving}
             />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label htmlFor="u-pass" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Contraseña Temporal <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input 
-              id="u-pass" 
+            <input
+              id="u-pass"
               type="password"
-              className="input-field" 
-              style={{ marginBottom: 0 }} 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
-              placeholder="Mínimo 6 caracteres" 
-              required 
+              className="input-field"
+              style={{ marginBottom: 0 }}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+              required
               minLength={6}
               disabled={saving}
             />
@@ -307,15 +307,15 @@ export const Usuarios = () => {
             <select
               id="u-rol"
               className="input-field"
-              style={{ 
-                marginBottom: 0, 
-                cursor: 'pointer', 
-                width: '100%', 
-                appearance: 'none', 
-                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2310b981%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', 
-                backgroundRepeat: 'no-repeat', 
-                backgroundPosition: 'right 1rem top 50%', 
-                backgroundSize: '0.65rem auto' 
+              style={{
+                marginBottom: 0,
+                cursor: 'pointer',
+                width: '100%',
+                appearance: 'none',
+                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2310b981%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 1rem top 50%',
+                backgroundSize: '0.65rem auto'
               }}
               value={rol}
               onChange={e => setRol(e.target.value)}
