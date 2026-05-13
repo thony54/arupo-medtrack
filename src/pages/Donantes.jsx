@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, Search, X, Users, Trash2 } from 'lucide-react';
+import { Building2, Plus, Search, X, Users, Trash2, IdCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import './pages.css';
 
-const TIPOS = ['Hospital', 'Farmacia', 'ONG', 'Gobierno', 'Empresa', 'Particular'];
-// Icons removed
+const TIPOS = ['Hospital', 'Farmacia', 'ONG', 'Gobierno', 'Empresa', 'Particular', 'Centro de Salud', 'Fundación', 'Comunidad'];
+const CONDICIONES = ['Diabetes', 'Hipertensión', 'Cardiopatía', 'Embarazo', 'Adulto Mayor', 'Pediatría', 'Oncología', 'VIH/SIDA', 'Otra'];
+const DISCAPACIDADES = ['Física', 'Visual', 'Auditiva', 'Intelectual', 'Psicosocial', 'Múltiple'];
 
 export const Donantes = () => {
   const [donantes, setDonantes] = useState([]);
@@ -19,12 +20,17 @@ export const Donantes = () => {
   const [selected, setSelected] = useState(null);
   const [historial, setHistorial] = useState([]);
 
-  // Form
+  // Form states
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState('');
-  const [contactoNombre, setContactoNombre] = useState('');
+  const [contactoResponsable, setContactoResponsable] = useState('');
+  const [cedula, setCedula] = useState('');
   const [telefono, setTelefono] = useState('');
   const [email, setEmail] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [condicion, setCondicion] = useState('');
+  const [discapacidad, setDiscapacidad] = useState('');
+  const [tieneCarnet, setTieneCarnet] = useState(false);
   const [notas, setNotas] = useState('');
 
   useEffect(() => { fetchDonantes(); }, []);
@@ -33,7 +39,7 @@ export const Donantes = () => {
     setLoading(true);
     try {
       if (!supabase) throw new Error();
-      const { data, error: err } = await supabase.from('donantes').select('*').order('nombre');
+      const { data, error: err } = await supabase.from('donantes').select('*').order('created_at', { ascending: false });
       if (err) throw err;
 
       // Count lotes per donante
@@ -61,27 +67,36 @@ export const Donantes = () => {
   };
 
   const resetForm = () => {
-    setNombre(''); setTipo(''); setContactoNombre('');
-    setTelefono(''); setEmail(''); setNotas(''); setError('');
+    setNombre(''); setTipo(''); setContactoResponsable('');
+    setCedula(''); setTelefono(''); setEmail(''); setDireccion('');
+    setCondicion(''); setDiscapacidad(''); setTieneCarnet(false);
+    setNotas(''); setError('');
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!nombre.trim()) { setError('El nombre es obligatorio.'); return; }
+    if (!nombre.trim()) { setError('El Nombre/Organización es obligatorio.'); return; }
     if (!tipo) { setError('Selecciona el tipo de donante.'); return; }
+    
     try {
       setSaving(true);
       const { error: err } = await supabase.from('donantes').insert({
-        nombre: nombre.trim(), tipo,
-        contacto_nombre: contactoNombre.trim() || null,
+        nombre: nombre.trim(),
+        tipo: tipo,
+        contacto_responsable: contactoResponsable.trim() || null,
+        cedula: cedula.trim() || null,
         telefono: telefono.trim() || null,
         email: email.trim() || null,
+        direccion: direccion.trim() || null,
+        condicion_medica: condicion || null,
+        discapacidad_tipo: discapacidad.trim() || null,
+        tiene_carnet_discapacidad: tieneCarnet,
         notas: notas.trim() || null
       });
       if (err) throw err;
       resetForm(); setIsModalOpen(false); fetchDonantes();
     } catch (err) {
-      setError(err.message || 'Error al guardar.');
+      setError(err.message || 'Error al guardar. Asegúrate de que la Cédula/ID sea única si la ingresaste.');
     } finally { setSaving(false); }
   };
 
@@ -104,11 +119,14 @@ export const Donantes = () => {
     }
   };
 
-  const filtered = donantes.filter(d =>
-    d.nombre.toLowerCase().includes(search.toLowerCase()) ||
-    d.tipo.toLowerCase().includes(search.toLowerCase()) ||
-    (d.contacto_nombre || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = donantes.filter(d => {
+    const s = search.toLowerCase();
+    return (d.nombre || '').toLowerCase().includes(s) ||
+           (d.codigo || '').toLowerCase().includes(s) ||
+           (d.cedula || '').toLowerCase().includes(s) ||
+           (d.tipo || '').toLowerCase().includes(s) ||
+           (d.contacto_responsable || '').toLowerCase().includes(s);
+  });
 
   return (
     <>
@@ -118,7 +136,7 @@ export const Donantes = () => {
           <div>
             <h1 className="page-title">Donantes</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              {filtered.length} organización{filtered.length !== 1 ? 'es' : ''} registrada{filtered.length !== 1 ? 's' : ''}
+              {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
             </p>
           </div>
           <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
@@ -130,7 +148,7 @@ export const Donantes = () => {
           <div style={{ position: 'relative' }}>
             <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
             <input className="input-field" style={{ paddingLeft: '2.75rem', marginBottom: 0, width: '100%' }}
-              placeholder="Buscar por nombre, tipo o contacto..."
+              placeholder="Buscar por código, nombre, tipo, cédula o contacto..."
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
@@ -149,37 +167,45 @@ export const Donantes = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Donante</th>
+                <th>Código</th>
+                <th>Nombre / Organización</th>
                 <th>Tipo</th>
-                <th>Contacto</th>
-                <th>Teléfono</th>
+                <th>Contacto & ID</th>
+                <th>Info Médica</th>
                 <th style={{ textAlign: 'center' }}>Lotes Aportados</th>
-                <th>Estado</th>
-                <th>Historial</th>
                 <th style={{ width: '60px', textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando...</td></tr>
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando datos de donantes...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Building2 size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)' }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>No hay donantes registrados aún.</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>No se encontraron donantes.</span>
                   </td>
                 </tr>
               ) : filtered.map(d => (
                 <tr key={d.id} style={{ cursor: 'pointer' }} onClick={() => fetchHistorial(d)}>
-                  <td><div style={{ fontWeight: '600' }}>{d.nombre}</div></td>
+                  <td style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{d.codigo || '—'}</td>
                   <td>
-                    <span style={{ background: 'var(--primary-light)', color: 'var(--primary-hover)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontSize: '0.8rem', fontWeight: '600' }}>{d.tipo}</span>
+                    <div style={{ fontWeight: '600' }}>{d.nombre}</div>
+                    {d.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{d.email}</div>}
                   </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{d.contacto_nombre || '—'}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{d.telefono || '—'}</td>
+                  <td><span style={{ fontSize: '0.8rem', background: 'var(--bg-surface-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{d.tipo}</span></td>
+                  <td>
+                    <div style={{ fontSize: '0.85rem' }}>{d.contacto_responsable || '—'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {d.cedula || 'N/A'} • {d.telefono || '—'}</div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start' }}>
+                      {d.condicion_medica ? <span style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>{d.condicion_medica}</span> : null}
+                      {d.discapacidad_tipo ? <span style={{ background: 'var(--danger-bg)', color: 'var(--danger-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><IdCard size={12}/> {d.discapacidad_tipo} {d.tiene_carnet_discapacidad && '(Con Carnet)'}</span> : null}
+                      {!d.condicion_medica && !d.discapacidad_tipo && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>Sin condiciones</span>}
+                    </div>
+                  </td>
                   <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--success-color)' }}>{d.lotes_count}</td>
-                  <td><Badge variant={d.estado === 'Activo' ? 'success' : 'warning'}>{d.estado}</Badge></td>
-                  <td><Button variant="ghost" onClick={e => { e.stopPropagation(); fetchHistorial(d); }} style={{ fontSize: '0.8rem' }}>Ver →</Button></td>
                   <td style={{ textAlign: 'center' }}>
                     <button 
                       onClick={(e) => handleDeleteDonante(e, d.id, d.nombre)}
@@ -196,27 +222,35 @@ export const Donantes = () => {
         </div>
       </div>
 
-      {/* History Panel */}
+      {/* History Side Panel */}
       {selected && (
-        <div className="card animate-fade-in mobile-full-width" style={{ width: '320px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
+        <div className="card animate-fade-in mobile-full-width" style={{ width: '340px', flexShrink: 0, position: 'sticky', top: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div>
-              <div style={{ fontWeight: '700' }}>{selected.nombre}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{selected.tipo}</div>
+              <div style={{ color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: '700', marginBottom: '0.2rem' }}>{selected.codigo}</div>
+              <div style={{ fontWeight: '700', fontSize: '1rem', lineHeight: '1.2' }}>{selected.nombre}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>{selected.tipo} • ID: {selected.cedula || 'N/A'}</div>
             </div>
             <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={18} /></button>
           </div>
-          <div style={{ fontWeight: '600', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            {selected.contacto_responsable && <div style={{ fontSize: '0.85rem' }}><strong style={{color: 'var(--text-secondary)'}}>Contacto:</strong> {selected.contacto_responsable}</div>}
+            {selected.telefono && <div style={{ fontSize: '0.85rem' }}><strong style={{color: 'var(--text-secondary)'}}>Tel:</strong> {selected.telefono}</div>}
+            {selected.direccion && <div style={{ fontSize: '0.85rem' }}><strong style={{color: 'var(--text-secondary)'}}>Dir:</strong> {selected.direccion}</div>}
+          </div>
+
+          <div style={{ fontWeight: '600', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
             Lotes Donados
           </div>
           {historial.length === 0 ? (
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>Sin lotes registrados aún.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.5rem' }}>
               {historial.map(l => (
-                <div key={l.id} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
-                  <div style={{ fontWeight: '600' }}>{l.medicinas?.nombre}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', marginTop: '0.25rem' }}>
+                <div key={l.id} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', background: 'var(--bg-surface)' }}>
+                  <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{l.medicinas?.nombre}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', marginTop: '0.35rem' }}>
                     <span>Vence: {new Date(l.fecha_vencimiento).toLocaleDateString('es-ES')}</span>
                     <span style={{ fontWeight: '700', color: 'var(--primary-color)' }}>{l.cantidad_actual} u.</span>
                   </div>
@@ -228,7 +262,7 @@ export const Donantes = () => {
       )}
       </div>
 
-      {/* Modal */}
+      {/* Add Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => { setIsModalOpen(false); resetForm(); }}
@@ -242,7 +276,7 @@ export const Donantes = () => {
               disabled={saving}
               onClick={() => document.getElementById('d-submit-trigger').click()}
             >
-              {saving ? 'Guardando...' : 'Registrar Donante'}
+              {saving ? 'Guardando...' : 'Guardar Donante'}
             </Button>
           </>
         }
@@ -250,55 +284,103 @@ export const Donantes = () => {
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {error && <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>{error}</div>}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="d-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre / Organización <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input id="d-nombre" className="input-field" style={{ marginBottom: 0 }} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. Farmacia Central / Cruz Roja" required />
+          <div style={{ padding: '0.75rem', background: 'var(--primary-light)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--primary-color)' }}>
+            <strong style={{ fontWeight: '700' }}>Nota:</strong> El código de donante (DON-XXXX) se generará automáticamente al guardar.
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="d-tipo" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Tipo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <select
-              id="d-tipo"
-              className="input-field"
-              style={{ marginBottom: 0, cursor: 'pointer', width: '100%', appearance: 'none', backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2310b981%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem top 50%', backgroundSize: '0.65rem auto' }}
-              value={tipo}
-              onChange={e => setTipo(e.target.value)}
-              required
-            >
-              <option value="" disabled>Selecciona el tipo de donante...</option>
-              {TIPOS.map(t => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 2 }}>
+              <label htmlFor="d-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre / Organización <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+              <input id="d-nombre" className="input-field" style={{ marginBottom: 0 }} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej. Farmacia Central / Cruz Roja" required />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1 }}>
+              <label htmlFor="d-tipo" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Tipo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+              <select id="d-tipo" className="input-field" style={{ marginBottom: 0, appearance: 'none' }} value={tipo} onChange={e => setTipo(e.target.value)} required>
+                <option value="" disabled>Selecciona...</option>
+                {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
 
           <div className="grid-responsive" style={{ gap: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="d-cont" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Contacto</label>
-              <input id="d-cont" className="input-field" style={{ marginBottom: 0 }} value={contactoNombre} onChange={e => setContactoNombre(e.target.value)} placeholder="Nombre del responsable" />
+              <label htmlFor="d-contacto" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Contacto (Responsable)</label>
+              <input id="d-contacto" className="input-field" style={{ marginBottom: 0 }} value={contactoResponsable} onChange={e => setContactoResponsable(e.target.value)} placeholder="Nombre del responsable" />
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="d-cedula" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Cédula / ID</label>
+              <input id="d-cedula" className="input-field" style={{ marginBottom: 0 }} value={cedula} onChange={e => setCedula(e.target.value)} placeholder="V-12345678" />
+            </div>
+          </div>
+
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <label htmlFor="d-tel" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Teléfono</label>
               <input id="d-tel" className="input-field" style={{ marginBottom: 0 }} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="04XX-1234567" />
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="d-email" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Correo Electrónico</label>
+              <input id="d-email" type="email" className="input-field" style={{ marginBottom: 0 }} value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="d-email" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Email</label>
-            <input id="d-email" className="input-field" style={{ marginBottom: 0 }} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="contacto@organizacion.org" />
+            <label htmlFor="d-dir" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Dirección</label>
+            <input id="d-dir" className="input-field" style={{ marginBottom: 0 }} value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Avenida, Sector, Ciudad" />
+          </div>
+
+          {/* Información Médica */}
+          <div style={{ padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Información Médica (Opcional)
+            </div>
+            
+            <div className="grid-responsive" style={{ gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="d-condicion" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Condición Médica</label>
+                <select id="d-condicion" className="input-field" style={{ marginBottom: 0, appearance: 'none' }} value={condicion} onChange={e => setCondicion(e.target.value)}>
+                  <option value="">Ninguna / No especificada</option>
+                  {CONDICIONES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="d-discapacidad" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Discapacidad</label>
+                <input 
+                  list="discapacidades-list" 
+                  id="d-discapacidad" 
+                  className="input-field" 
+                  style={{ marginBottom: 0 }} 
+                  value={discapacidad} 
+                  onChange={e => setDiscapacidad(e.target.value)} 
+                  placeholder="Escriba o seleccione..." 
+                />
+                <datalist id="discapacidades-list">
+                  {DISCAPACIDADES.map(d => <option key={d} value={d} />)}
+                </datalist>
+              </div>
+            </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginTop: '0.25rem' }}>
+              <input 
+                type="checkbox" 
+                checked={tieneCarnet} 
+                onChange={e => setTieneCarnet(e.target.checked)} 
+                style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)' }}
+              />
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Posee Carnet de Discapacidad (CONADIS / MSP)</span>
+            </label>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="d-notas" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Notas</label>
-            <textarea id="d-notas" className="input-field" style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones..." />
+            <label htmlFor="d-notas" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Notas Adicionales</label>
+            <textarea id="d-notas" className="input-field" style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Cualquier información relevante..." />
           </div>
 
-          {/* Hidden submit trigger — actual buttons are in footer prop */}
           <button type="submit" id="d-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
       </Modal>
     </>
   );
 };
+
