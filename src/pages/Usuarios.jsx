@@ -70,7 +70,7 @@ export const Usuarios = () => {
     setSuccess('');
 
     try {
-      // Usar cliente secundario para no cerrar la sesión del Super Admin
+      // 1. Crear instancia temporal de Supabase (Evita cerrar sesión actual)
       const { createClient } = await import('@supabase/supabase-js');
       const authClient = createClient(
         import.meta.env.VITE_SUPABASE_URL,
@@ -84,9 +84,9 @@ export const Usuarios = () => {
         }
       );
 
-      // Crear usuario de fábrica
+      // 2. Registrar en Auth (Esto dispara el trigger de perfiles en DB)
       const { data, error: signUpError } = await authClient.auth.signUp({
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password: password,
         options: {
           data: {
@@ -98,17 +98,23 @@ export const Usuarios = () => {
 
       if (signUpError) throw signUpError;
 
-      // Asegurarnos que el perfil se actualice (por si el trigger tarda)
+      // 3. Verificación de confirmación de correo
+      if (data?.user && data.user.identities?.length === 0) {
+        throw new Error('El correo ya está registrado o requiere confirmación manual en Supabase.');
+      }
+
+      // 4. Sincronización manual de seguridad
       if (data?.user) {
         await supabase.from('perfiles').upsert({
           id: data.user.id,
-          email: email.trim(),
+          email: email.trim().toLowerCase(),
           nombre: nombre.trim(),
-          rol: rol
+          rol: rol,
+          updated_at: new Date().toISOString()
         });
       }
 
-      setSuccess('¡Usuario creado con éxito!');
+      setSuccess('¡Personal registrado con éxito!');
       setTimeout(() => {
         setIsModalOpen(false);
         resetForm();
@@ -116,8 +122,14 @@ export const Usuarios = () => {
       }, 1500);
 
     } catch (err) {
-      console.error('Error al crear el usuario:', err);
-      setError(err.message || 'Error al crear el usuario. Verifica si el correo ya existe.');
+      console.error('Error al registrar personal:', err);
+      let msg = err.message;
+      if (msg.includes('Database error saving new user')) {
+        msg = 'Error de base de datos. Asegúrate de ejecutar schema_v9.sql en Supabase.';
+      } else if (msg.includes('User already registered')) {
+        msg = 'Este correo ya está registrado en el sistema.';
+      }
+      setError(msg || 'Error inesperado al crear la cuenta.');
     } finally {
       setSaving(false);
     }

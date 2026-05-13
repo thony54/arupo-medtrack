@@ -24,58 +24,51 @@ export const Login = () => {
       const { data, error: loginErr } = await signIn(email, password);
       
       if (loginErr) {
-        setError(loginErr.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.' : loginErr.message);
+        let msg = loginErr.message;
+        if (msg === 'Invalid login credentials') msg = 'Correo o contraseña incorrectos.';
+        if (msg === 'Email not confirmed') msg = 'Debes confirmar tu correo electrónico para ingresar.';
+        setError(msg);
         setLoading(false);
         return;
       }
 
-      if (data?.user && supabase) {
-        // Consultar perfil en tiempo real para validar contra el portal seleccionado
+      if (data?.user) {
+        // 1. Consultar perfil con reintentos o fallback
         const { data: profileData, error: profileErr } = await supabase
           .from('perfiles')
           .select('rol')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
 
         if (profileErr) {
-          console.warn('No se pudo leer rol en login. Asumiendo fallback inicial:', profileErr.message);
-          navigate('/', { replace: true });
-          return;
+          console.error('Error leyendo perfil:', profileErr);
+          // Si hay error de red pero hay usuario, intentamos entrar igual como fallback
         }
 
-        const userRole = profileData?.rol || 'super_admin';
+        const userRole = profileData?.rol || 'brigadista'; 
 
-        // REGGLA DE NEGOCIO:
-        // 1. Los Super Admins ingresan SIEMPRE desde cualquier portal.
+        // 2. REGLA DE ORO: Super Admin entra a TODO
         if (userRole === 'super_admin') {
           navigate('/', { replace: true });
           return;
         }
 
-        // 2. Si eligió portal de Brigadista, su rol debe ser brigadista.
-        if (portal === 'brigadista' && userRole === 'brigadista') {
-          navigate('/', { replace: true });
-          return;
-        }
+        // 3. Validación de Portal vs Rol
+        const isCorrectPortal = (portal === 'brigadista' && userRole === 'brigadista') || 
+                               (portal === 'voluntario' && userRole === 'voluntario');
 
-        // 3. Si eligió portal de Voluntario, su rol debe ser voluntario.
-        if (portal === 'voluntario' && userRole === 'voluntario') {
+        if (isCorrectPortal) {
           navigate('/', { replace: true });
-          return;
+        } else {
+          const portalLabel = portal === 'brigadista' ? 'Brigadistas' : 'Voluntarios';
+          setError(`Acceso denegado. Tu cuenta tiene rol de "${userRole}" y no pertenece al portal de ${portalLabel}.`);
+          await signOut();
+          setLoading(false);
         }
-
-        // 4. En cualquier otro caso, denegar acceso y desloguear sesión del navegador
-        const portalLabel = portal === 'brigadista' ? 'Brigadistas' : 'Voluntarios';
-        setError(`Acceso restringido. Esta cuenta no pertenece al portal de ${portalLabel}.`);
-        await signOut();
-        setLoading(false);
-      } else {
-        // Fallback si no hay SDK conectado
-        navigate('/', { replace: true });
       }
     } catch (err) {
-      console.error('Error catastrófico en login:', err);
-      setError('Ha ocurrido un error inesperado de conexión.');
+      console.error('Login Failure:', err);
+      setError('Error de conexión con el servidor. Inténtalo de nuevo.');
       setLoading(false);
     }
   };
