@@ -6,12 +6,15 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import './pages.css';
 
+import { useAuth } from '../contexts/AuthContext';
+
 const ROLES = [
   { value: 'brigadista', label: 'Brigadista (Manejo Médico e Inventario)' },
   { value: 'voluntario', label: 'Voluntario (CRM, Donantes y Beneficiarios)' }
 ];
 
 export const Usuarios = () => {
+  const { user } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -107,6 +110,30 @@ export const Usuarios = () => {
       setError(err.message || 'Error al crear la cuenta.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId, userNombre) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar a ${userNombre}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error: delError } = await supabase.rpc('eliminar_usuario', {
+        p_user_id: userId
+      });
+
+      if (delError) throw delError;
+
+      setSuccess('Usuario eliminado con éxito');
+      fetchUsuarios();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error al eliminar:', err);
+      setError('No se pudo eliminar el usuario. Asegúrate de haber ejecutado schema_v13.sql');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -210,11 +237,25 @@ export const Usuarios = () => {
                   {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                 </td>
                 <td>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                    {u.rol === 'super_admin' && 'Acceso total e irrestricto'}
-                    {u.rol === 'brigadista' && 'Gestión de Medicinas e Inventario'}
-                    {u.rol === 'voluntario' && 'Gestión de Donantes y Beneficiarios'}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', flex: 1 }}>
+                      {u.rol === 'super_admin' && 'Acceso total e irrestricto'}
+                      {u.rol === 'brigadista' && 'Gestión de Medicinas e Inventario'}
+                      {u.rol === 'voluntario' && 'Gestión de Donantes y Beneficiarios'}
+                    </span>
+                    
+                    {u.id !== user?.id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteUser(u.id, u.nombre)}
+                        style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto' }}
+                        title="Eliminar usuario"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

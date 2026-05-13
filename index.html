@@ -3,8 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/arupo-logo.png" />
+    <link rel="apple-touch-icon" href="/arupo-logo.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#10b981" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Arupo Med-Track | Gestión de Medicamentos</title>
+    
+    <script>
+      // Lógica para detectar si la app ya está instalada o en modo escritorio
+      window.addEventListener('load', () => {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+        
+        if (!isStandalone) {
+          // Si no está instalada, mostramos un pequeño aviso después de unos segundos
+          setTimeout(() => {
+            const platform = window.navigator.platform.toLowerCase();
+            if (platform.includes('win') || platform.includes('mac') || platform.includes('linux')) {
+              console.log('Sugerencia: Instala la app para una mejor experiencia de escritorio.');
+            }
+          }, 3000);
+        }
+      });
+      
+      // Capturar el evento de instalación para mostrar botón personalizado si es necesario
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // Podríamos mostrar un botón de "Instalar ahora" aquí
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

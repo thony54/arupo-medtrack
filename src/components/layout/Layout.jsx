@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
+import { PWAInstallPrompt } from './PWAInstallPrompt';
 import './layout.css';
 
 export const Layout = () => {
@@ -44,6 +45,8 @@ export const Layout = () => {
       >
         <Outlet />
       </main>
+      
+      <PWAInstallPrompt />
     </div>
   );
 };
