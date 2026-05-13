@@ -10,6 +10,7 @@ import { Catalog } from './pages/Catalog';
 import { LoteDetail } from './pages/LoteDetail';
 import { Beneficiarios } from './pages/Beneficiarios';
 import { Donantes } from './pages/Donantes';
+import { Usuarios } from './pages/Usuarios';
 
 function App() {
   return (
@@ -22,12 +23,47 @@ function App() {
               <Layout />
             </ProtectedRoute>
           }>
+            {/* La pantalla de inicio / dashboard está permitida para todos los autenticados */}
             <Route index element={<Dashboard />} />
-            <Route path="inventory" element={<Inventory />} />
-            <Route path="catalog" element={<Catalog />} />
-            <Route path="lotes/:productoId" element={<LoteDetail />} />
-            <Route path="beneficiarios" element={<Beneficiarios />} />
-            <Route path="donantes" element={<Donantes />} />
+            
+            {/* Donaciones Médicas e Inventario: Super Admin y Brigadistas */}
+            <Route path="inventory" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
+                <Inventory />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="catalog" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
+                <Catalog />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="lotes/:productoId" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
+                <LoteDetail />
+              </ProtectedRoute>
+            } />
+            
+            {/* CRM y Comunidad: Super Admin y Voluntarios */}
+            <Route path="beneficiarios" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'voluntario']}>
+                <Beneficiarios />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="donantes" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'voluntario']}>
+                <Donantes />
+              </ProtectedRoute>
+            } />
+            
+            {/* Administración Interna: Solo Super Admin */}
+            <Route path="usuarios" element={
+              <ProtectedRoute allowedRoles={['super_admin']}>
+                <Usuarios />
+              </ProtectedRoute>
+            } />
           </Route>
         </Routes>
       </BrowserRouter>
@@ -36,3 +72,4 @@ function App() {
 }
 
 export default App;
+

@@ -3,9 +3,11 @@ import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBa
 import { supabase } from '../lib/supabase';
 import { Badge } from '../components/ui/Badge';
 import { filtrarAlertasMedicas, CATEGORIAS_GENERALES } from '../utils/itemUtils';
+import { useAuth } from '../contexts/AuthContext';
 import './pages.css';
 
 export const Dashboard = () => {
+  const { role, isSuperAdmin, isBrigadista, isVoluntario } = useAuth();
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
   const [alertas, setAlertas] = useState([]);
   const [ultimasDonaciones, setUltimasDonaciones] = useState([]);
@@ -50,7 +52,6 @@ export const Dashboard = () => {
         donacionesMes: movData.filter(m => m.tipo === 'Salida').length,
         donativosMes: movData.filter(m => m.tipo === 'Entrada').length,
         critico: (critRes.data || []).filter(m => {
-          // Solo contar medicamentos médicos como críticos, no ítems generales
           return true; // El filtro real se haría join con categoría, simplificado aquí
         }).length,
         beneficiariosMes: benIds.size,
@@ -70,15 +71,18 @@ export const Dashboard = () => {
     } finally { setLoading(false); }
   };
 
-  const kpis = [
-    { title: 'Banco de Medicamentos', value: stats.medicamentos, subtitle: 'Tipos médicos en catálogo', icon: <Package size={24} />, color: 'var(--primary-color)', bg: 'var(--primary-light)' },
-    { title: 'Ítems Generales', value: stats.itemsGenerales, subtitle: 'Ropa, higiene, alimentos...', icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff' },
-    { title: 'Familias Beneficiadas', value: stats.beneficiariosMes, subtitle: 'Este mes', icon: <Heart size={24} />, color: '#ec4899', bg: '#fdf2f8' },
-    { title: 'Donaciones Entregadas', value: stats.donacionesMes, subtitle: 'Despachos este mes', icon: <HandHeart size={24} />, color: 'var(--success-color)', bg: 'var(--success-bg)' },
-    { title: 'Donativos Recibidos', value: stats.donativosMes, subtitle: 'Lotes ingresados este mes', icon: <TrendingUp size={24} />, color: '#0ea5e9', bg: '#f0f9ff' },
-    { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb' },
-    { title: 'Medicamentos Urgentes', value: stats.critico, subtitle: 'Por debajo del mínimo', icon: <AlertTriangle size={24} />, color: 'var(--danger-color)', bg: 'var(--danger-bg)', alert: stats.critico > 0 },
+  const allKpis = [
+    { title: 'Banco de Medicamentos', value: stats.medicamentos, subtitle: 'Tipos médicos en catálogo', icon: <Package size={24} />, color: 'var(--primary-color)', bg: 'var(--primary-light)', roles: ['super_admin', 'brigadista'] },
+    { title: 'Medicamentos Urgentes', value: stats.critico, subtitle: 'Por debajo del mínimo', icon: <AlertTriangle size={24} />, color: 'var(--danger-color)', bg: 'var(--danger-bg)', alert: stats.critico > 0, roles: ['super_admin', 'brigadista'] },
+    { title: 'Donativos Recibidos', value: stats.donativosMes, subtitle: 'Lotes ingresados este mes', icon: <TrendingUp size={24} />, color: '#0ea5e9', bg: '#f0f9ff', roles: ['super_admin', 'brigadista', 'voluntario'] },
+    { title: 'Familias Beneficiadas', value: stats.beneficiariosMes, subtitle: 'Este mes', icon: <Heart size={24} />, color: '#ec4899', bg: '#fdf2f8', roles: ['super_admin', 'voluntario'] },
+    { title: 'Donaciones Entregadas', value: stats.donacionesMes, subtitle: 'Despachos este mes', icon: <HandHeart size={24} />, color: 'var(--success-color)', bg: 'var(--success-bg)', roles: ['super_admin', 'voluntario'] },
+    { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb', roles: ['super_admin', 'voluntario'] },
+    { title: 'Ítems Generales', value: stats.itemsGenerales, subtitle: 'Ropa, higiene, alimentos...', icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff', roles: ['super_admin', 'voluntario'] },
   ];
+
+  // Filtrar KPIs de acuerdo al rol del usuario
+  const visibleKpis = allKpis.filter(kpi => kpi.roles.includes(role));
 
   return (
     <div className="animate-blur-in">
@@ -97,9 +101,9 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {/* KPI Grid */}
+      {/* KPI Grid - Filtrado Dinámicamente */}
       <div className="kpi-grid">
-        {kpis.map((kpi, i) => (
+        {visibleKpis.map((kpi, i) => (
           <div key={kpi.title} className={`card kpi-card animate-reveal stagger-${Math.min(i + 1, 5)}`}
             style={kpi.alert ? { border: '1px solid var(--danger-color)' } : {}}>
             <div className="kpi-header">
@@ -116,58 +120,69 @@ export const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid-responsive" style={{ marginTop: '1.5rem' }}>
-        {/* Últimas Donaciones */}
-        <div className="card animate-blur-in stagger-3">
-          <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Heart size={18} color="var(--success-color)" /> Últimas Donaciones
-          </h2>
-          {ultimasDonaciones.length === 0 ? (
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>No hay donaciones registradas aún.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {ultimasDonaciones.map((d, i) => (
-                <div key={d.id} className={`animate-fade-in stagger-${Math.min(i + 1, 3)}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                  <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.medicinas?.nombre}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {d.beneficiarios?.nombre_completo || d.origen_destino || 'Beneficiario no registrado'}
+      {/* Vista de Paneles en cuadrícula o flexibles de acuerdo al rol */}
+      <div className="grid-responsive" style={{ 
+        marginTop: '1.5rem', 
+        display: (isSuperAdmin) ? 'grid' : 'flex', 
+        flexDirection: 'column' 
+      }}>
+        
+        {/* Últimas Donaciones - Ocultar para Brigadista puro para enfocar en la medicina */}
+        {(isSuperAdmin || isVoluntario) && (
+          <div className="card animate-blur-in stagger-3" style={{ width: '100%' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Heart size={18} color="var(--success-color)" /> Últimas Donaciones
+            </h2>
+            {ultimasDonaciones.length === 0 ? (
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>No hay donaciones registradas aún.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {ultimasDonaciones.map((d, i) => (
+                  <div key={d.id} className={`animate-fade-in stagger-${Math.min(i + 1, 3)}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                      <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.medicinas?.nombre}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {d.beneficiarios?.nombre_completo || d.origen_destino || 'Beneficiario no registrado'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontWeight: '700', color: 'var(--success-color)', fontSize: '0.9rem' }}>{d.cantidad} u.</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{new Date(d.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontWeight: '700', color: 'var(--success-color)', fontSize: '0.9rem' }}>{d.cantidad} u.</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{new Date(d.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Alertas de Vencimiento */}
-        <div className="card animate-blur-in stagger-4">
-          <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertTriangle size={18} color="var(--warning-color)" /> Lotes por Vencer
-          </h2>
-          {alertas.length === 0 ? (
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>✅ No hay lotes próximos a vencer.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {alertas.map((a, i) => (
-                <div key={a.id} className={`animate-fade-in stagger-${Math.min(i + 1, 3)}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.producto_nombre}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{a.cantidad_actual} unidades</div>
+        {/* Alertas de Vencimiento - Ocultar para Voluntario puro para que no se enfoquen en la farmacia interna */}
+        {(isSuperAdmin || isBrigadista) && (
+          <div className="card animate-blur-in stagger-4" style={{ width: '100%' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertTriangle size={18} color="var(--warning-color)" /> Control de Vencimientos
+            </h2>
+            {alertas.length === 0 ? (
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>✅ No hay lotes próximos a vencer en este momento.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {alertas.map((a, i) => (
+                  <div key={a.id} className={`animate-fade-in stagger-${Math.min(i + 1, 3)}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--warning-bg)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                      <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.producto_nombre}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{a.cantidad_actual} unidades</div>
+                    </div>
+                    <Badge variant={a.dias_restantes <= 15 ? 'danger' : 'warning'}>
+                      {a.dias_restantes}d restantes
+                    </Badge>
                   </div>
-                  <Badge variant={a.dias_restantes <= 15 ? 'danger' : 'warning'}>
-                    {a.dias_restantes}d
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
