@@ -70,21 +70,15 @@ export const Usuarios = () => {
     setSuccess('');
 
     try {
-      // 1. Crear instancia temporal de Supabase (Evita cerrar sesión actual)
+      // 1. Cliente temporal (stateless) para no cerrar tu sesión
       const { createClient } = await import('@supabase/supabase-js');
       const authClient = createClient(
         import.meta.env.VITE_SUPABASE_URL,
         import.meta.env.VITE_SUPABASE_ANON_KEY,
-        {
-          auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false
-          }
-        }
+        { auth: { persistSession: false } }
       );
 
-      // 2. Registrar en Auth (Esto dispara el trigger de perfiles en DB)
+      // 2. Registro (El trigger handle_new_user en la DB se encarga del resto)
       const { data, error: signUpError } = await authClient.auth.signUp({
         email: email.trim().toLowerCase(),
         password: password,
@@ -98,21 +92,8 @@ export const Usuarios = () => {
 
       if (signUpError) throw signUpError;
 
-      // 3. Verificación de confirmación de correo
-      if (data?.user && data.user.identities?.length === 0) {
-        throw new Error('El correo ya está registrado o requiere confirmación manual en Supabase.');
-      }
-
-      // 4. Sincronización manual de seguridad
-      if (data?.user) {
-        await supabase.from('perfiles').upsert({
-          id: data.user.id,
-          email: email.trim().toLowerCase(),
-          nombre: nombre.trim(),
-          rol: rol,
-          updated_at: new Date().toISOString()
-        });
-      }
+      // 3. Pequeña espera para que el trigger termine de procesar el perfil
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       setSuccess('¡Personal registrado con éxito!');
       setTimeout(() => {
@@ -122,14 +103,8 @@ export const Usuarios = () => {
       }, 1500);
 
     } catch (err) {
-      console.error('Error al registrar personal:', err);
-      let msg = err.message;
-      if (msg.includes('Database error saving new user')) {
-        msg = 'Error de base de datos. Asegúrate de ejecutar schema_v9.sql en Supabase.';
-      } else if (msg.includes('User already registered')) {
-        msg = 'Este correo ya está registrado en el sistema.';
-      }
-      setError(msg || 'Error inesperado al crear la cuenta.');
+      console.error('Registration Error:', err);
+      setError(err.message || 'Error al crear la cuenta.');
     } finally {
       setSaving(false);
     }
