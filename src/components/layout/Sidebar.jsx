@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Moon, Sun, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, UserCog, BadgeAlert } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, UserCog, BadgeAlert } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { LoteForm } from '../inventory/LoteForm';
 import { SalidaFEFO } from '../inventory/SalidaFEFO';
@@ -10,27 +10,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import './layout.css';
 
 export const Sidebar = () => {
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true; 
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
   const [showLoteForm, setShowLoteForm] = useState(false);
   const [showSalida, setShowSalida] = useState(false);
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const { signOut, isSuperAdmin, isBrigadista, isVoluntario, profile } = useAuth();
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    setIsDark(prev => !prev);
-  };
-
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -112,14 +97,7 @@ export const Sidebar = () => {
                 </Button>
               </div>
             )}
-            
-            <span style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.15rem' }} aria-hidden="true" />
-            
-            {/* Theme Switcher */}
-            <Button variant="ghost" className="theme-toggle" onClick={toggleTheme} aria-label="Ajustar tema" style={{ padding: '0.5rem', width: '32px', minWidth: '32px', height: '32px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
-            </Button>
-
+            {/* Separador final eliminado para mayor limpieza visual */}
             {/* MINI AVATAR DE USUARIO EN MÓVIL (Limpio y en su sitio) */}
             <div 
               className="mobile-only-flex" 
