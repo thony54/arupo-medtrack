@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 
 export const Login = () => {
-  const [portal, setPortal] = useState('super_admin'); // 'super_admin' | 'brigadista' | 'voluntario'
+  const [portal, setPortal] = useState('brigadista'); // Por defecto a brigadista, Super Admin oculto visualmente
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,7 +65,7 @@ export const Login = () => {
         }
 
         // 4. En cualquier otro caso, denegar acceso y desloguear sesión del navegador
-        const portalLabel = portal === 'super_admin' ? 'Administradores' : portal === 'brigadista' ? 'Brigadistas' : 'Voluntarios';
+        const portalLabel = portal === 'brigadista' ? 'Brigadistas' : 'Voluntarios';
         setError(`Acceso restringido. Esta cuenta no pertenece al portal de ${portalLabel}.`);
         await signOut();
         setLoading(false);
@@ -81,7 +81,6 @@ export const Login = () => {
   };
 
   const portalOptions = [
-    { id: 'super_admin', label: 'Super Admin', icon: Shield, color: 'var(--danger-color)', bg: 'rgba(239, 68, 68, 0.08)' },
     { id: 'brigadista', label: 'Brigadista', icon: Stethoscope, color: 'var(--success-color)', bg: 'rgba(16, 185, 129, 0.08)' },
     { id: 'voluntario', label: 'Voluntario', icon: HandHeart, color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.08)' }
   ];
@@ -120,7 +119,8 @@ export const Login = () => {
           <div style={{ fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: '0.75rem', textAlign: 'center' }}>
             Selecciona tu Portal de Entrada
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+
             {portalOptions.map((opt) => {
               const Icon = opt.icon;
               const isSelected = portal === opt.id;

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, FileText, Award } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, FileText, Award, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import './pages.css';
 
 export const Perfil = () => {
-  const { profile, user, role, isSuperAdmin, isBrigadista, isVoluntario } = useAuth();
+  const { profile, user, role, isSuperAdmin, isBrigadista, isVoluntario, signOut } = useAuth();
+  const navigate = useNavigate();
   
   // Estados para cambio de contraseña
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -48,6 +50,11 @@ export const Perfil = () => {
     } catch (err) {
       console.error('Error cargando métricas de perfil:', err);
     }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
   };
 
   const handleUpdatePassword = async (e) => {
@@ -109,7 +116,12 @@ export const Perfil = () => {
             Gestiona tus credenciales y visualiza tu nivel de acceso.
           </p>
         </div>
+        <Button variant="danger" onClick={handleLogout} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
+          <LogOut size={16} />
+          <span>Cerrar Sesión</span>
+        </Button>
       </div>
+
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
