@@ -1,13 +1,10 @@
 -- ============================================================
--- Arupo MedTrack — Schema v6: Realtime & Permisos Super Admin
+-- Arupo MedTrack — Schema v6: Realtime & Permisos Super Admin (CORREGIDO)
 -- Ejecuta este script en el SQL Editor de Supabase
 -- ============================================================
 
 -- 1. Habilitar Supabase Realtime para todas las tablas clave
--- Esto permite que los cambios de cualquier Super Admin, Brigadista o Voluntario
--- se reflejen instantáneamente en las pantallas de los demás.
 BEGIN;
-  -- Borrar la publicación si ya existe (para evitar errores si ya estaba activada parcialmente)
   DROP PUBLICATION IF EXISTS supabase_realtime;
   CREATE PUBLICATION supabase_realtime;
 COMMIT;
@@ -19,49 +16,31 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.medicinas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.lotes;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.movimientos;
 
--- 2. Asegurar que los usuarios existentes en auth.users (creados desde el panel)
--- tengan su perfil correspondiente en public.perfiles como 'super_admin'.
--- Esto soluciona el error "No tienes permisos para crear usuarios".
+-- 2. Asegurar que los perfiles existan. 
+-- NO convertimos a todos en super_admin. Respetamos el rol en los metadatos.
+-- Solo convertimos en super_admin al primer usuario si no hay ningún super_admin.
 INSERT INTO public.perfiles (id, email, nombre, rol)
 SELECT 
   id, 
   email, 
   COALESCE(raw_user_meta_data->>'nombre', email), 
-  'super_admin'
+  COALESCE(raw_user_meta_data->>'rol', 'brigadista')
 FROM auth.users
-ON CONFLICT (id) DO UPDATE 
+ON CONFLICT (id) DO NOTHING;
+
+-- Garantizar que haya al menos un super_admin (el primer usuario registrado)
+UPDATE public.perfiles
 SET rol = 'super_admin'
-WHERE public.perfiles.rol IS NULL OR public.perfiles.rol != 'super_admin';
+WHERE id = (
+  SELECT id FROM public.perfiles ORDER BY created_at ASC LIMIT 1
+) AND NOT EXISTS (
+  SELECT 1 FROM public.perfiles WHERE rol = 'super_admin'
+);
 
--- 3. Asegurar que las políticas de seguridad (RLS) en perfiles permitan a los super_admin 
--- realizar cualquier acción (por si alguna estaba bloqueada).
-ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
+-- 3. Habilitar pg_crypto para la generación de contraseñas de usuarios
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-DROP POLICY IF EXISTS "Lectura de perfiles autenticados" ON public.perfiles;
-CREATE POLICY "Lectura de perfiles autenticados" 
-  ON public.perfiles FOR SELECT 
-  TO authenticated 
-  USING (true);
-
-DROP POLICY IF EXISTS "Super admins editan perfiles" ON public.perfiles;
-CREATE POLICY "Super admins editan perfiles" 
-  ON public.perfiles FOR ALL 
-  TO authenticated 
-  USING (
-    (SELECT rol FROM public.perfiles WHERE id = auth.uid()) = 'super_admin'
-  );
-
--- 4. Asegurarnos que las políticas de RLS en las otras tablas (si las hay) 
--- no restrinjan el acceso a los usuarios autenticados.
--- Actualmente, al no haber RLS activado en medicinas, beneficiarios, etc,
--- el acceso es público para todos los usuarios logueados. Pero por si acaso:
-ALTER TABLE public.beneficiarios DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.donantes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.medicinas DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lotes DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.movimientos DISABLE ROW LEVEL SECURITY;
-
--- 5. Actualizamos la función crear_usuario_completo para evitar errores de contexto
+-- 4. Actualizar la función de creación de usuarios para manejar errores
 CREATE OR REPLACE FUNCTION public.crear_usuario_completo(
   p_email TEXT,
   p_password TEXT,
@@ -73,16 +52,14 @@ DECLARE
   v_user_id UUID;
   v_caller_role TEXT;
 BEGIN
-  -- 1. Validar que quien ejecuta sea super_admin
+  -- Verificar permisos del usuario que ejecuta
   SELECT rol INTO v_caller_role FROM public.perfiles WHERE id = auth.uid();
   
-  -- Si no hay perfiles aún, permitimos crear el primero como bypass de seguridad.
-  -- De lo contrario, verificamos que sea super_admin.
-  IF EXISTS (SELECT 1 FROM public.perfiles) AND (v_caller_role IS DISTINCT FROM 'super_admin') THEN
-    RAISE EXCEPTION 'No tienes permisos para crear usuarios. Tu rol actual es: %', v_caller_role;
+  IF EXISTS (SELECT 1 FROM public.perfiles WHERE rol = 'super_admin') AND (v_caller_role IS DISTINCT FROM 'super_admin') THEN
+    RAISE EXCEPTION 'No tienes permisos para crear usuarios. Acceso denegado.';
   END IF;
 
-  -- 2. Crear en auth.users
+  -- Insertar en auth.users (Supabase maneja la encriptación con crypt)
   INSERT INTO auth.users (
     instance_id,
     id,
@@ -104,18 +81,42 @@ BEGIN
     p_email,
     crypt(p_password, gen_salt('bf')),
     NOW(),
-    '{"provider":"email","providers":["email"]}',
+    '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('nombre', p_nombre, 'rol', p_rol),
     NOW(),
     NOW()
   )
   RETURNING id INTO v_user_id;
 
-  -- Actualizar el perfil recién creado por el trigger para asegurar nombre y rol
-  UPDATE public.perfiles 
-  SET rol = p_rol, nombre = p_nombre 
-  WHERE id = v_user_id;
+  -- Forzar la actualización del perfil por si el trigger falla
+  INSERT INTO public.perfiles (id, nombre, email, rol)
+  VALUES (v_user_id, p_nombre, p_email, p_rol)
+  ON CONFLICT (id) DO UPDATE 
+  SET rol = EXCLUDED.rol, nombre = EXCLUDED.nombre;
 
   RETURN v_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. Asegurar políticas de seguridad abiertas temporalmente para evitar bloqueos
+ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Lectura de perfiles autenticados" ON public.perfiles;
+CREATE POLICY "Lectura de perfiles autenticados" 
+  ON public.perfiles FOR SELECT 
+  TO authenticated 
+  USING (true);
+
+DROP POLICY IF EXISTS "Super admins editan perfiles" ON public.perfiles;
+CREATE POLICY "Super admins editan perfiles" 
+  ON public.perfiles FOR ALL 
+  TO authenticated 
+  USING (
+    (SELECT rol FROM public.perfiles WHERE id = auth.uid()) = 'super_admin'
+  );
+
+ALTER TABLE public.beneficiarios DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.donantes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.medicinas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lotes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.movimientos DISABLE ROW LEVEL SECURITY;
