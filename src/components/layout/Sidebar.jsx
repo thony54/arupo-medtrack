@@ -63,34 +63,35 @@ export const Sidebar = () => {
 
   return (
     <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="sidebar-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+      <div className="sidebar-header" style={{ marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-            <span>Med-Track</span>
+            <span className="desktop-only">Med-Track</span>
+            <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
           </div>
-          <div className="header-actions" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="header-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
             
             {/* Botones Médicos: Visibles para Super Admin y Brigadistas */}
             {(isSuperAdmin || isBrigadista) && (
-              <>
+              <div style={{ display: 'flex', gap: '0.3rem' }}>
                 <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación Médica" title="Entregar Donación Médica">
                   <HandHeart size={16} />
                 </Button>
                 <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(16,185,129,0.4)' }} aria-label="Registrar Ingreso Médico" title="Registrar Ingreso Médico">
                   <Plus size={18} strokeWidth={2.5} />
                 </Button>
-              </>
+              </div>
             )}
 
-            {/* Separador si hay acceso a ambos sets */}
+            {/* Separador si hay acceso a ambos sets (Solo Desktop para ahorrar espacio) */}
             {isSuperAdmin && (
-              <span style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.1rem' }} aria-hidden="true" />
+              <span className="desktop-only" style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.15rem' }} aria-hidden="true" />
             )}
 
             {/* Botones Generales: Visibles para Super Admin y Voluntarios */}
             {(isSuperAdmin || isVoluntario) && (
-              <>
+              <div style={{ display: 'flex', gap: '0.3rem' }}>
                 <Button
                   variant="outline"
                   onClick={() => setShowSalidaGeneral(true)}
@@ -104,72 +105,44 @@ export const Sidebar = () => {
                   onClick={() => setShowDonacionGeneral(true)}
                   style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', color: '#fff', boxShadow: '0 4px 10px rgba(124,58,237,0.35)', cursor: 'pointer' }}
                   aria-label="Registrar Donación General"
-                  title="Registrar Donación General (ropa, higiene, etc.)"
+                  title="Registrar Donación General"
                 >
                   <ShoppingBag size={15} />
                 </Button>
-              </>
+              </div>
             )}
             
-            <span style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.1rem' }} aria-hidden="true" />
-            <Button variant="ghost" className="theme-toggle" onClick={toggleTheme} aria-label="Ajustar tema" style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
-              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            <span style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.15rem' }} aria-hidden="true" />
+            
+            {/* Theme Switcher */}
+            <Button variant="ghost" className="theme-toggle" onClick={toggleTheme} aria-label="Ajustar tema" style={{ padding: '0.5rem', width: '32px', minWidth: '32px', height: '32px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </Button>
-          </div>
-        </div>
-        
-        {/* Perfil del Usuario en la Barra Lateral */}
-        <div style={{ 
-          padding: '0.75rem', 
-          borderRadius: 'var(--radius-lg)', 
-          background: 'rgba(255,255,255,0.04)', 
-          backdropFilter: 'blur(4px)',
-          border: '1px solid rgba(255,255,255,0.05)', 
-          marginBottom: '1rem'
-        }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+
+            {/* MINI AVATAR DE USUARIO EN MÓVIL (Limpio y en su sitio) */}
             <div 
-              onClick={() => navigate('/perfil')} 
-              title="Ver mi perfil"
-              style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}
-              className="sidebar-profile-link"
-            >
-              <div style={{ 
-                width: '36px', 
-                height: '36px', 
-                borderRadius: '50%', 
-                backgroundColor: getRoleColor(profile?.rol), 
+              className="mobile-only-flex" 
+              onClick={() => navigate('/perfil')}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: getRoleColor(profile?.rol),
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: '700',
-                fontSize: '0.9rem',
-                flexShrink: 0
-              }}>
-                {profile?.nombre ? profile.nombre.substring(0, 2).toUpperCase() : 'U'}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '0.85rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {profile?.nombre || 'Cargando...'}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.1rem' }}>
-                  <span style={{ 
-                    display: 'inline-block', 
-                    width: '6px', 
-                    height: '6px', 
-                    borderRadius: '50%', 
-                    backgroundColor: getRoleColor(profile?.rol)
-                  }} />
-                  <span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
-                    {getRoleLabel(profile?.rol)}
-                  </span>
-                </div>
-              </div>
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                marginLeft: '0.25rem',
+                border: '2px solid var(--bg-surface)'
+              }}
+              title="Mi Perfil"
+            >
+              {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
             </div>
-            <Button variant="ghost" onClick={handleLogout} aria-label="Cerrar sesión" style={{ color: 'var(--danger-color)', padding: '0.35rem', borderRadius: 'var(--radius-md)', width: 'auto', minWidth: 'unset', height: 'auto' }}>
-              <LogOut size={16} />
-            </Button>
+
           </div>
         </div>
       </div>
@@ -213,8 +186,63 @@ export const Sidebar = () => {
         )}
       </nav>
 
-      <div style={{ padding: '0.75rem', borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
-        <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center', fontWeight: '500' }}>
+      {/* FOOTER DE ESCRITORIO: Tarjeta del Usuario y Copyright en la parte inferior */}
+      <div className="desktop-only" style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+        
+        {/* Perfil del Usuario Adaptable */}
+        <div style={{ 
+          padding: '0.75rem', 
+          borderRadius: 'var(--radius-lg)', 
+          background: 'var(--bg-surface-hover)', 
+          border: '1px solid var(--border-color)', 
+          marginBottom: '0.75rem'
+        }}>
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
+            <div 
+              onClick={() => navigate('/perfil')} 
+              title="Ver mi perfil"
+              style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}
+            >
+              <div style={{ 
+                width: '34px', 
+                height: '34px', 
+                borderRadius: '50%', 
+                backgroundColor: getRoleColor(profile?.rol), 
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                flexShrink: 0
+              }}>
+                {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '0.8rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {profile?.nombre || 'Cargando...'}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.1rem' }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '5px', 
+                    height: '5px', 
+                    borderRadius: '50%', 
+                    backgroundColor: getRoleColor(profile?.rol)
+                  }} />
+                  <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                    {getRoleLabel(profile?.rol)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Button variant="ghost" onClick={handleLogout} aria-label="Cerrar sesión" style={{ color: 'var(--danger-color)', padding: '0.35rem', borderRadius: 'var(--radius-md)', width: 'auto', minWidth: 'unset', height: 'auto' }} title="Cerrar Sesión">
+              <LogOut size={15} />
+            </Button>
+          </div>
+        </div>
+
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center', fontWeight: '500' }}>
           Fundación Arupo &copy; {new Date().getFullYear()}
         </p>
       </div>
@@ -226,4 +254,5 @@ export const Sidebar = () => {
     </aside>
   );
 };
+
 

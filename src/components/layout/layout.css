@@ -293,3 +293,30 @@
     display: none !important;
   }
 }
+
+/* Adaptive responsive utility helpers */
+@media (min-width: 769px) {
+  .desktop-only {
+    display: block !important;
+  }
+  .desktop-only-flex {
+    display: flex !important;
+  }
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-only,
+  .desktop-only-flex {
+    display: none !important;
+  }
+  .mobile-only {
+    display: block !important;
+  }
+  .mobile-only-flex {
+    display: flex !important;
+  }
+}
+
