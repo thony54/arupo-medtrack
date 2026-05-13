@@ -18,53 +18,56 @@ export const AuthProvider = ({ children }) => {
         .single();
       
       if (error) {
-        console.warn('Error al obtener el perfil. Tabla perfiles ausente:', error.message);
-        // Retornar rol por defecto para evitar bloqueos
+        console.warn('Aviso de perfil. Tabla perfiles pendiente:', error.message);
+        // Asignar fallback de Admin Provisional en segundo plano sin bloquear UI
         setProfile({ rol: 'super_admin', nombre: 'Administrador General' });
       } else {
         setProfile(data);
       }
     } catch (err) {
-      console.error('Error inesperado al obtener perfil:', err);
+      console.error('Error de perfil en segundo plano:', err);
       setProfile({ rol: 'super_admin', nombre: 'Administrador General' });
     }
   };
 
   useEffect(() => {
     if (!supabase) {
-      console.error('El cliente Supabase es nulo. Revisa las variables de entorno VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.');
+      console.error('El cliente Supabase es nulo.');
       setLoading(false);
       return;
     }
 
     // Check active session
     supabase.auth.getSession()
-      .then(async ({ data: { session: currentSession } }) => {
+      .then(({ data: { session: currentSession } }) => {
         setSession(currentSession);
+        setLoading(false); // ¡LIBERAR LA INTERFAZ DE INMEDIATO!
+        
         if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
+          // Ejecutar en segundo plano sin bloquear el renderizado de React
+          fetchProfile(currentSession.user.id);
         }
       })
       .catch((err) => {
         console.error('Error checking auth session:', err);
-      })
-      .finally(() => {
         setLoading(false);
       });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, currentSession) => {
       setSession(currentSession);
+      setLoading(false); // Desbloquear si el flujo cambia
+      
       if (currentSession?.user) {
-        await fetchProfile(currentSession.user.id);
+        fetchProfile(currentSession.user.id);
       } else {
         setProfile(null);
       }
-      setLoading(false);
     });
 
     return () => subscription && subscription.unsubscribe();
   }, []);
+
 
   // Renderizador de pantalla elegante de error en caso de que el SDK de Supabase no inicie
   if (!supabase) {
