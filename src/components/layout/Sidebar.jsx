@@ -128,35 +128,43 @@ export const Sidebar = () => {
           marginBottom: '1rem'
         }}>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <div style={{ 
-              width: '36px', 
-              height: '36px', 
-              borderRadius: '50%', 
-              backgroundColor: getRoleColor(profile?.rol), 
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '700',
-              fontSize: '0.9rem'
-            }}>
-              {profile?.nombre ? profile.nombre.substring(0, 2).toUpperCase() : 'U'}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '0.85rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {profile?.nombre || 'Cargando...'}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.1rem' }}>
-                <span style={{ 
-                  display: 'inline-block', 
-                  width: '6px', 
-                  height: '6px', 
-                  borderRadius: '50%', 
-                  backgroundColor: getRoleColor(profile?.rol)
-                }} />
-                <span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
-                  {getRoleLabel(profile?.rol)}
-                </span>
+            <div 
+              onClick={() => navigate('/perfil')} 
+              title="Ver mi perfil"
+              style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}
+              className="sidebar-profile-link"
+            >
+              <div style={{ 
+                width: '36px', 
+                height: '36px', 
+                borderRadius: '50%', 
+                backgroundColor: getRoleColor(profile?.rol), 
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '700',
+                fontSize: '0.9rem',
+                flexShrink: 0
+              }}>
+                {profile?.nombre ? profile.nombre.substring(0, 2).toUpperCase() : 'U'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '0.85rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {profile?.nombre || 'Cargando...'}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.1rem' }}>
+                  <span style={{ 
+                    display: 'inline-block', 
+                    width: '6px', 
+                    height: '6px', 
+                    borderRadius: '50%', 
+                    backgroundColor: getRoleColor(profile?.rol)
+                  }} />
+                  <span style={{ fontSize: '0.68rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                    {getRoleLabel(profile?.rol)}
+                  </span>
+                </div>
               </div>
             </div>
             <Button variant="ghost" onClick={handleLogout} aria-label="Cerrar sesión" style={{ color: 'var(--danger-color)', padding: '0.35rem', borderRadius: 'var(--radius-md)', width: 'auto', minWidth: 'unset', height: 'auto' }}>

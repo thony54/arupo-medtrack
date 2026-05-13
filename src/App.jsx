@@ -11,6 +11,7 @@ import { LoteDetail } from './pages/LoteDetail';
 import { Beneficiarios } from './pages/Beneficiarios';
 import { Donantes } from './pages/Donantes';
 import { Usuarios } from './pages/Usuarios';
+import { Perfil } from './pages/Perfil';
 
 function App() {
   return (
@@ -64,6 +65,8 @@ function App() {
                 <Usuarios />
               </ProtectedRoute>
             } />
+            {/* Perfil del Usuario: Accesible para todos los autenticados */}
+            <Route path="perfil" element={<Perfil />} />
           </Route>
         </Routes>
       </BrowserRouter>
