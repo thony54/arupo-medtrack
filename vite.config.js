@@ -43,10 +43,11 @@ export default defineConfig({
             urlPattern: ({ url }) => url.href.includes('supabase.co/rest/v1'),
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'api-cache',
+              cacheName: 'supabase-api-cache',
+              networkTimeoutSeconds: 5, // Wait up to 5s before giving up and using cache
               expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 1 week
+                maxEntries: 500,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
               cacheableResponse: {
                 statuses: [0, 200]

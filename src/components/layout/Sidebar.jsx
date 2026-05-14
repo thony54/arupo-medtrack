@@ -65,29 +65,31 @@ export const Sidebar = () => {
 
       <div className="sidebar-header" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-          <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
             <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span className="desktop-only">Med-Track</span>
-                <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
-                {!isOnline && (
-                  <div style={{ 
-                    padding: '2px 6px', 
-                    background: 'var(--danger-bg)', 
-                    color: 'var(--danger-color)', 
-                    borderRadius: '4px', 
-                    fontSize: '0.6rem', 
-                    fontWeight: '800',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    animation: 'pulse 2s infinite'
-                  }}>
-                    Offline
-                  </div>
-                )}
-              </div>
+              <span className="desktop-only">Med-Track</span>
+              <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
             </div>
+            {!isOnline && (
+              <div style={{ 
+                position: 'absolute',
+                top: '-5px',
+                right: '-10px',
+                padding: '2px 5px', 
+                background: 'var(--danger-color)', 
+                color: 'white', 
+                borderRadius: '10px', 
+                fontSize: '0.55rem', 
+                fontWeight: '900',
+                textTransform: 'uppercase',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                animation: 'pulse 2s infinite',
+                zIndex: 5
+              }}>
+                Offline
+              </div>
+            )}
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
             
