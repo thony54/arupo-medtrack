@@ -16,7 +16,20 @@ export const Sidebar = () => {
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const { signOut, isSuperAdmin, isBrigadista, isVoluntario, profile } = useAuth();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
@@ -54,8 +67,27 @@ export const Sidebar = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
           <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-            <span className="desktop-only">Med-Track</span>
-            <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="desktop-only">Med-Track</span>
+                <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
+                {!isOnline && (
+                  <div style={{ 
+                    padding: '2px 6px', 
+                    background: 'var(--danger-bg)', 
+                    color: 'var(--danger-color)', 
+                    borderRadius: '4px', 
+                    fontSize: '0.6rem', 
+                    fontWeight: '800',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    Offline
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
             

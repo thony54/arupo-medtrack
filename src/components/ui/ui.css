@@ -249,7 +249,12 @@
   scrollbar-width: thin;
 }
 
-/* Ensure dropdown options are always readable in dark mode */
+/* Ensure dropdown */
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
 select.input-field option {
   background-color: var(--bg-surface) !important;
   color: var(--text-primary) !important;
