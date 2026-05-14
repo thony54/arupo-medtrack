@@ -1,3 +1,5 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut, User, Shield, ChevronRight, Edit2, Check, X, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
