@@ -41,13 +41,12 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.href.includes('supabase.co/rest/v1'),
-            handler: 'NetworkFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'supabase-api-cache',
-              networkTimeoutSeconds: 5, // Wait up to 5s before giving up and using cache
               expiration: {
                 maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 días
               },
               cacheableResponse: {
                 statuses: [0, 200]

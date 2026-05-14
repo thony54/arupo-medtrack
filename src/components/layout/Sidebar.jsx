@@ -65,31 +65,30 @@ export const Sidebar = () => {
 
       <div className="sidebar-header" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-          <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', position: 'relative' }}>
+          <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-            <div>
-              <span className="desktop-only">Med-Track</span>
-              <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
-            </div>
-            {!isOnline && (
-              <div style={{ 
-                position: 'absolute',
-                top: '-5px',
-                right: '-10px',
-                padding: '2px 5px', 
-                background: 'var(--danger-color)', 
-                color: 'white', 
-                borderRadius: '10px', 
-                fontSize: '0.55rem', 
-                fontWeight: '900',
-                textTransform: 'uppercase',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                animation: 'pulse 2s infinite',
-                zIndex: 5
-              }}>
-                Offline
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="desktop-only">Med-Track</span>
+                <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
               </div>
-            )}
+              {!isOnline && (
+                <div style={{ 
+                  padding: '1px 6px', 
+                  background: 'var(--danger-color)', 
+                  color: 'white', 
+                  borderRadius: '100px', 
+                  fontSize: '0.55rem', 
+                  fontWeight: '900',
+                  textTransform: 'uppercase',
+                  marginTop: '2px',
+                  width: 'fit-content',
+                  animation: 'pulse 2s infinite'
+                }}>
+                  Modo Local
+                </div>
+              )}
+            </div>
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
             
