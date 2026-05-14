@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Search, Shield, Mail, Trash2, UserCheck, AlertCircle } from 'lucide-react';
+import { UserPlus, Search, Shield, Mail, Trash2, UserCheck, AlertCircle, Eye, EyeOff, HandHeart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -28,6 +28,7 @@ export const Usuarios = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rol, setRol] = useState('brigadista');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetchUsuarios();
@@ -297,76 +298,103 @@ export const Usuarios = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="u-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre Completo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input
-              id="u-nombre"
-              className="input-field"
-              style={{ marginBottom: 0 }}
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
-              placeholder="Ej. Juan Pérez"
-              required
-              disabled={saving}
-            />
+          {/* Información Personal */}
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="u-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre Completo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+              <input
+                id="u-nombre"
+                className="input-field"
+                style={{ marginBottom: 0 }}
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
+                placeholder="Ej. Juan Pérez"
+                required
+                disabled={saving}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="u-email" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Correo Electrónico <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+              <input
+                id="u-email"
+                type="email"
+                className="input-field"
+                style={{ marginBottom: 0 }}
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="correo@fundacion.org"
+                required
+                disabled={saving}
+              />
+            </div>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="u-email" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Correo Electrónico <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input
-              id="u-email"
-              type="email"
-              className="input-field"
-              style={{ marginBottom: 0 }}
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="correo@fundacion.org"
-              required
-              disabled={saving}
-            />
-          </div>
-
+          {/* Contraseña */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
             <label htmlFor="u-pass" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Contraseña Temporal <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <input
-              id="u-pass"
-              type="password"
-              className="input-field"
-              style={{ marginBottom: 0 }}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              required
-              minLength={6}
-              disabled={saving}
-            />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Esta contraseña deberá ser usada por el usuario para su primer inicio de sesión.</span>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="u-pass"
+                type={showPassword ? 'text' : 'password'}
+                className="input-field"
+                style={{ marginBottom: 0, paddingRight: '2.5rem' }}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                required
+                minLength={6}
+                disabled={saving}
+              />
+              <button 
+                type="button" 
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Recomendado: mezcla letras, números y símbolos.</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="u-rol" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol del Usuario <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <select
-              id="u-rol"
-              className="input-field"
-              style={{
-                marginBottom: 0,
-                cursor: 'pointer',
-                width: '100%',
-                appearance: 'none',
-                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2310b981%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 1rem top 50%',
-                backgroundSize: '0.65rem auto'
-              }}
-              value={rol}
-              onChange={e => setRol(e.target.value)}
-              disabled={saving}
-              required
-            >
-              {ROLES.map(r => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
+          {/* Selector de Rol Premium */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol y Nivel de Acceso <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              {ROLES.map(r => {
+                const isActive = rol === r.value;
+                const Icon = r.value === 'brigadista' ? Shield : HandHeart;
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setRol(r.value)}
+                    style={{
+                      flex: '1 1 200px',
+                      padding: '1rem',
+                      borderRadius: 'var(--radius-lg)',
+                      border: `2px solid ${isActive ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                      background: isActive ? 'var(--primary-light)' : 'var(--bg-surface)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.5rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isActive ? 'var(--primary-color)' : 'var(--text-secondary)' }}>
+                      <Icon size={18} />
+                      <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{r.value === 'brigadista' ? 'Brigadista' : 'Voluntario'}</span>
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>
+                      {r.value === 'brigadista' 
+                        ? 'Acceso a inventario médico, registro de lotes y entregas de medicinas.' 
+                        : 'Acceso a CRM, gestión de donantes y registro de beneficiarios.'}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <button type="submit" id="user-submit-btn" style={{ display: 'none' }} />

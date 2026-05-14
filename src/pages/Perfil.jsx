@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, FileText, Award, LogOut } from 'lucide-react';
+import { User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, FileText, Award, LogOut, Edit2, Check, X, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
+import { ProfileDropdown } from '../components/layout/ProfileDropdown';
 import './pages.css';
 
 export const Perfil = () => {
@@ -158,10 +159,6 @@ export const Perfil = () => {
             Gestiona tus credenciales y visualiza tu nivel de acceso.
           </p>
         </div>
-        <Button variant="danger" onClick={handleLogout} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
-          <LogOut size={16} />
-          <span>Cerrar Sesión</span>
-        </Button>
       </div>
 
 
@@ -187,6 +184,11 @@ export const Perfil = () => {
             filter: 'blur(20px)',
             zIndex: 0
           }} />
+
+          {/* Cog Dropdown in Top Right of Card */}
+          <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', zIndex: 10 }}>
+            <ProfileDropdown />
+          </div>
 
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', zIndex: 1, position: 'relative', flexWrap: 'wrap' }}>
             <div className="premium-avatar-container">

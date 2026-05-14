@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, UserCog, BadgeAlert } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, BadgeAlert, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
@@ -59,50 +59,43 @@ export const Sidebar = () => {
           </div>
           <div className="header-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
             
-            {/* Botones Médicos: Visibles para Super Admin y Brigadistas */}
-            {(isSuperAdmin || isBrigadista) && (
-              <div style={{ display: 'flex', gap: '0.3rem' }}>
-                <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación Médica" title="Entregar Donación Médica">
-                  <HandHeart size={16} />
-                </Button>
-                <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} aria-label="Registrar Ingreso Médico" title="Registrar Ingreso Médico">
-                  <Plus size={18} strokeWidth={2.5} />
-                </Button>
-              </div>
-            )}
-
-            {/* Separador si hay acceso a ambos sets (Solo Desktop para ahorrar espacio) */}
-            {isSuperAdmin && (
-              <span className="desktop-only" style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 0.15rem' }} aria-hidden="true" />
-            )}
-
-            {/* Botones Generales: Visibles para Super Admin y Voluntarios */}
-            {(isSuperAdmin || isVoluntario) && (
-              <div style={{ display: 'flex', gap: '0.3rem' }}>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSalidaGeneral(true)}
-                  style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#7c3aed', borderColor: '#c4b5fd' }}
-                  aria-label="Entregar Ítems Generales"
-                  title="Entregar Ítems Generales"
-                >
-                  <Gift size={15} />
-                </Button>
-                <Button
-                  onClick={() => setShowDonacionGeneral(true)}
-                  style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', color: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', cursor: 'pointer' }}
-                  aria-label="Registrar Donación General"
-                  title="Registrar Donación General"
-                >
-                  <ShoppingBag size={15} />
-                </Button>
-              </div>
-            )}
-            {/* Separador final eliminado para mayor limpieza visual */}
-            {/* SETTINGS COG (Profile Dropdown) */}
-            <div className="mobile-only-flex">
-              <ProfileDropdown />
+            {/* Botones de Acción (Desktop Compact) */}
+            <div className="desktop-only" style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+              {(isSuperAdmin || isBrigadista) && (
+                <>
+                  <Button variant="ghost" onClick={() => setShowLoteForm(true)} style={{ padding: '4px', height: '32px', width: '32px' }} title="Ingreso Médico"><Plus size={16} /></Button>
+                  <Button variant="ghost" onClick={() => setShowSalida(true)} style={{ padding: '4px', height: '32px', width: '32px' }} title="Salida Médica"><HandHeart size={16} /></Button>
+                </>
+              )}
+              {isSuperAdmin && <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', margin: '0 4px' }} />}
+              {(isSuperAdmin || isVoluntario) && (
+                <>
+                  <Button variant="ghost" onClick={() => setShowDonacionGeneral(true)} style={{ padding: '4px', height: '32px', width: '32px', color: '#7c3aed' }} title="Ingreso General"><Plus size={16} /></Button>
+                  <Button variant="ghost" onClick={() => setShowSalidaGeneral(true)} style={{ padding: '4px', height: '32px', width: '32px', color: '#7c3aed' }} title="Salida General"><Gift size={16} /></Button>
+                </>
+              )}
             </div>
+            {/* Separador final eliminado para mayor limpieza visual */}
+            {/* Profile Link (The "Old" Button) */}
+            <button 
+              onClick={() => navigate('/perfil')} 
+              className="icon-btn" 
+              title="Mi Perfil" 
+              style={{ 
+                color: 'var(--primary-color)',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--primary-light)',
+                borderRadius: '50%',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <User size={18} />
+            </button>
 
           </div>
         </div>
@@ -187,7 +180,14 @@ export const Sidebar = () => {
             </div>
           </div>
           
-          <ProfileDropdown />
+          <button 
+            onClick={() => navigate('/perfil')}
+            className="icon-btn"
+            style={{ color: 'var(--primary-color)' }}
+            title="Ver Perfil"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
 
         <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center', fontWeight: '500' }}>
