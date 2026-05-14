@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, BadgeAlert, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
