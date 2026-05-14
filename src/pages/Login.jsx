@@ -151,7 +151,7 @@ export const Login = () => {
                     borderRadius: '16px',
                     cursor: 'pointer',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: isSelected ? `0 8px 24px -8px ${opt.bg}` : 'none',
+                    boxShadow: isSelected ? '0 8px 24px -8px rgba(0, 0, 0, 0.4)' : 'none',
                     opacity: isSelected ? 1 : 0.6,
                     transform: isSelected ? 'translateY(-2px)' : 'none'
                   }}
@@ -218,7 +218,7 @@ export const Login = () => {
               justifyContent: 'center',
               gap: '0.6rem',
               background: portal === 'voluntario' ? 'linear-gradient(135deg, #7c3aed, #6d28d9)' : portal === 'brigadista' ? 'linear-gradient(135deg, #10b981, #059669)' : 'var(--primary-gradient)',
-              boxShadow: portal === 'voluntario' ? '0 8px 20px -8px rgba(124, 58, 237, 0.6)' : '0 8px 20px -8px rgba(16, 185, 129, 0.6)',
+              boxShadow: '0 8px 20px -8px rgba(0, 0, 0, 0.5)',
               border: 'none',
               borderRadius: '12px',
               transition: 'all 0.3s ease'

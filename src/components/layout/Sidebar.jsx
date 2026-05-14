@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, UserCog, BadgeAlert } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
 import { SalidaFEFO } from '../inventory/SalidaFEFO';
 import { DonacionGeneral } from '../inventory/DonacionGeneral';
@@ -64,7 +65,7 @@ export const Sidebar = () => {
                 <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación Médica" title="Entregar Donación Médica">
                   <HandHeart size={16} />
                 </Button>
-                <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(16,185,129,0.4)' }} aria-label="Registrar Ingreso Médico" title="Registrar Ingreso Médico">
+                <Button variant="primary" onClick={() => setShowLoteForm(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }} aria-label="Registrar Ingreso Médico" title="Registrar Ingreso Médico">
                   <Plus size={18} strokeWidth={2.5} />
                 </Button>
               </div>
@@ -89,7 +90,7 @@ export const Sidebar = () => {
                 </Button>
                 <Button
                   onClick={() => setShowDonacionGeneral(true)}
-                  style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', color: '#fff', boxShadow: '0 4px 10px rgba(124,58,237,0.35)', cursor: 'pointer' }}
+                  style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', color: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', cursor: 'pointer' }}
                   aria-label="Registrar Donación General"
                   title="Registrar Donación General"
                 >
@@ -98,28 +99,9 @@ export const Sidebar = () => {
               </div>
             )}
             {/* Separador final eliminado para mayor limpieza visual */}
-            {/* MINI AVATAR DE USUARIO EN MÓVIL (Limpio y en su sitio) */}
-            <div 
-              className="mobile-only-flex" 
-              onClick={() => navigate('/perfil')}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: getRoleColor(profile?.rol),
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '700',
-                fontSize: '0.75rem',
-                cursor: 'pointer',
-                marginLeft: '0.25rem',
-                border: '2px solid var(--bg-surface)'
-              }}
-              title="Mi Perfil"
-            >
-              {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+            {/* SETTINGS COG (Profile Dropdown) */}
+            <div className="mobile-only-flex">
+              <ProfileDropdown />
             </div>
 
           </div>
@@ -174,51 +156,38 @@ export const Sidebar = () => {
           borderRadius: 'var(--radius-lg)', 
           background: 'var(--bg-surface-hover)', 
           border: '1px solid var(--border-color)', 
-          marginBottom: '0.75rem'
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
         }}>
-          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center' }}>
-            <div 
-              onClick={() => navigate('/perfil')} 
-              title="Ver mi perfil"
-              style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flex: 1, minWidth: 0, cursor: 'pointer' }}
-            >
-              <div style={{ 
-                width: '34px', 
-                height: '34px', 
-                borderRadius: '50%', 
-                backgroundColor: getRoleColor(profile?.rol), 
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: '700',
-                fontSize: '0.85rem',
-                flexShrink: 0
-              }}>
-                {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: '600', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {profile?.nombre || 'Cargando...'}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.1rem' }}>
-                  <span style={{ 
-                    display: 'inline-block', 
-                    width: '5px', 
-                    height: '5px', 
-                    borderRadius: '50%', 
-                    backgroundColor: getRoleColor(profile?.rol)
-                  }} />
-                  <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
-                    {getRoleLabel(profile?.rol)}
-                  </span>
-                </div>
-              </div>
+          <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <div style={{ 
+              width: '34px', 
+              height: '34px', 
+              borderRadius: '50%', 
+              backgroundColor: getRoleColor(profile?.rol), 
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: '700',
+              fontSize: '0.85rem',
+              flexShrink: 0
+            }}>
+              {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
             </div>
-            <Button variant="ghost" onClick={handleLogout} aria-label="Cerrar sesión" style={{ color: 'var(--danger-color)', padding: '0.35rem', borderRadius: 'var(--radius-md)', width: 'auto', minWidth: 'unset', height: 'auto' }} title="Cerrar Sesión">
-              <LogOut size={15} />
-            </Button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {profile?.nombre || 'Cargando...'}
+              </p>
+              <p style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', margin: 0 }}>
+                {getRoleLabel(profile?.rol)}
+              </p>
+            </div>
           </div>
+          
+          <ProfileDropdown />
         </div>
 
         <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center', fontWeight: '500' }}>

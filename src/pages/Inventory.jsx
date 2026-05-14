@@ -215,13 +215,14 @@ export const Inventory = () => {
                       <span style={{
                         background: esMedico ? 'var(--primary-light)' : '#f5f3ff',
                         color: esMedico ? 'var(--primary-hover)' : '#6d28d9',
-                        padding: '0.15rem 0.5rem',
+                        padding: '0.2rem 0.65rem',
                         borderRadius: 'var(--radius-pill)',
                         fontSize: '0.75rem',
                         fontWeight: '700',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.25rem',
+                        border: `1px solid ${esMedico ? 'rgba(16,185,129,0.1)' : 'rgba(124,58,237,0.1)'}`
                       }}>
                         {esMedico ? 'Médico' : 'General'}
                       </span>

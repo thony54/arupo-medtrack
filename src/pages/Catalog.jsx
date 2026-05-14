@@ -692,6 +692,7 @@ export const Catalog = () => {
                         alignItems: 'center',
                         gap: '0.25rem',
                         width: 'fit-content',
+                        border: `1px solid ${esMedico ? 'rgba(16,185,129,0.1)' : 'rgba(124,58,237,0.1)'}`
                       }}>
                         {esMedico ? <Stethoscope size={11} /> : <ShoppingBag size={11} />}
                         {esMedico ? 'Médico' : 'General'}

@@ -196,16 +196,16 @@ export const Beneficiarios = () => {
                       <div style={{ fontWeight: '600' }}>{b.nombre}</div>
                       {b.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{b.email}</div>}
                     </td>
-                    <td><span style={{ fontSize: '0.8rem', background: 'var(--bg-surface-hover)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{b.tipo}</span></td>
+                    <td><span style={{ fontSize: '0.75rem', background: 'var(--bg-surface-hover)', padding: '0.25rem 0.65rem', borderRadius: 'var(--radius-pill)', fontWeight: '600', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }}>{b.tipo}</span></td>
                     <td>
                       <div style={{ fontSize: '0.85rem' }}>{b.contacto_responsable || '—'}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {b.cedula || 'N/A'} • {b.telefono || '—'}</div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', alignItems: 'flex-start' }}>
-                        {b.condicion_medica ? <span style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem' }}>{b.condicion_medica}</span> : null}
-                        {b.discapacidad_tipo ? <span style={{ background: 'var(--danger-bg)', color: 'var(--danger-color)', padding: '0.15rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><IdCard size={12} /> {b.discapacidad_tipo} {b.tiene_carnet_discapacidad && '(Con Carnet)'}</span> : null}
-                        {!b.condicion_medica && !b.discapacidad_tipo && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>Sin condiciones</span>}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', alignItems: 'flex-start' }}>
+                        {b.condicion_medica ? <span style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(245,158,11,0.2)' }}>{b.condicion_medica}</span> : null}
+                        {b.discapacidad_tipo ? <span style={{ background: 'var(--danger-bg)', color: 'var(--danger-color)', padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', fontSize: '0.75rem', fontWeight: '700', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><IdCard size={12} /> {b.discapacidad_tipo} {b.tiene_carnet_discapacidad && '(Con Carnet)'}</span> : null}
+                        {!b.condicion_medica && !b.discapacidad_tipo && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem', fontStyle: 'italic' }}>Sin condiciones</span>}
                       </div>
                     </td>
                     <td style={{ textAlign: 'center', fontWeight: '700', color: 'var(--primary-color)' }}>{b.donaciones_count}</td>

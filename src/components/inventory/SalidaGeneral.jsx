@@ -227,7 +227,7 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
             type="button"
             onClick={handleSubmitAll}
             disabled={loading || cart.length === 0}
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', border: 'none', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(124,58,237,0.35)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: '#fff', border: 'none', padding: '0.65rem 1.25rem', borderRadius: 'var(--radius-md)', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             {loading ? 'Procesando...' : `Entregar (${cart.length})`}
           </Button>

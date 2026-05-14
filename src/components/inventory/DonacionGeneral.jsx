@@ -81,7 +81,6 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
     const { data } = await supabase
       .from('donantes')
       .select('id, nombre, tipo')
-      .eq('estado', 'Activo')
       .order('nombre');
     setDonantes(data || []);
   };
@@ -226,7 +225,7 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
             variant="primary"
             onClick={handleSubmitAll}
             disabled={loading || cart.length === 0}
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', boxShadow: '0 4px 12px rgba(124,58,237,0.35)' }}
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
           >
             {loading ? 'Procesando...' : `Guardar (${cart.length})`}
           </Button>

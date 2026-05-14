@@ -137,10 +137,9 @@
 }
 
 .nav-item.active {
-  background: var(--primary-gradient);
+  background: var(--primary-color);
   color: white;
-  font-weight: 600;
-  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
 }
 
 .nav-item.active::after {
@@ -277,8 +276,10 @@
   }
 
   .nav-item.active {
-    background-color: var(--primary-light);
-    color: var(--primary-color);
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: none; /* Removed the luminous shadow on mobile */
+    font-weight: 700;
   }
 
   .nav-item.active::after {
@@ -320,3 +321,196 @@
   }
 }
 
+
+/* Profile Dropdown Premium Styles */
+.profile-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-trigger-btn {
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.profile-trigger-btn:hover, .profile-trigger-btn.active {
+  background: var(--bg-surface);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.profile-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 240px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  overflow: hidden;
+  transform-origin: bottom right;
+}
+
+.dark .profile-popover {
+  background: #111827;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.popover-header {
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(to bottom, var(--bg-surface-hover), transparent);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.popover-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0;
+}
+
+.popover-actions {
+  padding: 0.5rem;
+}
+
+.popover-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.popover-item:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.popover-item:hover .item-icon {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.dark .popover-item:hover .item-icon {
+  background: var(--bg-surface);
+}
+
+.item-icon.danger {
+  color: var(--danger-color);
+}
+
+.popover-item .chevron {
+  margin-left: auto;
+  opacity: 0.3;
+  transition: transform 0.2s;
+}
+
+.popover-item:hover .chevron {
+  transform: translateX(3px);
+  opacity: 0.7;
+}
+
+.danger {
+  color: var(--danger-color) !important;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.spin-once {
+  animation: spinOnce 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes spinOnce {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
+
+@media (max-width: 768px) {
+  .profile-popover {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 70px);
+    right: 16px;
+    left: 16px;
+    width: auto;
+    transform-origin: bottom center;
+  }
+}

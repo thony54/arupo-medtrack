@@ -54,7 +54,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
 
   const fetchDonantes = async () => {
     if (!supabase) return;
-    const { data } = await supabase.from('donantes').select('id, nombre, tipo').eq('estado', 'Activo').order('nombre');
+    const { data } = await supabase.from('donantes').select('id, nombre, tipo').order('nombre');
     setDonantes(data || []);
   };
 

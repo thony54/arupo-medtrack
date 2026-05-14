@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import './pages.css';
 
 export const Perfil = () => {
-  const { profile, user, role, isSuperAdmin, isBrigadista, isVoluntario, signOut } = useAuth();
+  const { profile, user, role, isSuperAdmin, isBrigadista, isVoluntario, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   
   // Estados para cambio de contraseña
@@ -18,6 +18,11 @@ export const Perfil = () => {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Estados para edición de perfil
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempNombre, setTempNombre] = useState(profile?.nombre || '');
+  const [showEmail, setShowEmail] = useState(false);
 
   // Estadísticas Personales o Rol
   const [metrics, setMetrics] = useState({
@@ -27,7 +32,8 @@ export const Perfil = () => {
 
   useEffect(() => {
     fetchRoleSpecificMetrics();
-  }, [role]);
+    if (profile?.nombre) setTempNombre(profile.nombre);
+  }, [role, profile]);
 
   const fetchRoleSpecificMetrics = async () => {
     try {
@@ -93,6 +99,35 @@ export const Perfil = () => {
     }
   };
 
+  const handleUpdateName = async () => {
+    if (!tempNombre.trim()) {
+      setError('El nombre no puede estar vacío.');
+      return;
+    }
+    
+    setUpdating(true);
+    setError('');
+    
+    try {
+      const { error: updateError } = await supabase
+        .from('perfiles')
+        .update({ nombre: tempNombre.trim() })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      setSuccess('Nombre actualizado.');
+      setIsEditingName(false);
+      refreshProfile();
+      // El AuthContext debería refrescarse automáticamente si usamos onAuthStateChange, 
+      // pero aquí forzamos un refresco si es necesario o dejamos que React maneje el estado local.
+    } catch (err) {
+      setError(err.message || 'Error al actualizar el nombre.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const getRoleTitle = () => {
     if (isSuperAdmin) return 'Administrador del Sistema';
     if (isBrigadista) return 'Especialista Médico / Brigadista';
@@ -105,6 +140,13 @@ export const Perfil = () => {
     if (isBrigadista) return 'Brigadista';
     if (isVoluntario) return 'Voluntario';
     return 'General';
+  };
+
+  const getRoleColor = (rol) => {
+    if (isSuperAdmin) return 'var(--danger-color)';
+    if (isBrigadista) return 'var(--success-color)';
+    if (isVoluntario) return '#7c3aed';
+    return 'var(--text-secondary)';
   };
 
   return (
@@ -147,26 +189,50 @@ export const Perfil = () => {
           }} />
 
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', zIndex: 1, position: 'relative', flexWrap: 'wrap' }}>
-            <div style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: '50%', 
-              background: 'linear-gradient(135deg, var(--primary-color), #10b981)',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2rem',
-              fontWeight: '700',
-              boxShadow: 'var(--shadow-md)'
-            }}>
-              {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+            <div className="premium-avatar-container">
+              <div className="premium-avatar" style={{ background: `linear-gradient(135deg, ${getRoleColor(profile?.rol)}, var(--primary-color))` }}>
+                {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+              </div>
+              <div className="premium-avatar-ring" style={{ borderColor: getRoleColor(profile?.rol) }} />
             </div>
             <div style={{ flex: 1, minWidth: '200px' }}>
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>{profile?.nombre || 'Usuario'}</h2>
-              <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Mail size={16} style={{ opacity: 0.7 }} /> {user?.email}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {isEditingName ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '300px' }}>
+                    <input 
+                      className="input-field" 
+                      style={{ marginBottom: 0, padding: '0.4rem 0.75rem', fontSize: '1.25rem', fontWeight: '700' }}
+                      value={tempNombre}
+                      onChange={e => setTempNombre(e.target.value)}
+                      autoFocus
+                    />
+                    <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0 0.75rem' }}>✓</Button>
+                    <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0 0.75rem' }}>✕</Button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>{profile?.nombre || 'Usuario'}</h2>
+                    <button 
+                      onClick={() => setIsEditingName(true)}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', opacity: 0.6 }}
+                      title="Editar nombre"
+                    >
+                      <User size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              <div style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Mail size={16} style={{ opacity: 0.7 }} /> 
+                <span>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
+                <button 
+                  onClick={() => setShowEmail(!showEmail)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                >
+                  {showEmail ? 'Ocultar' : 'Mostrar'}
+                </button>
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
                 <span style={{ 
                   display: 'inline-flex', 
@@ -264,11 +330,11 @@ export const Perfil = () => {
 
               <div style={{ height: '1px', background: 'var(--border-color)' }} />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+              <div className="metrics-chip">
+                <div className="metrics-label">
                   {isBrigadista ? 'Medicamentos registrados:' : isVoluntario ? 'Beneficiarios activos:' : 'Registros globales:'}
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--primary-color)' }}>{metrics.totalRecords}</div>
+                <div className="metrics-value">{metrics.totalRecords}</div>
               </div>
             </div>
           </div>
