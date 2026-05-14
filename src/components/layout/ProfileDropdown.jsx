@@ -1,14 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Settings, LogOut, User, Shield, ChevronRight } from 'lucide-react';
+import { Settings, LogOut, User, Shield, ChevronRight, Edit2, Check, X, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import './layout.css';
 
 export const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { profile, role, signOut } = useAuth();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const { profile, role, user, signOut, refreshProfile } = useAuth();
+  const [tempNombre, setTempNombre] = useState(profile?.nombre || '');
+  const [showEmail, setShowEmail] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (profile?.nombre) setTempNombre(profile.nombre);
+  }, [profile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -23,6 +30,24 @@ export const ProfileDropdown = () => {
   const handleLogout = async () => {
     await signOut();
     navigate('/login');
+  };
+
+  const handleUpdateName = async () => {
+    if (!tempNombre.trim()) return;
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('perfiles')
+        .update({ nombre: tempNombre.trim() })
+        .eq('id', user.id);
+      if (error) throw error;
+      refreshProfile();
+      setIsEditingName(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const getRoleColor = (rol) => {
@@ -51,8 +76,31 @@ export const ProfileDropdown = () => {
               {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
             </div>
             <div className="user-info">
-              <p className="user-name">{profile?.nombre || 'Cargando...'}</p>
-              <p className="user-role">{role.replace('_', ' ')}</p>
+              {isEditingName ? (
+                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                  <input 
+                    className="popover-input"
+                    value={tempNombre}
+                    onChange={e => setTempNombre(e.target.value)}
+                    autoFocus
+                    disabled={updating}
+                  />
+                  <button onClick={handleUpdateName} className="icon-btn-tiny success"><Check size={14} /></button>
+                  <button onClick={() => setIsEditingName(false)} className="icon-btn-tiny"><X size={14} /></button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <p className="user-name">{profile?.nombre || 'Cargando...'}</p>
+                  <button onClick={() => setIsEditingName(true)} className="edit-mini-btn"><Edit2 size={12} /></button>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.1rem' }}>
+                <p className="user-email-mini">{showEmail ? user?.email : '••••••••@••••.•••'}</p>
+                <button onClick={() => setShowEmail(!showEmail)} className="edit-mini-btn">
+                  {showEmail ? <EyeOff size={12} /> : <Eye size={12} />}
+                </button>
+              </div>
+              <p className="user-role-mini">{role.replace('_', ' ')}</p>
             </div>
           </div>
 
