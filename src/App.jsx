@@ -47,11 +47,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            <Route path="evaluaciones" element={
+            {/* <Route path="evaluaciones" element={
               <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
                 <Evaluaciones />
               </ProtectedRoute>
-            } />
+            } /> */}
             
             {/* CRM y Comunidad: Super Admin y Voluntarios */}
             <Route path="beneficiarios" element={

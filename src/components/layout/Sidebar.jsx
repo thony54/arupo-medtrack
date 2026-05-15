@@ -267,7 +267,7 @@ export const Sidebar = () => {
       <SalidaFEFO isOpen={showSalida} onClose={() => setShowSalida(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
       <DonacionGeneral isOpen={showDonacionGeneral} onClose={() => setShowDonacionGeneral(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
       <SalidaGeneral isOpen={showSalidaGeneral} onClose={() => setShowSalidaGeneral(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
-      <SaludStepper isOpen={showSaludStepper} onClose={() => setShowSaludStepper(false)} onSuccess={() => window.dispatchEvent(new Event('evaluaciones-updated'))} />
+      {/* <SaludStepper isOpen={showSaludStepper} onClose={() => setShowSaludStepper(false)} onSuccess={() => window.dispatchEvent(new Event('evaluaciones-updated'))} /> */}
     </aside>
   );
 };
