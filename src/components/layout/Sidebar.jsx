@@ -7,7 +7,7 @@ import { LoteForm } from '../inventory/LoteForm';
 import { SalidaFEFO } from '../inventory/SalidaFEFO';
 import { DonacionGeneral } from '../inventory/DonacionGeneral';
 import { SalidaGeneral } from '../inventory/SalidaGeneral';
-import { SaludStepper } from '../salud/SaludStepper';
+// import { SaludStepper } from '../salud/SaludStepper';
 import { useAuth } from '../../contexts/AuthContext';
 import './layout.css';
 

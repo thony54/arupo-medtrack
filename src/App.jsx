@@ -12,7 +12,7 @@ import { Beneficiarios } from './pages/Beneficiarios';
 import { Donantes } from './pages/Donantes';
 import { Usuarios } from './pages/Usuarios';
 import { Perfil } from './pages/Perfil';
-import { Evaluaciones } from './pages/Evaluaciones';
+// import { Evaluaciones } from './pages/Evaluaciones';
 
 function App() {
   return (
