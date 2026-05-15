@@ -12,6 +12,7 @@ import { Beneficiarios } from './pages/Beneficiarios';
 import { Donantes } from './pages/Donantes';
 import { Usuarios } from './pages/Usuarios';
 import { Perfil } from './pages/Perfil';
+import { Evaluaciones } from './pages/Evaluaciones';
 
 function App() {
   return (
@@ -43,6 +44,12 @@ function App() {
             <Route path="lotes/:productoId" element={
               <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
                 <LoteDetail />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="evaluaciones" element={
+              <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
+                <Evaluaciones />
               </ProtectedRoute>
             } />
             

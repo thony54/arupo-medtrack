@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
 import { SalidaFEFO } from '../inventory/SalidaFEFO';
 import { DonacionGeneral } from '../inventory/DonacionGeneral';
 import { SalidaGeneral } from '../inventory/SalidaGeneral';
+import { SaludStepper } from '../salud/SaludStepper';
 import { useAuth } from '../../contexts/AuthContext';
 import './layout.css';
 
@@ -15,6 +16,7 @@ export const Sidebar = () => {
   const [showSalida, setShowSalida] = useState(false);
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
+  const [showSaludStepper, setShowSaludStepper] = useState(false);
   const { signOut, isSuperAdmin, isBrigadista, isVoluntario, profile } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
@@ -95,6 +97,15 @@ export const Sidebar = () => {
             {/* Botones Médicos: Visibles para Super Admin y Brigadistas */}
             {(isSuperAdmin || isBrigadista) && (
               <div style={{ display: 'flex', gap: '0.3rem' }}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSaludStepper(true)}
+                  style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ec4899', borderColor: '#fbcfe8' }}
+                  aria-label="Nueva Evaluación de Salud"
+                  title="Nueva Evaluación de Salud"
+                >
+                  <Activity size={16} />
+                </Button>
                 <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación Médica" title="Entregar Donación Médica">
                   <HandHeart size={16} />
                 </Button>
@@ -171,6 +182,7 @@ export const Sidebar = () => {
             </div>
             {navItem('/inventory', Package, 'Inventario')}
             {navItem('/catalog', Database, 'Catálogo')}
+            {navItem('/evaluaciones', Activity, 'Evaluaciones')}
           </>
         )}
 
@@ -255,6 +267,7 @@ export const Sidebar = () => {
       <SalidaFEFO isOpen={showSalida} onClose={() => setShowSalida(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
       <DonacionGeneral isOpen={showDonacionGeneral} onClose={() => setShowDonacionGeneral(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
       <SalidaGeneral isOpen={showSalidaGeneral} onClose={() => setShowSalidaGeneral(false)} onSuccess={() => window.dispatchEvent(new Event('inventory-updated'))} />
+      <SaludStepper isOpen={showSaludStepper} onClose={() => setShowSaludStepper(false)} onSuccess={() => window.dispatchEvent(new Event('evaluaciones-updated'))} />
     </aside>
   );
 };
