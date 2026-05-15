@@ -12,7 +12,7 @@ import { Beneficiarios } from './pages/Beneficiarios';
 import { Donantes } from './pages/Donantes';
 import { Usuarios } from './pages/Usuarios';
 import { Perfil } from './pages/Perfil';
-// import { Evaluaciones } from './pages/Evaluaciones';
+import { Evaluaciones } from './pages/Evaluaciones';
 
 function App() {
   return (
@@ -47,11 +47,11 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* <Route path="evaluaciones" element={
+            <Route path="evaluaciones" element={
               <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
                 <Evaluaciones />
               </ProtectedRoute>
-            } /> */}
+            } />
             
             {/* CRM y Comunidad: Super Admin y Voluntarios */}
             <Route path="beneficiarios" element={
