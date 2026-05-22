@@ -383,38 +383,20 @@ export const Perfil = () => {
     if (isVoluntario) return '#7c3aed';
     return 'var(--text-secondary)';
   };
-
   return (
     <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto', paddingBottom: '3rem', width: '100%' }}>
-      <div className="page-header" style={{ marginBottom: '1.75rem' }}>
-        <div>
-          <h1 className="page-title">Mi Perfil</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Gestiona tus datos personales, credenciales y visualiza tu nivel de acceso autorizado.
-          </p>
-        </div>
-      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
+        <div className="card glass" style={{ padding: 0, overflow: 'visible', position: 'relative', border: '1px solid var(--border-color)' }}>
+          
+          {/* Banner superior premium */}
+          <div className="arupo-profile-banner-container">
+            <div className="arupo-profile-banner" />
+            
+            {/* Cog Dropdown in Top Right of Banner */}
+            <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 20 }}>
+              <ProfileDropdown />
+            </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        
-        {/* Card Principal de Perfil Premium */}
-        {/* Card Principal de Perfil Premium (Estilo Instagram) */}
-        <div className="card glass" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
-          {/* Fondo dinámico difuminado según el rol */}
-          <div className="profile-hero-bg" style={{ 
-            background: isBrigadista 
-              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(13, 148, 136, 0.02) 70%, transparent 100%)' 
-              : isVoluntario 
-                ? 'radial-gradient(circle, rgba(124, 58, 237, 0.25) 0%, rgba(168, 85, 247, 0.02) 70%, transparent 100%)' 
-                : 'radial-gradient(circle, rgba(225, 29, 72, 0.25) 0%, rgba(13, 148, 136, 0.02) 70%, transparent 100%)'
-          }} />
-
-          {/* Cog Dropdown in Top Right of Card */}
-          <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', zIndex: 10 }}>
-            <ProfileDropdown />
-          </div>
-
-          <div className="instagram-header">
             {/* Hidden file input for avatar upload */}
             <input 
               type="file" 
@@ -424,202 +406,236 @@ export const Perfil = () => {
               accept="image/*" 
             />
 
-            {/* Avatar Uploader con Anillo de Instagram y Subida de Imagen */}
-            <div className="instagram-avatar-container">
-              <div className="instagram-avatar-ring" />
-              
-              <div 
-                className="instagram-avatar-wrapper"
-                onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                title="Haz clic para cambiar tu foto de perfil"
-              >
-                <div className="instagram-avatar" style={{ 
-                  background: profile?.avatar 
-                    ? 'none' 
-                    : isBrigadista 
-                      ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
-                      : isVoluntario 
-                        ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-                        : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
-                }}>
-                  {profile?.avatar ? (
-                    <img 
-                      src={profile.avatar} 
-                      alt="Avatar" 
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                    />
-                  ) : (
-                    (profile?.nombre || 'U').substring(0, 2).toUpperCase()
-                  )}
-                </div>
+            {/* Avatar Uploader con Anillo Concéntrico de Arupo y Subida de Imagen */}
+            <div className="arupo-avatar-outer-wrap">
+              <div className="arupo-avatar-container">
+                <div className="arupo-avatar-ring" />
                 
-                {/* Overlay on hover */}
-                <div className="avatar-upload-overlay" style={{ fontSize: '0.55rem' }}>
-                  <Camera size={18} style={{ marginBottom: '2px' }} />
-                  <span>Cambiar</span>
-                </div>
-                
-                {/* Visual camera helper button */}
-                <div className="avatar-camera-btn">
-                  <Camera size={14} />
-                </div>
-              </div>
-            </div>
-
-            {/* Details Right Column */}
-            <div className="instagram-details">
-              
-              {/* Row 1: Username & Action Buttons */}
-              <div className="instagram-row-1">
-                {isEditingName ? (
-                  <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-                    <input 
-                      className="input-field" 
-                      style={{ marginBottom: 0, padding: '0.35rem 0.65rem', fontSize: '1.25rem', fontWeight: '700', maxWidth: '200px' }}
-                      value={tempNombre}
-                      onChange={e => setTempNombre(e.target.value)}
-                      autoFocus
-                      disabled={updating}
-                    />
-                    <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Guardar">
-                      <Check size={14} />
-                    </Button>
-                    <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Cancelar">
-                      <X size={14} />
-                    </Button>
+                <div 
+                  className="arupo-avatar-wrapper"
+                  onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                  title="Haz clic para cambiar tu foto de perfil"
+                >
+                  <div className="arupo-avatar" style={{ 
+                    background: profile?.avatar 
+                      ? 'none' 
+                      : isBrigadista 
+                        ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
+                        : isVoluntario 
+                          ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+                          : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
+                  }}>
+                    {profile?.avatar ? (
+                      <img 
+                        src={profile.avatar} 
+                        alt="Avatar" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      (profile?.nombre || 'U').substring(0, 2).toUpperCase()
+                    )}
                   </div>
-                ) : (
-                  <>
-                    <h2 className="instagram-username">{profile?.nombre || 'Usuario Operativo'}</h2>
-                    <button 
-                      onClick={() => setIsEditingName(true)}
-                      className="edit-name-btn"
-                      style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
-                      title="Editar nombre"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                  </>
-                )}
-
-                <div className="instagram-btn-group">
-                  <button 
-                    className={`instagram-btn-action ${activeTab === 'editar' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('editar')}
-                  >
-                    <Settings size={14} />
-                    Editar Perfil
-                  </button>
-                  <button 
-                    className="instagram-btn-action"
-                    onClick={() => {
-                      setActiveTab('privilegios');
-                      setShowPasswordForm(true);
-                    }}
-                  >
-                    <Key size={14} />
-                    Clave
-                  </button>
+                  
+                  {/* Overlay on hover */}
+                  <div className="avatar-upload-overlay" style={{ fontSize: '0.55rem' }}>
+                    <Camera size={18} style={{ marginBottom: '2px' }} />
+                    <span>Cambiar</span>
+                  </div>
+                  
+                  {/* Visual camera helper button */}
+                  <div className="avatar-camera-btn">
+                    <Camera size={14} />
+                  </div>
                 </div>
               </div>
-
-              {/* Row 2: Stats */}
-              <div className="instagram-row-2">
-                <span className="instagram-stat-item">
-                  <span className="instagram-stat-num">{metrics.totalRecords}</span>
-                  {isBrigadista ? 'Medicinas' : isVoluntario ? 'Beneficiarios' : 'Registros'}
-                </span>
-                <span className="instagram-stat-item">
-                  <span className="instagram-stat-num">✓</span>
-                  Activo
-                </span>
-                <span className="instagram-stat-item">
-                  <span className="instagram-stat-num">1</span>
-                  Rol
-                </span>
-              </div>
-
-              {/* Row 3: Biography */}
-              <div className="instagram-bio">
-                <div className="instagram-bio-name">{getRoleTitle()}</div>
-                
-                <div className={`instagram-bio-badge ${isBrigadista ? 'brigadista' : isVoluntario ? 'voluntario' : 'admin'}`}>
-                  {getRoleLabel(profile?.rol)}
-                </div>
-
-                <div className="instagram-bio-item">
-                  <Mail size={14} />
-                  <span>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
-                  <button 
-                    onClick={() => setShowEmail(!showEmail)}
-                    style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', marginLeft: '0.25rem' }}
-                  >
-                    {showEmail ? 'ocultar' : 'ver'}
-                  </button>
-                </div>
-
-                {profile?.telefono && (
-                  <div className="instagram-bio-item">
-                    <Phone size={14} />
-                    <span>{profile.telefono}</span>
-                  </div>
-                )}
-
-                {profile?.direccion && (
-                  <div className="instagram-bio-item">
-                    <MapPin size={14} />
-                    <span>{profile.direccion}</span>
-                  </div>
-                )}
-
-                {isBrigadista && profile?.especialidad && (
-                  <div className="instagram-bio-item">
-                    <Briefcase size={14} style={{ color: 'var(--success-color)' }} />
-                    <span>{profile.especialidad} ({profile.institucion || 'Fundación Arupo'})</span>
-                  </div>
-                )}
-
-                {isVoluntario && profile?.area_apoyo && (
-                  <div className="instagram-bio-item">
-                    <Briefcase size={14} style={{ color: '#7c3aed' }} />
-                    <span>Área: {profile.area_apoyo}</span>
-                  </div>
-                )}
-              </div>
-
             </div>
           </div>
 
-          {/* Navigation Tabs (Instagram style) */}
-          <ul className="instagram-tabs-nav">
-            <li>
+          {/* Identity & Basic details centered below banner */}
+          <div className="arupo-profile-identity">
+            
+            {/* Username & edit button */}
+            <div className="arupo-username-container">
+              {isEditingName ? (
+                <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
+                  <input 
+                    className="input-field" 
+                    style={{ marginBottom: 0, padding: '0.35rem 0.65rem', fontSize: '1.25rem', fontWeight: '700', maxWidth: '220px', textAlign: 'center' }}
+                    value={tempNombre}
+                    onChange={e => setTempNombre(e.target.value)}
+                    autoFocus
+                    disabled={updating}
+                  />
+                  <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Guardar">
+                    <Check size={14} />
+                  </Button>
+                  <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Cancelar">
+                    <X size={14} />
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <h2 className="arupo-profile-username">{profile?.nombre || 'Usuario Operativo'}</h2>
+                  <button 
+                    onClick={() => setIsEditingName(true)}
+                    className="edit-name-btn"
+                    title="Editar nombre"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Role title and elegant badge */}
+            <div className="arupo-profile-role-section">
+              <span className={`arupo-profile-bio-badge ${isBrigadista ? 'brigadista' : isVoluntario ? 'voluntario' : 'admin'}`}>
+                {getRoleLabel(profile?.rol)}
+              </span>
+              <span className="arupo-role-subtitle">{getRoleTitle()}</span>
+            </div>
+
+            {/* Structured modern contact info pills */}
+            <div className="arupo-quick-contact-bar">
+              <div className="contact-pill" title="Correo Electrónico">
+                <Mail size={14} />
+                <span>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
+                <button 
+                  onClick={() => setShowEmail(!showEmail)}
+                  className="view-email-btn"
+                >
+                  {showEmail ? 'ocultar' : 'ver'}
+                </button>
+              </div>
+
+              {profile?.telefono && (
+                <div className="contact-pill" title="Teléfono">
+                  <Phone size={14} />
+                  <span>{profile.telefono}</span>
+                </div>
+              )}
+
+              {profile?.direccion && (
+                <div className="contact-pill" title="Dirección">
+                  <MapPin size={14} />
+                  <span>{profile.direccion}</span>
+                </div>
+              )}
+
+              {isBrigadista && profile?.especialidad && (
+                <div className="contact-pill" title="Especialidad Médica">
+                  <Briefcase size={14} style={{ color: 'var(--success-color)' }} />
+                  <span>{profile.especialidad} ({profile.institucion || 'Fundación Arupo'})</span>
+                </div>
+              )}
+
+              {isVoluntario && profile?.area_apoyo && (
+                <div className="contact-pill" title="Área de Apoyo">
+                  <Briefcase size={14} style={{ color: '#7c3aed' }} />
+                  <span>Área: {profile.area_apoyo}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Premium quick tab switches */}
+            <div className="arupo-profile-actions">
               <button 
-                className={`instagram-tab-btn ${activeTab === 'informacion' ? 'active' : ''}`}
-                onClick={() => setActiveTab('informacion')}
-              >
-                <Database size={16} />
-                Mi Actividad
-              </button>
-            </li>
-            <li>
-              <button 
-                className={`instagram-tab-btn ${activeTab === 'editar' ? 'active' : ''}`}
+                className={`arupo-btn-premium ${activeTab === 'editar' ? 'active' : ''}`}
                 onClick={() => setActiveTab('editar')}
               >
-                <User size={16} />
-                Editar Datos
+                <Settings size={15} />
+                <span>Completar Ficha</span>
               </button>
-            </li>
-            <li>
               <button 
-                className={`instagram-tab-btn ${activeTab === 'privilegios' ? 'active' : ''}`}
-                onClick={() => setActiveTab('privilegios')}
+                className={`arupo-btn-premium ${activeTab === 'privilegios' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('privilegios');
+                  setShowPasswordForm(true);
+                }}
               >
-                <Shield size={16} />
-                Seguridad & Rol
+                <Key size={15} />
+                <span>Seguridad & Acceso</span>
               </button>
-            </li>
-          </ul>
+            </div>
+          </div>
+
+          {/* Navigation Tab Capsules (Flat high-end pills) */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: '0.75rem', 
+            borderTop: '1px solid var(--border-color)', 
+            padding: '1.25rem 1.5rem',
+            background: 'var(--bg-surface-hover)',
+            flexWrap: 'wrap'
+          }}>
+            <button 
+              className={`tab-pill-btn ${activeTab === 'informacion' ? 'active' : ''}`}
+              onClick={() => setActiveTab('informacion')}
+              style={{
+                background: activeTab === 'informacion' ? 'var(--primary-color)' : 'transparent',
+                color: activeTab === 'informacion' ? 'white' : 'var(--text-secondary)',
+                border: activeTab === 'informacion' ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '100px',
+                fontSize: '0.85rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                transition: 'all 0.2s ease',
+                boxShadow: activeTab === 'informacion' ? '0 4px 10px rgba(16,185,129,0.3)' : 'none'
+              }}
+            >
+              <Database size={16} />
+              Mi Actividad
+            </button>
+            <button 
+              className={`tab-pill-btn ${activeTab === 'editar' ? 'active' : ''}`}
+              onClick={() => setActiveTab('editar')}
+              style={{
+                background: activeTab === 'editar' ? 'var(--primary-color)' : 'transparent',
+                color: activeTab === 'editar' ? 'white' : 'var(--text-secondary)',
+                border: activeTab === 'editar' ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '100px',
+                fontSize: '0.85rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                transition: 'all 0.2s ease',
+                boxShadow: activeTab === 'editar' ? '0 4px 10px rgba(16,185,129,0.3)' : 'none'
+              }}
+            >
+              <User size={16} />
+              Editar Datos
+            </button>
+            <button 
+              className={`tab-pill-btn ${activeTab === 'privilegios' ? 'active' : ''}`}
+              onClick={() => setActiveTab('privilegios')}
+              style={{
+                background: activeTab === 'privilegios' ? 'var(--primary-color)' : 'transparent',
+                color: activeTab === 'privilegios' ? 'white' : 'var(--text-secondary)',
+                border: activeTab === 'privilegios' ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
+                padding: '0.5rem 1.25rem',
+                borderRadius: '100px',
+                fontSize: '0.85rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                transition: 'all 0.2s ease',
+                boxShadow: activeTab === 'privilegios' ? '0 4px 10px rgba(16,185,129,0.3)' : 'none'
+              }}
+            >
+              <Shield size={16} />
+              Seguridad & Rol
+            </button>
+          </div>
         </div>
 
         {/* Grid de Métricas Premium Interactivas */}
