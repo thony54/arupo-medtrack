@@ -91,11 +91,15 @@
 }
 
 /* Tables */
+/* Premium Glassmorphic Table Designs with Row Glowing Highlights */
 .table-container {
   overflow-x: auto;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-color);
-  background-color: var(--bg-surface);
+  background-color: var(--bg-glass-heavy);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm), var(--shadow-glass);
 }
 
 .data-table {
@@ -107,25 +111,34 @@
 
 .data-table th,
 .data-table td {
-  padding: 1rem 1.25rem;
+  padding: 1.15rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .data-table th {
   background-color: var(--bg-surface-hover);
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: 700;
+  font-size: 0.775rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .data-table tbody tr {
-  transition: background-color var(--transition-fast);
+  transition: all 0.2s ease-in-out;
+  border-left: 3px solid transparent;
 }
 
 .data-table tbody tr:hover {
   background-color: var(--bg-surface-hover);
+  border-left-color: var(--primary-color);
+  box-shadow: 0 4px 12px -3px rgba(0,0,0,0.02);
+}
+
+.dark .data-table tbody tr:hover {
+  background-color: rgba(255,255,255,0.015);
+  border-left-color: var(--primary-color);
 }
 
 /* Mobile responsives */
