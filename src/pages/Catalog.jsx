@@ -87,6 +87,19 @@ const parseExcelDate = (excelDate) => {
   return null;
 };
 
+const VIAS_ADMINISTRACION_SUGERIDAS = [
+  'Oral',
+  'Intravenosa',
+  'Intramuscular',
+  'Subcutánea',
+  'Tópica',
+  'Oftálmica',
+  'Ótica',
+  'Sublingual',
+  'Inhalatoria',
+  'Otro (Escribir...)'
+];
+
 export const Catalog = () => {
   const [medicinas, setMedicinas] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -99,6 +112,13 @@ export const Catalog = () => {
 
   // Form states
   const [nombre, setNombre] = useState('');
+  const [nombreGenerico, setNombreGenerico] = useState('');
+  const [nombreComercial, setNombreComercial] = useState('');
+  const [concentracion, setConcentracion] = useState('');
+  const [viaAdministracion, setViaAdministracion] = useState('');
+  const [viaAdministracionCustom, setViaAdministracionCustom] = useState('');
+  const [cantidadUnidades, setCantidadUnidades] = useState('');
+  const [numeroCajas, setNumeroCajas] = useState('');
   const [categoriaId, setCategoriaId] = useState('');
   const [newCategoriaNombre, setNewCategoriaNombre] = useState('');
   const [tipoRegistro, setTipoRegistro] = useState('medico'); // 'medico' | 'general'
@@ -126,6 +146,15 @@ export const Catalog = () => {
     fetchData();
   }, []);
 
+  // Recalcular stock automáticamente en base a Cantidad (unidades por caja) y Número de Cajas
+  useEffect(() => {
+    if (tipoRegistro === 'medico' && !editingId) {
+      const unidades = Number(cantidadUnidades) || 0;
+      const cajas = Number(numeroCajas) || 0;
+      setCantidadTotal(unidades * cajas > 0 ? String(unidades * cajas) : '');
+    }
+  }, [cantidadUnidades, numeroCajas, tipoRegistro, editingId]);
+
   const fetchData = async () => {
     if (!supabase) return;
     try {
@@ -144,6 +173,13 @@ export const Catalog = () => {
 
   const resetForm = () => {
     setNombre('');
+    setNombreGenerico('');
+    setNombreComercial('');
+    setConcentracion('');
+    setViaAdministracion('');
+    setViaAdministracionCustom('');
+    setCantidadUnidades('');
+    setNumeroCajas('');
     setCategoriaId('');
     setNewCategoriaNombre('');
     setPresentacion('');
@@ -179,10 +215,43 @@ export const Catalog = () => {
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
     setTipoRegistro(esMedico ? 'medico' : 'general');
     setNombre(med.nombre);
+    setNombreGenerico(med.nombre_generico || '');
+    setNombreComercial(med.nombre_comercial || '');
+    setConcentracion(med.concentracion || '');
+    
+    if (med.via_administracion) {
+      if (VIAS_ADMINISTRACION_SUGERIDAS.includes(med.via_administracion)) {
+        setViaAdministracion(med.via_administracion);
+      } else {
+        setViaAdministracion('Otro (Escribir...)');
+        setViaAdministracionCustom(med.via_administracion);
+      }
+    } else {
+      setViaAdministracion('');
+    }
+    
     setCategoriaId(med.categoria_id || '');
     setPresentacion(med.presentacion || '');
     setLaboratorio(med.laboratorio || '');
     setCantidadPorPresentacion(med.cantidad_por_presentacion || '');
+    
+    // Si cantidad_por_presentacion es un número, pre-poblar cantidadUnidades
+    const matchUnits = med.cantidad_por_presentacion ? med.cantidad_por_presentacion.match(/^\d+$/) : null;
+    if (matchUnits) {
+      setCantidadUnidades(matchUnits[0]);
+      if (med.stock_actual && Number(matchUnits[0]) > 0) {
+        setNumeroCajas(String(Math.floor(med.stock_actual / Number(matchUnits[0]))));
+      }
+    } else {
+      const matchNumber = med.cantidad_por_presentacion ? med.cantidad_por_presentacion.match(/\b\d+\b/) : null;
+      if (matchNumber) {
+        setCantidadUnidades(matchNumber[0]);
+        if (med.stock_actual && Number(matchNumber[0]) > 0) {
+          setNumeroCajas(String(Math.floor(med.stock_actual / Number(matchNumber[0]))));
+        }
+      }
+    }
+    
     setCantidadTotal(med.stock_actual || '');
     setObservaciones(med.observaciones || '');
     setEditingId(med.id);
@@ -451,7 +520,11 @@ export const Catalog = () => {
     e.preventDefault();
     setError('');
 
-    if (!nombre.trim()) { setError('El nombre es obligatorio.'); return; }
+    if (tipoRegistro === 'general') {
+      if (!nombre.trim()) { setError('El nombre es obligatorio.'); return; }
+    } else {
+      if (!nombreGenerico.trim()) { setError('El nombre genérico es obligatorio.'); return; }
+    }
     if (!categoriaId) { setError('Debes seleccionar una categoría.'); return; }
     if (categoriaId === 'NEW' && !newCategoriaNombre.trim()) { setError('Escribe el nombre de la nueva categoría.'); return; }
 
@@ -490,16 +563,28 @@ export const Catalog = () => {
           finalCategoriaNombre = catSeleccionada ? catSeleccionada.nombre : '';
         }
 
-        // Para ítems generales: concentracion y presentacion quedan como null (opcional)
+        // Lógica de Vía de Administración
+        const finalVia = tipoRegistro === 'medico'
+          ? (viaAdministracion === 'Otro (Escribir...)' ? viaAdministracionCustom.trim() : viaAdministracion)
+          : null;
+
+        // Combinación del nombre maestro
+        const finalNombre = tipoRegistro === 'medico'
+          ? (nombreComercial.trim() ? `${nombreGenerico.trim()} (${nombreComercial.trim()})` : nombreGenerico.trim())
+          : nombre.trim();
+
         const medData = {
-          nombre: nombre.trim(),
+          nombre: finalNombre,
           categoria_id: finalCategoriaId,
           presentacion: presentacion.trim() || null,
-          concentracion: null,
+          concentracion: tipoRegistro === 'medico' ? (concentracion.trim() || null) : null,
           laboratorio: tipoRegistro === 'medico' ? (laboratorio.trim() || null) : null,
-          cantidad_por_presentacion: cantidadPorPresentacion.trim() || null,
+          cantidad_por_presentacion: tipoRegistro === 'medico' ? (cantidadUnidades.trim() || null) : (presentacion.trim() || null),
           observaciones: observaciones.trim() || null,
           stock_actual: cantidadTotal ? Number(cantidadTotal) : 0,
+          nombre_generico: tipoRegistro === 'medico' ? nombreGenerico.trim() : null,
+          nombre_comercial: tipoRegistro === 'medico' ? (nombreComercial.trim() || null) : null,
+          via_administracion: finalVia || null
         };
 
         let savedMedId = editingId;
@@ -936,54 +1021,283 @@ export const Catalog = () => {
             </div>
           )}
 
+          {tipoRegistro === 'general' ? (
+            // Formulario simplificado para Ítem General
+            <>
+              {/* Categoría */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-categoria-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Categoría <span style={{ color: 'var(--danger-color)' }}>*</span>
+                </label>
+                <select
+                  id="cat-categoria-gen"
+                  className="input-field"
+                  required
+                  aria-required="true"
+                  value={categoriaId}
+                  onChange={(e) => setCategoriaId(e.target.value)}
+                  style={{ marginBottom: 0, cursor: 'pointer' }}
+                >
+                  <option value="">— Selecciona una categoría —</option>
+                  {categoriasDisponibles.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                  <option value="NEW" style={{ fontWeight: 'bold', color: '#7c3aed' }}>[+] Nueva Categoría...</option>
+                </select>
 
-
-          {/* Nombre */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="cat-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-              {tipoRegistro === 'general' ? 'Nombre del Ítem' : 'Nombre de la Medicina'} <span style={{ color: 'var(--danger-color)' }}>*</span>
-            </label>
-            <input
-              id="cat-nombre"
-              className="input-field"
-              required
-              aria-required="true"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder={tipoRegistro === 'general' ? 'Ej. Camiseta Talla M, Kit de Higiene...' : 'Ej. Paracetamol'}
-              style={{ marginBottom: 0 }}
-            />
-          </div>
-
-          {/* Laboratorio (Solo médico) */}
-          {tipoRegistro === 'medico' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="cat-lab" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Laboratorio
-              </label>
-              <input
-                id="cat-lab"
-                className="input-field"
-                value={laboratorio}
-                onChange={(e) => setLaboratorio(e.target.value)}
-                placeholder="Ej. Pfizer, Bayer, Genérico..."
-                style={{ marginBottom: 0 }}
-              />
-            </div>
-          )}
-
-          {/* Información específica según tipo (la parte estructurada que el usuario pidió mantener) */}
-          {tipoRegistro === 'medico' ? (
-            <div
-              role="group"
-              aria-label="Información Médica"
-              style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s ease-out' }}
-            >
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Stethoscope size={13} /> Información Médica (Solo para medicamentos)
+                {categoriaId === 'NEW' && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <input
+                      className="input-field animate-fade-in"
+                      required
+                      value={newCategoriaNombre}
+                      onChange={(e) => setNewCategoriaNombre(e.target.value)}
+                      placeholder="Ej. Ropa, Higiene, Alimentos..."
+                      style={{ marginBottom: 0, border: '1px dashed #7c3aed' }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                      {CATEGORIAS_GENERALES.slice(0, 6).map(sug => (
+                        <button
+                          key={sug}
+                          type="button"
+                          onClick={() => setNewCategoriaNombre(sug)}
+                          style={{ padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', border: '1px solid #c4b5fd', background: newCategoriaNombre === sug ? '#ede9fe' : 'transparent', color: '#6d28d9', fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-family)' }}
+                        >
+                          {sug}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Presentación con Chips */}
+              {/* Nombre */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-nombre-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Nombre del Ítem <span style={{ color: 'var(--danger-color)' }}>*</span>
+                </label>
+                <input
+                  id="cat-nombre-gen"
+                  className="input-field"
+                  required
+                  aria-required="true"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej. Camiseta Talla M, Kit de Higiene..."
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+
+              {/* Presentación (Chips / Variante) */}
+              <div
+                role="group"
+                aria-label="Descripción de ítem general"
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s ease-out' }}
+              >
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <ShoppingBag size={13} /> Detalle del Ítem General
+                </div>
+                <label htmlFor="cat-pres-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Descripción / Talla / Variante (opcional)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                  {['Talla S', 'Talla M', 'Talla L', 'Talla XL', 'Unitario', 'Par', 'Kit', 'Paquete'].map(opt => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setPresentacion(opt === presentacion ? '' : opt)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: 'var(--radius-pill)',
+                        border: `1.5px solid ${presentacion === opt ? '#7c3aed' : 'var(--border-color)'}`,
+                        background: presentacion === opt ? '#ede9fe' : 'var(--bg-surface)',
+                        color: presentacion === opt ? '#6d28d9' : 'var(--text-secondary)',
+                        fontSize: '0.82rem',
+                        fontWeight: presentacion === opt ? '600' : '400',
+                        cursor: 'pointer',
+                        transition: 'all var(--transition-fast)',
+                        fontFamily: 'var(--font-family)'
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  id="cat-pres-gen"
+                  className="input-field"
+                  value={presentacion}
+                  onChange={(e) => setPresentacion(e.target.value)}
+                  placeholder="Ej. Talla única, 500ml, 3 piezas..."
+                  style={{ marginBottom: 0, fontSize: '0.85rem' }}
+                />
+              </div>
+
+              {/* Cantidad Total / cpp */}
+              <div className="grid-responsive" style={{ gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="cat-cpp-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Cantidad por presentación (opcional)
+                  </label>
+                  <input
+                    id="cat-cpp-gen"
+                    className="input-field"
+                    value={cantidadPorPresentacion}
+                    onChange={(e) => setCantidadPorPresentacion(e.target.value)}
+                    placeholder="Ej. Caja x 30, Bolsa x 10"
+                    style={{ marginBottom: 0 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="cat-ct-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Cantidad Total (Stock Inicial) {editingId && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>(Editar en Inventario)</span>}
+                  </label>
+                  <input
+                    id="cat-ct-gen"
+                    type="number"
+                    className="input-field"
+                    value={cantidadTotal}
+                    disabled={!!editingId}
+                    onChange={(e) => setCantidadTotal(e.target.value)}
+                    placeholder="0"
+                    style={{ marginBottom: 0, cursor: editingId ? 'not-allowed' : 'text' }}
+                  />
+                </div>
+              </div>
+
+              {/* Observaciones */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-obs-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Observaciones
+                </label>
+                <textarea
+                  id="cat-obs-gen"
+                  className="input-field"
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  placeholder="Notas adicionales..."
+                  style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }}
+                />
+              </div>
+            </>
+          ) : (
+            // Formulario reestructurado para MEDICINA
+            <>
+              {/* 1. Grupo farmacológico (Categoría) */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-categoria-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Grupo farmacológico (Categoría) <span style={{ color: 'var(--danger-color)' }}>*</span>
+                </label>
+                <select
+                  id="cat-categoria-med"
+                  className="input-field"
+                  required
+                  aria-required="true"
+                  value={categoriaId}
+                  onChange={(e) => setCategoriaId(e.target.value)}
+                  style={{ marginBottom: 0, cursor: 'pointer' }}
+                >
+                  <option value="">— Selecciona un grupo farmacológico —</option>
+                  {categoriasDisponibles.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                  <option value="NEW" style={{ fontWeight: 'bold', color: 'var(--primary-hover)' }}>[+] Nueva Categoría...</option>
+                </select>
+
+                {categoriaId === 'NEW' && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <input
+                      className="input-field animate-fade-in"
+                      required
+                      value={newCategoriaNombre}
+                      onChange={(e) => setNewCategoriaNombre(e.target.value)}
+                      placeholder="Ej. Antiinflamatorios, Analgésicos, Antipiréticos..."
+                      style={{ marginBottom: 0, border: '1px dashed var(--primary-color)' }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Nombre genérico */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-nombre-generico" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Nombre genérico <span style={{ color: 'var(--danger-color)' }}>*</span>
+                </label>
+                <input
+                  id="cat-nombre-generico"
+                  className="input-field"
+                  required
+                  aria-required="true"
+                  value={nombreGenerico}
+                  onChange={(e) => setNombreGenerico(e.target.value)}
+                  placeholder="Ej. Paracetamol, Ibuprofeno..."
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+
+              {/* 3. Nombre comercial */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-nombre-comercial" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Nombre comercial
+                </label>
+                <input
+                  id="cat-nombre-comercial"
+                  className="input-field"
+                  value={nombreComercial}
+                  onChange={(e) => setNombreComercial(e.target.value)}
+                  placeholder="Ej. Tempra, Advil... (opcional)"
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+
+              {/* 4 y 5. Fecha de vencimiento y Lote (solo si no es edición, para mantener coherencia de lote inicial) */}
+              {!editingId && (
+                <div className="grid-responsive" style={{ gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <label htmlFor="cat-venc-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                      Fecha de vencimiento
+                    </label>
+                    <input
+                      id="cat-venc-med"
+                      type="date"
+                      className="input-field"
+                      value={fechaVencimiento}
+                      onChange={(e) => setFechaVencimiento(e.target.value)}
+                      style={{ marginBottom: 0 }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <label htmlFor="cat-lote-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                      Lote
+                    </label>
+                    <input
+                      id="cat-lote-med"
+                      className="input-field"
+                      value={numeroLote}
+                      onChange={(e) => setNumeroLote(e.target.value)}
+                      placeholder="Ej. L12345"
+                      style={{ marginBottom: 0 }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 6. Concentración */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-concentracion" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Concentración
+                </label>
+                <input
+                  id="cat-concentracion"
+                  className="input-field"
+                  value={concentracion}
+                  onChange={(e) => setConcentracion(e.target.value)}
+                  placeholder="Ej. 500mg, 100mg/5ml..."
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+
+              {/* 7. Presentación */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
                   Presentación
@@ -1020,188 +1334,115 @@ export const Catalog = () => {
                   style={{ marginBottom: 0, marginTop: '0.5rem', fontSize: '0.85rem' }}
                 />
               </div>
-            </div>
-          ) : (
-            <div
-              role="group"
-              aria-label="Descripción de ítem general"
-              style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', animation: 'fadeIn 0.2s ease-out' }}
-            >
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <ShoppingBag size={13} /> Detalle del Ítem General
-              </div>
-              <label htmlFor="cat-pres-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Descripción / Talla / Variante (opcional)
-              </label>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-                {['Talla S', 'Talla M', 'Talla L', 'Talla XL', 'Unitario', 'Par', 'Kit', 'Paquete'].map(opt => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => setPresentacion(opt === presentacion ? '' : opt)}
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: 'var(--radius-pill)',
-                      border: `1.5px solid ${presentacion === opt ? '#7c3aed' : 'var(--border-color)'}`,
-                      background: presentacion === opt ? '#ede9fe' : 'var(--bg-surface)',
-                      color: presentacion === opt ? '#6d28d9' : 'var(--text-secondary)',
-                      fontSize: '0.82rem',
-                      fontWeight: presentacion === opt ? '600' : '400',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)',
-                      fontFamily: 'var(--font-family)'
-                    }}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-              <input
-                id="cat-pres-gen"
-                className="input-field"
-                value={presentacion}
-                onChange={(e) => setPresentacion(e.target.value)}
-                placeholder="Ej. Talla única, 500ml, 3 piezas..."
-                style={{ marginBottom: 0, fontSize: '0.85rem' }}
-              />
-            </div>
-          )}
 
-          {/* Cantidad por presentación y Cantidad Total */}
-          <div className="grid-responsive" style={{ gap: '1rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="cat-cpp" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Cantidad por presentación
-              </label>
-              <input
-                id="cat-cpp"
-                className="input-field"
-                value={cantidadPorPresentacion}
-                onChange={(e) => setCantidadPorPresentacion(e.target.value)}
-                placeholder="Ej. Caja x 30"
-                style={{ marginBottom: 0 }}
-              />
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label htmlFor="cat-ct" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                Cantidad Total (Stock Inicial) {editingId && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>(Editar en Inventario)</span>}
-              </label>
-              <input
-                id="cat-ct"
-                type="number"
-                className="input-field"
-                value={cantidadTotal}
-                disabled={!!editingId}
-                onChange={(e) => setCantidadTotal(e.target.value)}
-                placeholder="0"
-                style={{ marginBottom: 0, cursor: editingId ? 'not-allowed' : 'text' }}
-              />
-            </div>
-          </div>
-
-          {/* Lote y Caducidad (Solo si es nuevo y médico) */}
-          {!editingId && tipoRegistro === 'medico' && (
-            <div className="grid-responsive" style={{ gap: '1rem' }}>
+              {/* 8. Vía de administración */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label htmlFor="cat-lote" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                  Lote
+                <label htmlFor="cat-via-admin" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Vía de administración
                 </label>
-                <input
-                  id="cat-lote"
+                <select
+                  id="cat-via-admin"
                   className="input-field"
-                  value={numeroLote}
-                  onChange={(e) => setNumeroLote(e.target.value)}
-                  placeholder="Ej. L12345"
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label htmlFor="cat-venc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                  Caducidad
-                </label>
-                <input
-                  id="cat-venc"
-                  type="date"
-                  className="input-field"
-                  value={fechaVencimiento}
-                  onChange={(e) => setFechaVencimiento(e.target.value)}
-                  style={{ marginBottom: 0 }}
-                />
-              </div>
-            </div>
-          )}
+                  value={viaAdministracion}
+                  onChange={(e) => setViaAdministracion(e.target.value)}
+                  style={{ marginBottom: 0, cursor: 'pointer' }}
+                >
+                  <option value="">— Selecciona vía de administración —</option>
+                  {VIAS_ADMINISTRACION_SUGERIDAS.map(v => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
 
-          {/* Observaciones */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="cat-obs" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-              Observaciones
-            </label>
-            <textarea
-              id="cat-obs"
-              className="input-field"
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              placeholder="Notas adicionales..."
-              style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }}
-            />
-          </div>
-
-          {/* Categoría */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <label htmlFor="cat-categoria" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-              Categoría <span style={{ color: 'var(--danger-color)' }}>*</span>
-            </label>
-            <select
-              id="cat-categoria"
-              className="input-field"
-              required
-              aria-required="true"
-              value={categoriaId}
-              onChange={(e) => setCategoriaId(e.target.value)}
-              style={{ marginBottom: 0, cursor: 'pointer' }}
-            >
-              <option value="">— Selecciona una categoría —</option>
-              {/* Categorías existentes del tipo correcto */}
-              {categoriasDisponibles.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
-              ))}
-              {/* Sugerencias rápidas si no hay categorías del tipo */}
-              {categoriasDisponibles.length === 0 && tipoRegistro === 'general' && CATEGORIAS_GENERALES.map(c => (
-                <option key={c} value={`SUGGESTED_${c}`} disabled style={{ color: 'var(--text-tertiary)' }}>
-                  {c} (crear con [+] Nueva)
-                </option>
-              ))}
-              <option value="NEW" style={{ fontWeight: 'bold', color: tipoRegistro === 'general' ? '#7c3aed' : 'var(--primary-hover)' }}>[+] Nueva Categoría...</option>
-            </select>
-
-            {categoriaId === 'NEW' && (
-              <div style={{ marginTop: '0.5rem' }}>
-                <input
-                  className="input-field animate-fade-in"
-                  required
-                  value={newCategoriaNombre}
-                  onChange={(e) => setNewCategoriaNombre(e.target.value)}
-                  placeholder={tipoRegistro === 'general' ? 'Ej. Ropa, Higiene, Alimentos...' : 'Ej. Analgésicos, Antibióticos...'}
-                  style={{ marginBottom: 0, border: `1px dashed ${tipoRegistro === 'general' ? '#7c3aed' : 'var(--primary-color)'}` }}
-                />
-                {/* Sugerencias rápidas para categorías generales */}
-                {tipoRegistro === 'general' && (
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                    {CATEGORIAS_GENERALES.slice(0, 6).map(sug => (
-                      <button
-                        key={sug}
-                        type="button"
-                        onClick={() => setNewCategoriaNombre(sug)}
-                        style={{ padding: '0.2rem 0.6rem', borderRadius: 'var(--radius-pill)', border: '1px solid #c4b5fd', background: newCategoriaNombre === sug ? '#ede9fe' : 'transparent', color: '#6d28d9', fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'var(--font-family)' }}
-                      >
-                        {sug}
-                      </button>
-                    ))}
-                  </div>
+                {viaAdministracion === 'Otro (Escribir...)' && (
+                  <input
+                    id="cat-via-admin-custom"
+                    className="input-field animate-fade-in"
+                    required
+                    value={viaAdministracionCustom}
+                    onChange={(e) => setViaAdministracionCustom(e.target.value)}
+                    placeholder="Escribe la vía de administración personalizada..."
+                    style={{ marginBottom: 0, marginTop: '0.5rem' }}
+                  />
                 )}
               </div>
-            )}
-          </div>
+
+              {/* 9, 10, 11. Cantidad (unidades por caja), Número de cajas y Total Stock */}
+              <div className="grid-responsive" style={{ gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="cat-cant-unidades" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Cantidad (por caja/unidad)
+                  </label>
+                  <input
+                    id="cat-cant-unidades"
+                    type="number"
+                    className="input-field"
+                    value={cantidadUnidades}
+                    onChange={(e) => setCantidadUnidades(e.target.value)}
+                    placeholder="Ej. 30"
+                    style={{ marginBottom: 0 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="cat-num-cajas" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Número de cajas
+                  </label>
+                  <input
+                    id="cat-num-cajas"
+                    type="number"
+                    className="input-field"
+                    value={numeroCajas}
+                    onChange={(e) => setNumeroCajas(e.target.value)}
+                    placeholder="Ej. 5"
+                    style={{ marginBottom: 0 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="cat-total-stock" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                    Total Stock
+                  </label>
+                  <input
+                    id="cat-total-stock"
+                    type="number"
+                    className="input-field"
+                    value={cantidadTotal}
+                    disabled
+                    placeholder="0"
+                    style={{ marginBottom: 0, cursor: 'not-allowed', backgroundColor: 'var(--bg-surface-hover)' }}
+                  />
+                </div>
+              </div>
+
+              {/* 12. Laboratorio */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-lab-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Laboratorio
+                </label>
+                <input
+                  id="cat-lab-med"
+                  className="input-field"
+                  value={laboratorio}
+                  onChange={(e) => setLaboratorio(e.target.value)}
+                  placeholder="Ej. Pfizer, Bayer, Genérico..."
+                  style={{ marginBottom: 0 }}
+                />
+              </div>
+
+              {/* 13. Observaciones */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="cat-obs-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Observaciones
+                </label>
+                <textarea
+                  id="cat-obs-med"
+                  className="input-field"
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  placeholder="Notas adicionales..."
+                  style={{ marginBottom: 0, resize: 'vertical', minHeight: '60px' }}
+                />
+              </div>
+            </>
+          )}
 
           {/* Hidden submit trigger */}
           <button type="submit" id="cat-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
