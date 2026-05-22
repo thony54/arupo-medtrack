@@ -25,7 +25,31 @@ export const Inventory = () => {
     
     const handleUpdate = () => fetchData();
     window.addEventListener('inventory-updated', handleUpdate);
-    return () => window.removeEventListener('inventory-updated', handleUpdate);
+
+    // Suscripción en tiempo real con Supabase para cambios en base de datos
+    let channel;
+    if (supabase) {
+      channel = supabase
+        .channel('inventory-realtime-channel')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'medicinas' },
+          () => fetchData()
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'lotes' },
+          () => fetchData()
+        )
+        .subscribe();
+    }
+
+    return () => {
+      window.removeEventListener('inventory-updated', handleUpdate);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
   const fetchData = async () => {

@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { MermaForm } from '../components/inventory/MermaForm';
+import { useOfflineCache } from '../hooks/useOfflineCache';
 import './pages.css';
 
 const getDiasRestantes = (fechaVenc) => {
@@ -30,29 +31,68 @@ export const LoteDetail = () => {
   const [producto, setProducto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mermaLote, setMermaLote] = useState(null);
-
-  useEffect(() => {
-    if (productoId) fetchData();
-  }, [productoId]);
+  const { fetchLotes, fetchMedicinas } = useOfflineCache();
 
   const fetchData = async () => {
-    if (!supabase) return;
     setLoading(true);
     try {
+      if (!supabase) throw new Error('Sin conexión');
       const [prodRes, lotesRes] = await Promise.all([
         supabase.from('medicinas').select('*, categorias(nombre)').eq('id', productoId).single(),
         supabase.from('lotes').select('*, medicinas(nombre)')
           .eq('producto_id', productoId)
           .order('fecha_vencimiento', { ascending: true })
       ]);
+      if (prodRes.error) throw prodRes.error;
       setProducto(prodRes.data);
       setLotes(lotesRes.data || []);
     } catch (err) {
-      console.error(err);
+      console.warn('Fallo al obtener datos en tiempo real de Supabase, intentando desde caché:', err);
+      const cachedMedicinas = await fetchMedicinas();
+      const med = cachedMedicinas.find(m => m.id === productoId);
+      if (med) {
+        setProducto(med);
+      }
+      const cachedLotes = await fetchLotes(productoId);
+      setLotes(cachedLotes || []);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (productoId) {
+      fetchData();
+
+      const handleUpdate = () => fetchData();
+      window.addEventListener('inventory-updated', handleUpdate);
+
+      // Suscripción en tiempo real con Supabase
+      let channel;
+      if (supabase) {
+        channel = supabase
+          .channel(`lote-detail-realtime-${productoId}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'lotes', filter: `producto_id=eq.${productoId}` },
+            () => fetchData()
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'medicinas', filter: `id=eq.${productoId}` },
+            () => fetchData()
+          )
+          .subscribe();
+      }
+
+      return () => {
+        window.removeEventListener('inventory-updated', handleUpdate);
+        if (channel) {
+          supabase.removeChannel(channel);
+        }
+      };
+    }
+  }, [productoId]);
 
   const totalStock = lotes.filter(l => l.estado !== 'Vencido').reduce((acc, l) => acc + l.cantidad_actual, 0);
   const lotesActivos = lotes.filter(l => l.estado === 'Disponible');

@@ -66,7 +66,7 @@ export const Sidebar = () => {
     <aside className="sidebar">
 
       <div className="sidebar-header" style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+        <div className="sidebar-header-content">
           <div className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <img src="/arupo-logo.png" alt="Arupo Logo" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -92,7 +92,7 @@ export const Sidebar = () => {
               )}
             </div>
           </div>
-          <div className="header-actions" style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', justifyContent: 'flex-end' }}>
+          <div className="header-actions">
             
             {/* Botones Médicos: Visibles para Super Admin y Brigadistas */}
             {(isSuperAdmin || isBrigadista) && (

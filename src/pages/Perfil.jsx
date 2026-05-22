@@ -168,7 +168,7 @@ export const Perfil = () => {
         <div className="card glass" style={{ 
           padding: '2rem', 
           position: 'relative', 
-          overflow: 'hidden',
+          overflow: 'visible',
           border: '1px solid rgba(255, 255, 255, 0.15)'
         }}>
           {/* Fondo decorativo */}
