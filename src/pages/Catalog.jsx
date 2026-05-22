@@ -964,25 +964,6 @@ export const Catalog = () => {
                   style={{ display: 'none' }}
                 />
               </div>
-
-              <div style={{ marginTop: '1.5rem', background: 'var(--bg-surface-hover)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                <h4 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <HelpCircle size={15} style={{ color: '#16a34a' }} /> Recomendaciones de columnas:
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                  <div>• <strong>Nombre</strong> <span style={{ color: 'var(--danger-color)' }}>*</span></div>
-                  <div>• <strong>Categoría</strong></div>
-                  <div>• <strong>Laboratorio</strong></div>
-                  <div>• <strong>Presentación</strong></div>
-                  <div>• <strong>Cantidad</strong></div>
-                  <div>• <strong>Lote</strong></div>
-                  <div>• <strong>Vencimiento</strong></div>
-                  <div>• <strong>Observaciones</strong></div>
-                </div>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', lineHeight: '1.3' }}>
-                  * El sistema mapeará tus columnas automáticamente por sinonimia (ej: "Stock" se asociará a "Cantidad", "Vence" a "Vencimiento", etc.). Podrás revisar y corregir las columnas en el siguiente paso.
-                </p>
-              </div>
             </div>
           )}
 

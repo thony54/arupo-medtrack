@@ -191,137 +191,90 @@ export const Usuarios = () => {
   const renderUserTable = (usersList, roleName, roleKey) => {
     const isExpanded = expandedRoles[roleKey];
     
+    if (!isExpanded) return null;
+    
     return (
-      <div className="role-section-block" style={{ marginBottom: '1.75rem', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-glass)' }}>
-        {/* Accordion/Collapsible Section Header */}
-        <div 
-          onClick={() => toggleRole(roleKey)}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '1.15rem 1.5rem',
-            background: 'var(--bg-surface-hover)',
-            cursor: 'pointer',
-            borderBottom: isExpanded ? '1px solid var(--border-color)' : 'none',
-            userSelect: 'none'
-          }}
-          className="role-section-header"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ 
-              width: '8px', 
-              height: '8px', 
-              borderRadius: '50%', 
-              backgroundColor: getRoleColor(roleKey),
-              boxShadow: `0 0 8px ${getRoleColor(roleKey)}`
-            }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {roleName}
-              <span style={{ 
-                fontSize: '0.75rem', 
-                fontWeight: '600', 
-                background: getRoleLightColor(roleKey), 
-                color: getRoleColor(roleKey), 
-                padding: '0.15rem 0.5rem', 
-                borderRadius: 'var(--radius-pill)',
-                border: `1px solid ${getRoleColor(roleKey)}15`
-              }}>
-                {usersList.length}
-              </span>
-            </h3>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.8 }}>
-              {isExpanded ? 'Contraer' : 'Expandir'}
-            </span>
-            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </div>
-        </div>
-
-        {/* Collapsible Table Content */}
-        {isExpanded && (
-          <div className="table-container usuarios-table-container" style={{ border: 'none', borderRadius: 0, margin: 0 }}>
-            <table className="data-table" style={{ minWidth: '800px', width: '100%' }}>
-              <thead>
+      <div className="role-section-block animate-slide-up" style={{ marginBottom: '1.75rem', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-glass)' }}>
+        <div className="table-container usuarios-table-container" style={{ border: 'none', borderRadius: 0, margin: 0 }}>
+          <table className="data-table" style={{ minWidth: '800px', width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Nombre</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Email</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Rol asignado</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Fecha Registro</th>
+                <th style={{ padding: '0.85rem 1.25rem' }}>Permisos & Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usersList.length === 0 ? (
                 <tr>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Nombre</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Email</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Rol asignado</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Fecha Registro</th>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Permisos & Acciones</th>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>
+                    <Shield size={36} style={{ display: 'block', margin: '0 auto 0.5rem', opacity: 0.4 }} />
+                    <span style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>No hay personal registrado en este rol o no coincide con la búsqueda.</span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {usersList.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>
-                      <Shield size={36} style={{ display: 'block', margin: '0 auto 0.5rem', opacity: 0.4 }} />
-                      <span style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>No hay personal registrado en este rol o no coincide con la búsqueda.</span>
+              ) : (
+                usersList.map(u => (
+                  <tr key={u.id}>
+                    <td style={{ padding: '0.85rem 1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '50%',
+                          backgroundColor: getRoleLightColor(u.rol),
+                          color: getRoleColor(u.rol),
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '700',
+                          fontSize: '0.85rem',
+                          border: `1px solid ${getRoleColor(u.rol)}22`,
+                          boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
+                        }}>
+                          {(u.nombre || 'U').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{u.nombre}</div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <Mail size={13} style={{ opacity: 0.7 }} />
+                        {u.email}
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.85rem 1.25rem' }}>{getRoleBadge(u.rol)}</td>
+                    <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
+                      {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </td>
+                    <td style={{ padding: '0.85rem 1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>
+                          {u.rol === 'super_admin' && 'Acceso total e irrestricto en todos los módulos.'}
+                          {u.rol === 'brigadista' && 'Gestión de Medicinas, Lotes e Inventario.'}
+                          {u.rol === 'voluntario' && 'Gestión del CRM, Donantes y Beneficiarios.'}
+                        </span>
+                        
+                        {u.id !== user?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteUser(u.id, u.nombre)}
+                            style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto', flexShrink: 0 }}
+                            title="Eliminar usuario"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ) : (
-                  usersList.map(u => (
-                    <tr key={u.id}>
-                      <td style={{ padding: '0.85rem 1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                          <div style={{
-                            width: '34px',
-                            height: '34px',
-                            borderRadius: '50%',
-                            backgroundColor: getRoleLightColor(u.rol),
-                            color: getRoleColor(u.rol),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: '700',
-                            fontSize: '0.85rem',
-                            border: `1px solid ${getRoleColor(u.rol)}22`,
-                            boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-                          }}>
-                            {(u.nombre || 'U').substring(0, 2).toUpperCase()}
-                          </div>
-                          <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{u.nombre}</div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Mail size={13} style={{ opacity: 0.7 }} />
-                          {u.email}
-                        </div>
-                      </td>
-                      <td style={{ padding: '0.85rem 1.25rem' }}>{getRoleBadge(u.rol)}</td>
-                      <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
-                        {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                      </td>
-                      <td style={{ padding: '0.85rem 1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>
-                            {u.rol === 'super_admin' && 'Acceso total e irrestricto en todos los módulos.'}
-                            {u.rol === 'brigadista' && 'Gestión de Medicinas, Lotes e Inventario.'}
-                            {u.rol === 'voluntario' && 'Gestión del CRM, Donantes y Beneficiarios.'}
-                          </span>
-                          
-                          {u.id !== user?.id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteUser(u.id, u.nombre)}
-                              style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto', flexShrink: 0 }}
-                              title="Eliminar usuario"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   };
