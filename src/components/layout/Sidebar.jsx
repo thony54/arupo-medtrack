@@ -100,6 +100,7 @@ export const Sidebar = () => {
                 <Button
                   variant="outline"
                   onClick={() => setShowSaludStepper(true)}
+                  className="mobile-only"
                   style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ec4899', borderColor: '#fbcfe8' }}
                   aria-label="Nueva Evaluación de Salud"
                   title="Nueva Evaluación de Salud"
@@ -146,7 +147,7 @@ export const Sidebar = () => {
             {/* Profile Link (The "Old" Button) */}
             <button 
               onClick={() => navigate('/perfil')} 
-              className="icon-btn" 
+              className="icon-btn mobile-only" 
               title="Mi Perfil" 
               style={{ 
                 color: 'var(--primary-color)',
