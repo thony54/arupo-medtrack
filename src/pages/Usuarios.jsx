@@ -180,7 +180,7 @@ export const Usuarios = () => {
         </div>
       </div>
 
-      <div className="table-container">
+      <div className="table-container usuarios-table-container">
         <table className="data-table">
           <thead>
             <tr>
@@ -262,6 +262,69 @@ export const Usuarios = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Vista de Tarjetas para Móviles */}
+      <div className="mobile-user-cards animate-fade-in">
+        {loading ? (
+          <div className="card glass" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>Cargando usuarios...</div>
+        ) : filtered.length === 0 ? (
+          <div className="card glass" style={{ textAlign: 'center', padding: '3rem' }}>
+            <Shield size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', opacity: 0.6 }} />
+            <span style={{ color: 'var(--text-secondary)' }}>No se encontraron usuarios registrados.</span>
+          </div>
+        ) : filtered.map(u => (
+          <div key={u.id} className="mobile-user-card glass">
+            <div className="user-card-header">
+              <div className="user-avatar-info">
+                <div className="user-avatar">
+                  {(u.nombre || 'U').substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <div className="user-name">{u.nombre}</div>
+                  <div className="user-email">
+                    <Mail size={12} />
+                    <span>{u.email}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="user-role-badge">
+                {getRoleBadge(u.rol)}
+              </div>
+            </div>
+            
+            <div className="user-card-details">
+              <div className="user-detail-row">
+                <span className="detail-label">Registro:</span>
+                <span className="detail-value">
+                  {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <div className="user-detail-row permissions-row">
+                <span className="detail-label">Permisos autorizados:</span>
+                <span className="detail-value permissions-text">
+                  {u.rol === 'super_admin' && 'Acceso total e irrestricto en todos los módulos.'}
+                  {u.rol === 'brigadista' && 'Gestión de Medicinas, Lotes e Inventario.'}
+                  {u.rol === 'voluntario' && 'Gestión del CRM, Donantes y Beneficiarios.'}
+                </span>
+              </div>
+            </div>
+
+            {u.id !== user?.id && (
+              <div className="user-card-actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteUser(u.id, u.nombre)}
+                  className="delete-user-btn"
+                  title="Eliminar usuario"
+                >
+                  <Trash2 size={14} /> Eliminar Personal
+                </Button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Modal para Crear Usuario */}

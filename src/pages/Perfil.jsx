@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, FileText, Award, LogOut, Edit2, Check, X, Settings } from 'lucide-react';
+import { 
+  User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, 
+  FileText, Award, LogOut, Edit2, Check, X, Settings,
+  Calendar, TrendingUp, HeartHandshake, Users, Database, Activity 
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
@@ -151,38 +155,27 @@ export const Perfil = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
-      <div className="page-header">
+    <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto', paddingBottom: '3rem', width: '100%' }}>
+      <div className="page-header" style={{ marginBottom: '1.75rem' }}>
         <div>
           <h1 className="page-title">Mi Perfil</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Gestiona tus credenciales y visualiza tu nivel de acceso.
+            Gestiona tus datos personales, credenciales y visualiza tu nivel de acceso autorizado.
           </p>
         </div>
       </div>
 
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {/* Card Principal de Perfil */}
-        <div className="card glass" style={{ 
-          padding: '2rem', 
-          position: 'relative', 
-          overflow: 'visible',
-          border: '1px solid rgba(255, 255, 255, 0.15)'
-        }}>
-          {/* Fondo decorativo */}
-          <div style={{ 
-            position: 'absolute', 
-            top: '-40px', 
-            right: '-40px', 
-            width: '120px', 
-            height: '120px', 
-            borderRadius: '50%', 
-            background: isBrigadista ? 'var(--primary-light)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
-            opacity: 0.4,
-            filter: 'blur(20px)',
-            zIndex: 0
+        {/* Card Principal de Perfil Premium */}
+        <div className="card glass profile-hero-card">
+          {/* Fondo dinámico difuminado según el rol */}
+          <div className="profile-hero-bg" style={{ 
+            background: isBrigadista 
+              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, rgba(13, 148, 136, 0.05) 70%, transparent 100%)' 
+              : isVoluntario 
+                ? 'radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, rgba(168, 85, 247, 0.05) 70%, transparent 100%)' 
+                : 'radial-gradient(circle, rgba(225, 29, 72, 0.4) 0%, rgba(13, 148, 136, 0.05) 70%, transparent 100%)'
           }} />
 
           {/* Cog Dropdown in Top Right of Card */}
@@ -190,199 +183,272 @@ export const Perfil = () => {
             <ProfileDropdown />
           </div>
 
-          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', zIndex: 1, position: 'relative', flexWrap: 'wrap' }}>
+          <div className="profile-info-content">
+            {/* Avatar con Anillo de Animación Dinámica */}
             <div className="premium-avatar-container">
-              <div className="premium-avatar" style={{ background: `linear-gradient(135deg, ${getRoleColor(profile?.rol)}, var(--primary-color))` }}>
+              <div className="premium-avatar" style={{ 
+                background: isBrigadista 
+                  ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
+                  : isVoluntario 
+                    ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+                    : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
+              }}>
                 {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
               </div>
-              <div className="premium-avatar-ring" style={{ borderColor: getRoleColor(profile?.rol) }} />
+              <div className="premium-avatar-ring" style={{ 
+                borderColor: getRoleColor(profile?.rol),
+                opacity: 0.5 
+              }} />
             </div>
-            <div style={{ flex: 1, minWidth: '200px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+            <div style={{ flex: 1, minWidth: '240px' }}>
+              <div className="profile-name-area">
                 {isEditingName ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '300px' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '340px', alignItems: 'center' }}>
                     <input 
                       className="input-field" 
-                      style={{ marginBottom: 0, padding: '0.4rem 0.75rem', fontSize: '1.25rem', fontWeight: '700' }}
+                      style={{ marginBottom: 0, padding: '0.45rem 0.85rem', fontSize: '1.25rem', fontWeight: '700' }}
                       value={tempNombre}
                       onChange={e => setTempNombre(e.target.value)}
                       autoFocus
+                      disabled={updating}
                     />
-                    <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0 0.75rem' }}>✓</Button>
-                    <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0 0.75rem' }}>✕</Button>
+                    <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.5rem 0.75rem', height: '38px', minWidth: '38px' }} title="Guardar">
+                      <Check size={16} />
+                    </Button>
+                    <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.5rem 0.75rem', height: '38px', minWidth: '38px' }} title="Cancelar">
+                      <X size={16} />
+                    </Button>
                   </div>
                 ) : (
                   <>
-                    <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-primary)' }}>{profile?.nombre || 'Usuario'}</h2>
+                    <h2 className="profile-name-title">{profile?.nombre || 'Usuario Operativo'}</h2>
                     <button 
                       onClick={() => setIsEditingName(true)}
-                      style={{ background: 'none', border: 'none', color: 'var(--primary-color)', cursor: 'pointer', opacity: 0.6 }}
-                      title="Editar nombre"
+                      className="edit-name-btn"
+                      title="Editar nombre completo"
                     >
-                      <User size={16} />
+                      <Edit2 size={14} />
                     </button>
                   </>
                 )}
               </div>
               
-              <div style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div className="email-badge-container">
                 <Mail size={16} style={{ opacity: 0.7 }} /> 
-                <span>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
+                <span style={{ fontWeight: '500' }}>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
                 <button 
                   onClick={() => setShowEmail(!showEmail)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                  className="toggle-email-btn"
                 >
                   {showEmail ? 'Ocultar' : 'Mostrar'}
                 </button>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+
+              <div className="profile-tag-container">
                 <span style={{ 
                   display: 'inline-flex', 
                   alignItems: 'center', 
-                  gap: '0.35rem',
+                  gap: '0.4rem',
                   background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
                   color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : 'var(--danger-color)', 
-                  padding: '0.3rem 0.75rem', 
+                  padding: '0.35rem 0.85rem', 
                   borderRadius: 'var(--radius-pill)', 
-                  fontSize: '0.8rem', 
+                  fontSize: '0.78rem', 
                   fontWeight: '700',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
+                  border: `1px solid ${isBrigadista ? 'rgba(16,185,129,0.15)' : isVoluntario ? 'rgba(124,58,237,0.15)' : 'rgba(225,29,72,0.15)'}`
                 }}>
                   <Shield size={14} />
-                  {getRoleLabel()}
+                  {getRoleLabel(profile?.rol)}
                 </span>
                 <span style={{ 
                   display: 'inline-flex', 
                   alignItems: 'center', 
-                  background: 'var(--bg-base)', 
+                  gap: '0.35rem',
+                  background: 'var(--bg-surface-hover)', 
                   color: 'var(--text-secondary)', 
-                  padding: '0.3rem 0.75rem', 
+                  padding: '0.35rem 0.85rem', 
                   borderRadius: 'var(--radius-pill)', 
-                  fontSize: '0.8rem', 
+                  fontSize: '0.78rem', 
                   fontWeight: '600',
                   border: '1px solid var(--border-color)'
                 }}>
-                  Miembro Activo
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }} />
+                  Sesión Activa
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Grid de Dos Columnas */}
+        {/* Grid de Métricas Premium Interactivas */}
+        <div className="premium-metrics-grid animate-fade-in">
+          {/* Tarjeta de Última Actividad */}
+          <div className="premium-metric-card card glass">
+            <div className="premium-metric-icon" style={{ background: 'var(--primary-light)', color: 'var(--primary-color)' }}>
+              <Calendar size={20} />
+            </div>
+            <div className="metric-details">
+              <span className="metric-label-text">Fecha de Actividad</span>
+              <span className="metric-val-num" style={{ fontSize: '1.2rem' }}>{metrics.lastActive}</span>
+            </div>
+          </div>
+
+          {/* Tarjeta de Registros Realizados */}
+          <div className="premium-metric-card card glass">
+            <div className="premium-metric-icon" style={{ 
+              background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
+              color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : 'var(--danger-color)'
+            }}>
+              {isBrigadista ? <Database size={20} /> : isVoluntario ? <Users size={20} /> : <TrendingUp size={20} />}
+            </div>
+            <div className="metric-details">
+              <span className="metric-label-text">
+                {isBrigadista ? 'Medicinas Activas' : isVoluntario ? 'Beneficiarios Activos' : 'Registros en Sistema'}
+              </span>
+              <span className="metric-val-num">{metrics.totalRecords}</span>
+            </div>
+          </div>
+
+          {/* Tarjeta de Estado de Seguridad */}
+          <div className="premium-metric-card card glass">
+            <div className="premium-metric-icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)' }}>
+              <Shield size={20} />
+            </div>
+            <div className="metric-details">
+              <span className="metric-label-text">Acceso Autorizado</span>
+              <span className="metric-val-num" style={{ fontSize: '1.15rem', color: 'var(--warning-color)' }}>Protegido</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Grid de Dos Columnas para Privilegios y Seguridad */}
         <div className="grid-responsive" style={{ gap: '1.5rem' }}>
           
-          {/* Resumen de Privilegios */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Award size={20} color="var(--primary-color)" /> Alcance del Perfil
+          {/* Tarjeta de Privilegios Autorizados */}
+          <div className="card" style={{ padding: '1.75rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+              <Award size={20} color="var(--primary-color)" /> Privilegios Autorizados
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.25rem' }}>Cargo Designado</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: '600', color: 'var(--text-primary)' }}>{getRoleTitle()}</div>
+                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.35rem' }}>Nivel de Acceso</div>
+                <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: getRoleColor(profile?.rol) }} />
+                  {getRoleTitle()}
+                </div>
               </div>
 
-              <div style={{ height: '1px', background: 'var(--border-color)' }} />
-
               <div>
-                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Permisos Autorizados</div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.65rem' }}>Operaciones Permitidas</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   {isSuperAdmin && (
                     <>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Gestión total del Inventario y Catálogo
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Administración de Personal (Brigadistas y Voluntarios)
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Registro y Control de Donantes y Beneficiarios
-                      </li>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Gestión y auditoría total del Inventario Médico y Catálogo.</span>
+                      </div>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Administración, registro y eliminación de Brigadistas y Voluntarios.</span>
+                      </div>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Control de Fichas Médicas de Beneficiarios y Organizaciones Donantes.</span>
+                      </div>
                     </>
                   )}
                   {isBrigadista && (
                     <>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Acceso completo a Inventario Médico
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Visualización y edición del Catálogo Farmacéutico
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Operación de Entradas y Salidas FEFO
-                      </li>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Registro de Ingreso de Lotes Médicos y control de vencimientos.</span>
+                      </div>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Gestión del Catálogo Farmacéutico de la fundación.</span>
+                      </div>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Entrega y salida de Medicamentos con lógica FEFO.</span>
+                      </div>
                     </>
                   )}
                   {isVoluntario && (
                     <>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Gestión de Fichas de Beneficiarios
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Registro y contacto de Organizaciones Donantes
-                      </li>
-                      <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                        <CheckCircle size={15} color="var(--success-color)" /> Gestión de Donaciones Generales (No médicas)
-                      </li>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Registro y seguimiento completo de Fichas de Beneficiarios.</span>
+                      </div>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Administración de base de datos de Donantes y Aliados.</span>
+                      </div>
+                      <div className="privilege-item">
+                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                        <span>Ingreso y salida de donaciones de insumos generales (no médicos).</span>
+                      </div>
                     </>
                   )}
-                </ul>
-              </div>
-
-              <div style={{ height: '1px', background: 'var(--border-color)' }} />
-
-              <div className="metrics-chip">
-                <div className="metrics-label">
-                  {isBrigadista ? 'Medicamentos registrados:' : isVoluntario ? 'Beneficiarios activos:' : 'Registros globales:'}
                 </div>
-                <div className="metrics-value">{metrics.totalRecords}</div>
               </div>
             </div>
           </div>
 
-          {/* Seguridad y Acceso */}
-          <div className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Key size={20} color="#f59e0b" /> Seguridad de la Cuenta
-            </h3>
+          {/* Tarjeta de Seguridad y Acceso Premium */}
+          <div className="card premium-security-card">
+            <div className="premium-security-header">
+              <div className="security-icon-container">
+                <Key size={18} />
+              </div>
+              <span>Seguridad de la Cuenta</span>
+            </div>
             
             {!showPasswordForm ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                  Te recomendamos cambiar periódicamente tu contraseña para asegurar el acceso a la base de datos de la fundación.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
+                  Te aconsejamos actualizar tu clave de acceso de manera periódica para proteger tu cuenta y la información confidencial de la fundación.
                 </p>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', padding: '0.5rem 0' }}>
-                  Última sesión activa hoy.
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }} />
+                  <span>Tu conexión está cifrada de extremo a extremo.</span>
                 </div>
-                <Button variant="outline" onClick={() => setShowPasswordForm(true)} style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem' }}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPasswordForm(true)} 
+                  style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: 'var(--radius-md)', fontWeight: '600' }}
+                >
                   <Key size={16} /> Cambiar Contraseña
                 </Button>
               </div>
             ) : (
-              <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
                 {error && (
-                  <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem' }}>
-                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                  <div className="status-alert danger">
+                    <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span>{error}</span>
                   </div>
                 )}
                 {success && (
-                  <div style={{ padding: '0.75rem', background: 'var(--success-bg)', color: 'var(--success-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem' }}>
-                    <CheckCircle size={16} style={{ flexShrink: 0 }} />
+                  <div className="status-alert success">
+                    <CheckCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span>{success}</span>
                   </div>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', position: 'relative' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nueva Contraseña</label>
-                  <div style={{ position: 'relative' }}>
+                  <div className="input-with-icon">
+                    <Key size={16} className="input-icon-left" />
                     <input 
                       type={showNewPass ? "text" : "password"} 
                       className="input-field" 
-                      style={{ marginBottom: 0, width: '100%', paddingRight: '2.5rem' }}
+                      style={{ marginBottom: 0, width: '100%', paddingRight: '2.75rem' }}
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
                       required
                       minLength={6}
                       disabled={updating}
@@ -390,32 +456,48 @@ export const Perfil = () => {
                     <button 
                       type="button"
                       onClick={() => setShowNewPass(!showNewPass)}
-                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}
+                      className="password-toggle-btn"
+                      title={showNewPass ? "Ocultar contraseña" : "Mostrar contraseña"}
                     >
                       {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Confirmar Nueva Contraseña</label>
-                  <input 
-                    type="password" 
-                    className="input-field" 
-                    style={{ marginBottom: 0, width: '100%' }}
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                    disabled={updating}
-                  />
+                  <div className="input-with-icon">
+                    <Key size={16} className="input-icon-left" />
+                    <input 
+                      type="password" 
+                      className="input-field" 
+                      style={{ marginBottom: 0, width: '100%' }}
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Confirma la misma contraseña"
+                      required
+                      disabled={updating}
+                    />
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                  <Button type="button" variant="ghost" onClick={() => { setShowPasswordForm(false); setError(''); }} disabled={updating} style={{ flex: 1, justifyContent: 'center' }}>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={() => { setShowPasswordForm(false); setError(''); }} 
+                    disabled={updating} 
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit" variant="primary" disabled={updating} style={{ flex: 1, justifyContent: 'center' }}>
-                    {updating ? 'Actualizando...' : 'Guardar'}
+                  <Button 
+                    type="submit" 
+                    variant="primary" 
+                    disabled={updating} 
+                    style={{ flex: 1, justifyContent: 'center' }}
+                  >
+                    {updating ? 'Guardando...' : 'Actualizar'}
                   </Button>
                 </div>
               </form>
