@@ -36,7 +36,8 @@ export const Perfil = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Estados para edición de perfil
+  // Estados para edición de perfil y control de pestañas
+  const [activeTab, setActiveTab] = useState('informacion'); // 'informacion', 'editar', 'privilegios'
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempNombre, setTempNombre] = useState(profile?.nombre || '');
   const [showEmail, setShowEmail] = useState(false);
@@ -397,14 +398,15 @@ export const Perfil = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {/* Card Principal de Perfil Premium */}
-        <div className="card glass profile-hero-card">
+        {/* Card Principal de Perfil Premium (Estilo Instagram) */}
+        <div className="card glass" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
           {/* Fondo dinámico difuminado según el rol */}
           <div className="profile-hero-bg" style={{ 
             background: isBrigadista 
-              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.4) 0%, rgba(13, 148, 136, 0.05) 70%, transparent 100%)' 
+              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(13, 148, 136, 0.02) 70%, transparent 100%)' 
               : isVoluntario 
-                ? 'radial-gradient(circle, rgba(124, 58, 237, 0.4) 0%, rgba(168, 85, 247, 0.05) 70%, transparent 100%)' 
-                : 'radial-gradient(circle, rgba(225, 29, 72, 0.4) 0%, rgba(13, 148, 136, 0.05) 70%, transparent 100%)'
+                ? 'radial-gradient(circle, rgba(124, 58, 237, 0.25) 0%, rgba(168, 85, 247, 0.02) 70%, transparent 100%)' 
+                : 'radial-gradient(circle, rgba(225, 29, 72, 0.25) 0%, rgba(13, 148, 136, 0.02) 70%, transparent 100%)'
           }} />
 
           {/* Cog Dropdown in Top Right of Card */}
@@ -412,7 +414,7 @@ export const Perfil = () => {
             <ProfileDropdown />
           </div>
 
-          <div className="profile-info-content">
+          <div className="instagram-header">
             {/* Hidden file input for avatar upload */}
             <input 
               type="file" 
@@ -422,29 +424,28 @@ export const Perfil = () => {
               accept="image/*" 
             />
 
-            {/* Avatar con Anillo de Animación Dinámica y Subida de Imagen */}
-            <div className="premium-avatar-container">
+            {/* Avatar Uploader con Anillo de Instagram y Subida de Imagen */}
+            <div className="instagram-avatar-container">
+              <div className="instagram-avatar-ring" />
+              
               <div 
-                className="premium-avatar-wrapper"
+                className="instagram-avatar-wrapper"
                 onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                title="Haga clic para cambiar su foto de perfil"
+                title="Haz clic para cambiar tu foto de perfil"
               >
-                <div className="premium-avatar" style={{ 
+                <div className="instagram-avatar" style={{ 
                   background: profile?.avatar 
                     ? 'none' 
                     : isBrigadista 
                       ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
                       : isVoluntario 
                         ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-                        : 'linear-gradient(135deg, var(--danger-color), #f43f5e)',
-                  border: profile?.avatar ? '2px solid var(--border-color)' : 'none',
-                  padding: 0,
-                  overflow: 'hidden'
+                        : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
                 }}>
                   {profile?.avatar ? (
                     <img 
                       src={profile.avatar} 
-                      alt="Avatar de Usuario" 
+                      alt="Avatar" 
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                     />
                   ) : (
@@ -453,9 +454,9 @@ export const Perfil = () => {
                 </div>
                 
                 {/* Overlay on hover */}
-                <div className="avatar-upload-overlay">
+                <div className="avatar-upload-overlay" style={{ fontSize: '0.55rem' }}>
                   <Camera size={18} style={{ marginBottom: '2px' }} />
-                  <span>Subir Foto</span>
+                  <span>Cambiar</span>
                 </div>
                 
                 {/* Visual camera helper button */}
@@ -463,556 +464,634 @@ export const Perfil = () => {
                   <Camera size={14} />
                 </div>
               </div>
-
-              <div className="premium-avatar-ring" style={{ 
-                borderColor: getRoleColor(profile?.rol),
-                opacity: 0.5 
-              }} />
             </div>
 
-            <div style={{ flex: 1, minWidth: '240px' }}>
-              <div className="profile-name-area">
+            {/* Details Right Column */}
+            <div className="instagram-details">
+              
+              {/* Row 1: Username & Action Buttons */}
+              <div className="instagram-row-1">
                 {isEditingName ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '340px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
                     <input 
                       className="input-field" 
-                      style={{ marginBottom: 0, padding: '0.45rem 0.85rem', fontSize: '1.25rem', fontWeight: '700' }}
+                      style={{ marginBottom: 0, padding: '0.35rem 0.65rem', fontSize: '1.25rem', fontWeight: '700', maxWidth: '200px' }}
                       value={tempNombre}
                       onChange={e => setTempNombre(e.target.value)}
                       autoFocus
                       disabled={updating}
                     />
-                    <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.5rem 0.75rem', height: '38px', minWidth: '38px' }} title="Guardar">
-                      <Check size={16} />
+                    <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Guardar">
+                      <Check size={14} />
                     </Button>
-                    <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.5rem 0.75rem', height: '38px', minWidth: '38px' }} title="Cancelar">
-                      <X size={16} />
+                    <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Cancelar">
+                      <X size={14} />
                     </Button>
                   </div>
                 ) : (
                   <>
-                    <h2 className="profile-name-title">{profile?.nombre || 'Usuario Operativo'}</h2>
+                    <h2 className="instagram-username">{profile?.nombre || 'Usuario Operativo'}</h2>
                     <button 
                       onClick={() => setIsEditingName(true)}
                       className="edit-name-btn"
-                      title="Editar nombre completo"
+                      style={{ padding: '4px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
+                      title="Editar nombre"
                     >
                       <Edit2 size={14} />
                     </button>
                   </>
                 )}
-              </div>
-              
-              <div className="email-badge-container">
-                <Mail size={16} style={{ opacity: 0.7 }} /> 
-                <span style={{ fontWeight: '500' }}>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
-                <button 
-                  onClick={() => setShowEmail(!showEmail)}
-                  className="toggle-email-btn"
-                >
-                  {showEmail ? 'Ocultar' : 'Mostrar'}
-                </button>
+
+                <div className="instagram-btn-group">
+                  <button 
+                    className={`instagram-btn-action ${activeTab === 'editar' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('editar')}
+                  >
+                    <Settings size={14} />
+                    Editar Perfil
+                  </button>
+                  <button 
+                    className="instagram-btn-action"
+                    onClick={() => {
+                      setActiveTab('privilegios');
+                      setShowPasswordForm(true);
+                    }}
+                  >
+                    <Key size={14} />
+                    Clave
+                  </button>
+                </div>
               </div>
 
-              <div className="profile-tag-container">
-                <span style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '0.4rem',
-                  background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
-                  color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : 'var(--danger-color)', 
-                  padding: '0.35rem 0.85rem', 
-                  borderRadius: 'var(--radius-pill)', 
-                  fontSize: '0.78rem', 
-                  fontWeight: '700',
-                  textTransform: 'uppercase',
-                  border: `1px solid ${isBrigadista ? 'rgba(16,185,129,0.15)' : isVoluntario ? 'rgba(124,58,237,0.15)' : 'rgba(225,29,72,0.15)'}`
-                }}>
-                  <Shield size={14} />
-                  {getRoleLabel(profile?.rol)}
+              {/* Row 2: Stats */}
+              <div className="instagram-row-2">
+                <span className="instagram-stat-item">
+                  <span className="instagram-stat-num">{metrics.totalRecords}</span>
+                  {isBrigadista ? 'Medicinas' : isVoluntario ? 'Beneficiarios' : 'Registros'}
                 </span>
-                <span style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '0.35rem',
-                  background: 'var(--bg-surface-hover)', 
-                  color: 'var(--text-secondary)', 
-                  padding: '0.35rem 0.85rem', 
-                  borderRadius: 'var(--radius-pill)', 
-                  fontSize: '0.78rem', 
-                  fontWeight: '600',
-                  border: '1px solid var(--border-color)'
-                }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }} />
-                  Sesión Activa
+                <span className="instagram-stat-item">
+                  <span className="instagram-stat-num">✓</span>
+                  Activo
+                </span>
+                <span className="instagram-stat-item">
+                  <span className="instagram-stat-num">1</span>
+                  Rol
                 </span>
               </div>
+
+              {/* Row 3: Biography */}
+              <div className="instagram-bio">
+                <div className="instagram-bio-name">{getRoleTitle()}</div>
+                
+                <div className={`instagram-bio-badge ${isBrigadista ? 'brigadista' : isVoluntario ? 'voluntario' : 'admin'}`}>
+                  {getRoleLabel(profile?.rol)}
+                </div>
+
+                <div className="instagram-bio-item">
+                  <Mail size={14} />
+                  <span>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
+                  <button 
+                    onClick={() => setShowEmail(!showEmail)}
+                    style={{ background: 'none', border: 'none', padding: 0, color: 'var(--primary-color)', fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', marginLeft: '0.25rem' }}
+                  >
+                    {showEmail ? 'ocultar' : 'ver'}
+                  </button>
+                </div>
+
+                {profile?.telefono && (
+                  <div className="instagram-bio-item">
+                    <Phone size={14} />
+                    <span>{profile.telefono}</span>
+                  </div>
+                )}
+
+                {profile?.direccion && (
+                  <div className="instagram-bio-item">
+                    <MapPin size={14} />
+                    <span>{profile.direccion}</span>
+                  </div>
+                )}
+
+                {isBrigadista && profile?.especialidad && (
+                  <div className="instagram-bio-item">
+                    <Briefcase size={14} style={{ color: 'var(--success-color)' }} />
+                    <span>{profile.especialidad} ({profile.institucion || 'Fundación Arupo'})</span>
+                  </div>
+                )}
+
+                {isVoluntario && profile?.area_apoyo && (
+                  <div className="instagram-bio-item">
+                    <Briefcase size={14} style={{ color: '#7c3aed' }} />
+                    <span>Área: {profile.area_apoyo}</span>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
+
+          {/* Navigation Tabs (Instagram style) */}
+          <ul className="instagram-tabs-nav">
+            <li>
+              <button 
+                className={`instagram-tab-btn ${activeTab === 'informacion' ? 'active' : ''}`}
+                onClick={() => setActiveTab('informacion')}
+              >
+                <Database size={16} />
+                Mi Actividad
+              </button>
+            </li>
+            <li>
+              <button 
+                className={`instagram-tab-btn ${activeTab === 'editar' ? 'active' : ''}`}
+                onClick={() => setActiveTab('editar')}
+              >
+                <User size={16} />
+                Editar Datos
+              </button>
+            </li>
+            <li>
+              <button 
+                className={`instagram-tab-btn ${activeTab === 'privilegios' ? 'active' : ''}`}
+                onClick={() => setActiveTab('privilegios')}
+              >
+                <Shield size={16} />
+                Seguridad & Rol
+              </button>
+            </li>
+          </ul>
         </div>
 
         {/* Grid de Métricas Premium Interactivas */}
-        <div className="premium-metrics-grid animate-fade-in">
-          {/* Tarjeta de Última Actividad */}
-          <div className="premium-metric-card card glass">
-            <div className="premium-metric-icon" style={{ background: 'var(--primary-light)', color: 'var(--primary-color)' }}>
-              <Calendar size={20} />
+        {activeTab === 'informacion' && (
+          <div className="premium-metrics-grid animate-fade-in">
+            {/* Tarjeta de Última Actividad */}
+            <div className="premium-metric-card card glass">
+              <div className="premium-metric-icon" style={{ background: 'var(--primary-light)', color: 'var(--primary-color)' }}>
+                <Calendar size={20} />
+              </div>
+              <div className="metric-details">
+                <span className="metric-label-text">Fecha de Actividad</span>
+                <span className="metric-val-num" style={{ fontSize: '1.2rem' }}>{metrics.lastActive}</span>
+              </div>
             </div>
-            <div className="metric-details">
-              <span className="metric-label-text">Fecha de Actividad</span>
-              <span className="metric-val-num" style={{ fontSize: '1.2rem' }}>{metrics.lastActive}</span>
-            </div>
-          </div>
 
-          {/* Tarjeta de Registros Realizados */}
-          <div className="premium-metric-card card glass">
-            <div className="premium-metric-icon" style={{ 
-              background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
-              color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : 'var(--danger-color)'
-            }}>
-              {isBrigadista ? <Database size={20} /> : isVoluntario ? <Users size={20} /> : <TrendingUp size={20} />}
+            {/* Tarjeta de Registros Realizados */}
+            <div className="premium-metric-card card glass">
+              <div className="premium-metric-icon" style={{ 
+                background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
+                color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : 'var(--danger-color)'
+              }}>
+                {isBrigadista ? <Database size={20} /> : isVoluntario ? <Users size={20} /> : <TrendingUp size={20} />}
+              </div>
+              <div className="metric-details">
+                <span className="metric-label-text">
+                  {isBrigadista ? 'Medicinas Activas' : isVoluntario ? 'Beneficiarios Activos' : 'Registros en Sistema'}
+                </span>
+                <span className="metric-val-num">{metrics.totalRecords}</span>
+              </div>
             </div>
-            <div className="metric-details">
-              <span className="metric-label-text">
-                {isBrigadista ? 'Medicinas Activas' : isVoluntario ? 'Beneficiarios Activos' : 'Registros en Sistema'}
-              </span>
-              <span className="metric-val-num">{metrics.totalRecords}</span>
-            </div>
-          </div>
 
-          {/* Tarjeta de Estado de Seguridad */}
-          <div className="premium-metric-card card glass">
-            <div className="premium-metric-icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)' }}>
-              <Shield size={20} />
-            </div>
-            <div className="metric-details">
-              <span className="metric-label-text">Acceso Autorizado</span>
-              <span className="metric-val-num" style={{ fontSize: '1.15rem', color: 'var(--warning-color)' }}>Protegido</span>
+            {/* Tarjeta de Estado de Seguridad */}
+            <div className="premium-metric-card card glass">
+              <div className="premium-metric-icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning-color)' }}>
+                <Shield size={20} />
+              </div>
+              <div className="metric-details">
+                <span className="metric-label-text">Acceso Autorizado</span>
+                <span className="metric-val-num" style={{ fontSize: '1.15rem', color: 'var(--warning-color)' }}>Protegido</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tarjeta de Información de Contacto e Identidad por Rol */}
-        <div className="card glass" style={{ padding: '1.75rem', position: 'relative', overflow: 'hidden' }}>
-          {/* Subtle decorative background gradient matching the role */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '180px',
-            height: '180px',
-            background: isBrigadista 
-              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)' 
-              : isVoluntario 
-                ? 'radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%)' 
-                : 'radial-gradient(circle, rgba(225, 29, 72, 0.08) 0%, transparent 70%)',
-            pointerEvents: 'none',
-            zIndex: 0
-          }} />
+        {activeTab === 'editar' && (
+          <div className="card glass animate-fade-in" style={{ padding: '1.75rem', position: 'relative', overflow: 'hidden' }}>
+            {/* Subtle decorative background gradient matching the role */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              width: '180px',
+              height: '180px',
+              background: isBrigadista 
+                ? 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)' 
+                : isVoluntario 
+                  ? 'radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%)' 
+                  : 'radial-gradient(circle, rgba(225, 29, 72, 0.08) 0%, transparent 70%)',
+              pointerEvents: 'none',
+              zIndex: 0
+            }} />
 
-          <h3 style={{ 
-            fontSize: '1.15rem', 
-            fontWeight: '700', 
-            marginBottom: '1.25rem', 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.65rem', 
-            color: 'var(--text-primary)', 
-            borderBottom: '1px solid var(--border-color)', 
-            paddingBottom: '0.75rem',
-            position: 'relative',
-            zIndex: 1
-          }}>
-            <User size={20} color="var(--primary-color)" /> 
-            Datos de Perfil Avanzado ({getRoleLabel(profile?.rol)})
-          </h3>
+            <h3 style={{ 
+              fontSize: '1.15rem', 
+              fontWeight: '700', 
+              marginBottom: '1.25rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.65rem', 
+              color: 'var(--text-primary)', 
+              borderBottom: '1px solid var(--border-color)', 
+              paddingBottom: '0.75rem',
+              position: 'relative',
+              zIndex: 1
+            }}>
+              <User size={20} color="var(--primary-color)" /> 
+              Datos de Perfil Avanzado ({getRoleLabel(profile?.rol)})
+            </h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
-            
-            {/* Campos Comunes: Teléfono y Dirección */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <Phone size={14} style={{ color: 'var(--primary-color)' }} />
-                  Teléfono de Contacto
-                </label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  style={{ marginBottom: 0 }}
-                  value={tempTelefono}
-                  onChange={e => setTempTelefono(e.target.value)}
-                  placeholder="Ej. +593 999 999 999"
-                  disabled={updating}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <MapPin size={14} style={{ color: 'var(--primary-color)' }} />
-                  Dirección Domiciliaria
-                </label>
-                <input 
-                  type="text" 
-                  className="input-field" 
-                  style={{ marginBottom: 0 }}
-                  value={tempDireccion}
-                  onChange={e => setTempDireccion(e.target.value)}
-                  placeholder="Ciudad, Provincia o Dirección Completa"
-                  disabled={updating}
-                />
-              </div>
-            </div>
-
-            {/* Campos Específicos para Brigadistas (Médicos) */}
-            {isBrigadista && (
-              <>
-                <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Briefcase size={14} style={{ color: 'var(--success-color)' }} />
-                      Especialidad Médica / Área
-                    </label>
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      style={{ marginBottom: 0 }}
-                      value={tempEspecialidad}
-                      onChange={e => setTempEspecialidad(e.target.value)}
-                      placeholder="Ej. Medicina General, Enfermería, Pediatría"
-                      disabled={updating}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Award size={14} style={{ color: 'var(--success-color)' }} />
-                      Licencia Médica / Registro
-                    </label>
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      style={{ marginBottom: 0 }}
-                      value={tempLicenciaMedica}
-                      onChange={e => setTempLicenciaMedica(e.target.value)}
-                      placeholder="Ej. Registro Profesional / SENESCYT"
-                      disabled={updating}
-                    />
-                  </div>
-                </div>
-
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
+              
+              {/* Campos Comunes: Teléfono y Dirección */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Building size={14} style={{ color: 'var(--success-color)' }} />
-                    Institución Hospitalaria o de Afiliación
+                    <Phone size={14} style={{ color: 'var(--primary-color)' }} />
+                    Teléfono de Contacto
                   </label>
                   <input 
                     type="text" 
                     className="input-field" 
                     style={{ marginBottom: 0 }}
-                    value={tempInstitucion}
-                    onChange={e => setTempInstitucion(e.target.value)}
-                    placeholder="Ej. Hospital IESS, Ministerio de Salud Pública, Práctica Privada"
+                    value={tempTelefono}
+                    onChange={e => setTempTelefono(e.target.value)}
+                    placeholder="Ej. +593 999 999 999"
                     disabled={updating}
                   />
                 </div>
-              </>
-            )}
 
-            {/* Campos Específicos para Voluntarios */}
-            {isVoluntario && (
-              <>
-                <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <MapPin size={14} style={{ color: 'var(--primary-color)' }} />
+                    Dirección Domiciliaria
+                  </label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    style={{ marginBottom: 0 }}
+                    value={tempDireccion}
+                    onChange={e => setTempDireccion(e.target.value)}
+                    placeholder="Ciudad, Provincia o Dirección Completa"
+                    disabled={updating}
+                  />
+                </div>
+              </div>
+
+              {/* Campos Específicos para Brigadistas (Médicos) */}
+              {isBrigadista && (
+                <>
+                  <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Briefcase size={14} style={{ color: 'var(--success-color)' }} />
+                        Especialidad Médica / Área
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        style={{ marginBottom: 0 }}
+                        value={tempEspecialidad}
+                        onChange={e => setTempEspecialidad(e.target.value)}
+                        placeholder="Ej. Medicina General, Enfermería, Pediatría"
+                        disabled={updating}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Award size={14} style={{ color: 'var(--success-color)' }} />
+                        Licencia Médica / Registro
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        style={{ marginBottom: 0 }}
+                        value={tempLicenciaMedica}
+                        onChange={e => setTempLicenciaMedica(e.target.value)}
+                        placeholder="Ej. Registro Profesional / SENESCYT"
+                        disabled={updating}
+                      />
+                    </div>
+                  </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                     <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Briefcase size={14} style={{ color: '#7c3aed' }} />
-                      Área de Apoyo Principal
+                      <Building size={14} style={{ color: 'var(--success-color)' }} />
+                      Institución Hospitalaria o de Afiliación
                     </label>
                     <input 
                       type="text" 
                       className="input-field" 
                       style={{ marginBottom: 0 }}
-                      value={tempAreaApoyo}
-                      onChange={e => setTempAreaApoyo(e.target.value)}
-                      placeholder="Ej. Logística de Entregas, Gestión de Donaciones, CRM"
+                      value={tempInstitucion}
+                      onChange={e => setTempInstitucion(e.target.value)}
+                      placeholder="Ej. Hospital IESS, Ministerio de Salud Pública, Práctica Privada"
                       disabled={updating}
                     />
                   </div>
+                </>
+              )}
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <Clock size={14} style={{ color: '#7c3aed' }} />
-                      Disponibilidad Horaria
-                    </label>
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      style={{ marginBottom: 0 }}
-                      value={tempDisponibilidad}
-                      onChange={e => setTempDisponibilidad(e.target.value)}
-                      placeholder="Ej. Fines de semana, Tardes (Lunes a Viernes)"
-                      disabled={updating}
-                    />
+              {/* Campos Específicos para Voluntarios */}
+              {isVoluntario && (
+                <>
+                  <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Briefcase size={14} style={{ color: '#7c3aed' }} />
+                        Área de Apoyo Principal
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        style={{ marginBottom: 0 }}
+                        value={tempAreaApoyo}
+                        onChange={e => setTempAreaApoyo(e.target.value)}
+                        placeholder="Ej. Logística de Entregas, Gestión de Donaciones, CRM"
+                        disabled={updating}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Clock size={14} style={{ color: '#7c3aed' }} />
+                        Disponibilidad Horaria
+                      </label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        style={{ marginBottom: 0 }}
+                        value={tempDisponibilidad}
+                        onChange={e => setTempDisponibilidad(e.target.value)}
+                        placeholder="Ej. Fines de semana, Tardes (Lunes a Viernes)"
+                        disabled={updating}
+                      />
+                    </div>
                   </div>
-                </div>
-              </>
-            )}
-
-            <Button 
-              variant="primary" 
-              onClick={handleSaveRoleFields}
-              disabled={updating}
-              style={{ 
-                marginTop: '0.5rem', 
-                width: '100%', 
-                justifyContent: 'center', 
-                display: 'flex', 
-                gap: '0.5rem',
-                boxShadow: isBrigadista 
-                  ? '0 4px 12px rgba(16,185,129,0.2)' 
-                  : isVoluntario 
-                    ? '0 4px 12px rgba(124,58,237,0.2)' 
-                    : '0 4px 12px rgba(16,185,129,0.2)'
-              }}
-            >
-              <CheckCircle size={16} />
-              {updating ? 'Guardando...' : 'Guardar Información de Perfil'}
-            </Button>
-
-          </div>
-        </div>
-
-        {/* Grid de Dos Columnas para Privilegios y Seguridad */}
-        <div className="grid-responsive" style={{ gap: '1.5rem' }}>
-          
-          {/* Tarjeta de Privilegios Autorizados */}
-          <div className="card" style={{ padding: '1.75rem' }}>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-              <Award size={20} color="var(--primary-color)" /> Privilegios Autorizados
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div>
-                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.35rem' }}>Nivel de Acceso</div>
-                <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: getRoleColor(profile?.rol) }} />
-                  {getRoleTitle()}
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.65rem' }}>Operaciones Permitidas</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {isSuperAdmin && (
-                    <>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Gestión y auditoría total del Inventario Médico y Catálogo.</span>
-                      </div>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Administración, registro y eliminación de Brigadistas y Voluntarios.</span>
-                      </div>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Control de Fichas Médicas de Beneficiarios y Organizaciones Donantes.</span>
-                      </div>
-                    </>
-                  )}
-                  {isBrigadista && (
-                    <>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Registro de Ingreso de Lotes Médicos y control de vencimientos.</span>
-                      </div>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Gestión del Catálogo Farmacéutico de la fundación.</span>
-                      </div>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Entrega y salida de Medicamentos con lógica FEFO.</span>
-                      </div>
-                    </>
-                  )}
-                  {isVoluntario && (
-                    <>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Registro y seguimiento completo de Fichas de Beneficiarios.</span>
-                      </div>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Administración de base de datos de Donantes y Aliados.</span>
-                      </div>
-                      <div className="privilege-item">
-                        <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>Ingreso y salida de donaciones de insumos generales (no médicos).</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tarjeta de Seguridad y Acceso Premium */}
-          <div className="card premium-security-card">
-            <div className="premium-security-header">
-              <div className="security-icon-container">
-                <Key size={18} />
-              </div>
-              <span>Seguridad de la Cuenta</span>
-            </div>
-            
-            {!showPasswordForm ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
-                  Te aconsejamos actualizar tu clave de acceso de manera periódica para proteger tu cuenta y la información confidencial de la fundación.
-                </p>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }} />
-                  <span>Tu conexión está cifrada de extremo a extremo.</span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowPasswordForm(true)} 
-                  style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: 'var(--radius-md)', fontWeight: '600' }}
-                >
-                  <Key size={16} /> Cambiar Contraseña
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-                {error && (
-                  <div className="status-alert danger">
-                    <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>{error}</span>
-                  </div>
-                )}
-                {success && (
-                  <div className="status-alert success">
-                    <CheckCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                    <span>{success}</span>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nueva Contraseña</label>
-                  <div className="input-with-icon">
-                    <Key size={16} className="input-icon-left" />
-                    <input 
-                      type={showNewPass ? "text" : "password"} 
-                      className="input-field" 
-                      style={{ marginBottom: 0, width: '100%', paddingRight: '2.75rem' }}
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
-                      required
-                      minLength={6}
-                      disabled={updating}
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowNewPass(!showNewPass)}
-                      className="password-toggle-btn"
-                      title={showNewPass ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Confirmar Nueva Contraseña</label>
-                  <div className="input-with-icon">
-                    <Key size={16} className="input-icon-left" />
-                    <input 
-                      type="password" 
-                      className="input-field" 
-                      style={{ marginBottom: 0, width: '100%' }}
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      placeholder="Confirma la misma contraseña"
-                      required
-                      disabled={updating}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    onClick={() => { setShowPasswordForm(false); setError(''); }} 
-                    disabled={updating} 
-                    style={{ flex: 1, justifyContent: 'center' }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    variant="primary" 
-                    disabled={updating} 
-                    style={{ flex: 1, justifyContent: 'center' }}
-                  >
-                    {updating ? 'Guardando...' : 'Actualizar'}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-
-        {/* Exclusive Developer Zone (thony.karter@gmail.com) */}
-        {isDeveloper && (
-          <div className="card glass developer-zone-card animate-fade-in" style={{ marginTop: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
-              <div className="developer-icon-container">
-                <Flame size={18} />
-              </div>
-              <span style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--danger-color)' }}>Zona del Desarrollador (Acceso Exclusivo)</span>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6' }}>
-                Atención <strong>{profile?.nombre || 'thony.karter'}</strong>: Este panel es visible exclusivamente para ti. Desde aquí puedes realizar un restablecimiento completo y limpieza de fábrica de los componentes clave de la base de datos.
-              </p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-                <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Componentes a Depurar:</span>
-                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Inventario (Lotes y Movimientos)</span>
-                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Catálogo (Medicamentos)</span>
-                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Evaluaciones de Salud</span>
-                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Beneficiarios y Donantes</span>
-                </div>
-                <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Registros Preservados:</span>
-                  <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Cuentas de Usuario y Credenciales</span>
-                  <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Perfiles y Roles Operativos</span>
-                  <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Categorías del Sistema</span>
-                </div>
-              </div>
+                </>
+              )}
 
               <Button 
-                className="factory-reset-btn"
-                onClick={() => {
-                  setShowResetModal(true);
-                  setResetConfirmText('');
-                  setResetError('');
-                  setResetSuccess('');
+                variant="primary" 
+                onClick={handleSaveRoleFields}
+                disabled={updating}
+                style={{ 
+                  marginTop: '0.5rem', 
+                  width: '100%', 
+                  justifyContent: 'center', 
+                  display: 'flex', 
+                  gap: '0.5rem',
+                  boxShadow: isBrigadista 
+                    ? '0 4px 12px rgba(16,185,129,0.2)' 
+                    : isVoluntario 
+                      ? '0 4px 12px rgba(124,58,237,0.2)' 
+                      : '0 4px 12px rgba(16,185,129,0.2)'
                 }}
-                style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: 'var(--radius-md)' }}
               >
-                <Flame size={16} /> Depurar Sistema de Fábrica
+                <CheckCircle size={16} />
+                {updating ? 'Guardando...' : 'Guardar Información de Perfil'}
               </Button>
+
             </div>
           </div>
+        )}
+
+        {/* Grid de Dos Columnas para Privilegios y Seguridad */}
+        {activeTab === 'privilegios' && (
+          <>
+            <div className="grid-responsive animate-fade-in" style={{ gap: '1.5rem' }}>
+              
+              {/* Tarjeta de Privilegios Autorizados */}
+              <div className="card" style={{ padding: '1.75rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+                  <Award size={20} color="var(--primary-color)" /> Privilegios Autorizados
+                </h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.35rem' }}>Nivel de Acceso</div>
+                    <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: getRoleColor(profile?.rol) }} />
+                      {getRoleTitle()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.65rem' }}>Operaciones Permitidas</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {isSuperAdmin && (
+                        <>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Gestión y auditoría total del Inventario Médico y Catálogo.</span>
+                          </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Administración, registro y eliminación de Brigadistas y Voluntarios.</span>
+                          </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Control de Fichas Médicas de Beneficiarios y Organizaciones Donantes.</span>
+                          </div>
+                        </>
+                      )}
+                      {isBrigadista && (
+                        <>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Registro de Ingreso de Lotes Médicos y control de vencimientos.</span>
+                          </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Gestión del Catálogo Farmacéutico de la fundación.</span>
+                          </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Entrega y salida de Medicamentos con lógica FEFO.</span>
+                          </div>
+                        </>
+                      )}
+                      {isVoluntario && (
+                        <>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Registro y seguimiento completo de Fichas de Beneficiarios.</span>
+                          </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Administración de base de datos de Donantes y Aliados.</span>
+                          </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>Ingreso y salida de donaciones de insumos generales (no médicos).</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tarjeta de Seguridad y Acceso Premium */}
+              <div className="card premium-security-card">
+                <div className="premium-security-header">
+                  <div className="security-icon-container">
+                    <Key size={18} />
+                  </div>
+                  <span>Seguridad de la Cuenta</span>
+                </div>
+                
+                {!showPasswordForm ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
+                      Te aconsejamos actualizar tu clave de acceso de manera periódica para proteger tu cuenta y la información confidencial de la fundación.
+                    </p>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }} />
+                      <span>Tu conexión está cifrada de extremo a extremo.</span>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowPasswordForm(true)} 
+                      style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: 'var(--radius-md)', fontWeight: '600' }}
+                    >
+                      <Key size={16} /> Cambiar Contraseña
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
+                    {error && (
+                      <div className="status-alert danger">
+                        <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <span>{error}</span>
+                      </div>
+                    )}
+                    {success && (
+                      <div className="status-alert success">
+                        <CheckCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <span>{success}</span>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nueva Contraseña</label>
+                      <div className="input-with-icon">
+                        <Key size={16} className="input-icon-left" />
+                        <input 
+                          type={showNewPass ? "text" : "password"} 
+                          className="input-field" 
+                          style={{ marginBottom: 0, width: '100%', paddingRight: '2.75rem' }}
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          required
+                          minLength={6}
+                          disabled={updating}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="password-toggle-btn"
+                          title={showNewPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                        >
+                          {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Confirmar Nueva Contraseña</label>
+                      <div className="input-with-icon">
+                        <Key size={16} className="input-icon-left" />
+                        <input 
+                          type="password" 
+                          className="input-field" 
+                          style={{ marginBottom: 0, width: '100%' }}
+                          value={confirmPassword}
+                          onChange={e => setConfirmPassword(e.target.value)}
+                          placeholder="Confirma la misma contraseña"
+                          required
+                          disabled={updating}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        onClick={() => { setShowPasswordForm(false); setError(''); }} 
+                        disabled={updating} 
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        variant="primary" 
+                        disabled={updating} 
+                        style={{ flex: 1, justifyContent: 'center' }}
+                      >
+                        {updating ? 'Guardando...' : 'Actualizar'}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
+
+            {/* Exclusive Developer Zone (thony.karter@gmail.com) */}
+            {isDeveloper && (
+              <div className="card glass developer-zone-card animate-fade-in" style={{ marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+                  <div className="developer-icon-container">
+                    <Flame size={18} />
+                  </div>
+                  <span style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--danger-color)' }}>Zona del Desarrollador (Acceso Exclusivo)</span>
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6' }}>
+                    Atención <strong>{profile?.nombre || 'thony.karter'}</strong>: Este panel es visible exclusivamente para ti. Desde aquí puedes realizar un restablecimiento completo y limpieza de fábrica de los componentes clave de la base de datos.
+                  </p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                    <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Componentes a Depurar:</span>
+                      <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Inventario (Lotes y Movimientos)</span>
+                      <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Catálogo (Medicamentos)</span>
+                      <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Evaluaciones de Salud</span>
+                      <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Beneficiarios y Donantes</span>
+                    </div>
+                    <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Registros Preservados:</span>
+                      <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Cuentas de Usuario y Credenciales</span>
+                      <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Perfiles y Roles Operativos</span>
+                      <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Categorías del Sistema</span>
+                    </div>
+                  </div>
+
+                  <Button 
+                    className="factory-reset-btn"
+                    onClick={() => {
+                      setShowResetModal(true);
+                      setResetConfirmText('');
+                      setResetError('');
+                      setResetSuccess('');
+                    }}
+                    style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: 'var(--radius-md)' }}
+                  >
+                    <Flame size={16} /> Depurar Sistema de Fábrica
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Modal de Doble Confirmación para Depuración */}

@@ -851,4 +851,287 @@
   pointer-events: none;
 }
 
+/* Concentric Instagram Story Spinning Ring */
+.instagram-avatar-container {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.instagram-avatar-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  z-index: 1;
+  animation: spin-gradient 6s linear infinite;
+  box-shadow: 0 0 15px rgba(220, 39, 67, 0.25);
+  pointer-events: none;
+}
+
+.instagram-avatar-ring::after {
+  content: '';
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  transition: background-color var(--transition-normal);
+}
+
+.dark .instagram-avatar-ring::after {
+  background: #1f2937; /* Slate 800 gap in dark mode */
+}
+
+@keyframes spin-gradient {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.instagram-avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 3;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.instagram-avatar-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.instagram-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 2.25rem;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  z-index: 4;
+  overflow: hidden;
+}
+
+.instagram-avatar-wrapper:hover .avatar-upload-overlay {
+  opacity: 1;
+}
+
+.instagram-avatar-wrapper:hover .avatar-camera-btn {
+  transform: scale(1.1);
+  background: var(--primary-dark);
+}
+
+/* Instagram layout and bio structures */
+.instagram-header {
+  display: flex;
+  gap: 3.5rem;
+  padding: 2rem 2.5rem;
+  align-items: flex-start;
+}
+
+.instagram-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.instagram-row-1 {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.instagram-username {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.instagram-btn-group {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.instagram-btn-action {
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.instagram-btn-action:hover {
+  background: var(--border-color);
+  border-color: var(--text-tertiary);
+  transform: translateY(-1px);
+}
+
+.instagram-row-2 {
+  display: flex;
+  gap: 2.5rem;
+  align-items: center;
+  margin: 0.25rem 0;
+}
+
+.instagram-stat-item {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.instagram-stat-num {
+  font-weight: 800;
+  font-size: 1rem;
+  margin-right: 0.25rem;
+}
+
+.instagram-bio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.instagram-bio-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.instagram-bio-badge {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+  text-transform: uppercase;
+  margin: 0.15rem 0;
+}
+
+.instagram-bio-badge.brigadista {
+  background: var(--success-bg);
+  color: var(--success-color);
+}
+
+.instagram-bio-badge.voluntario {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.instagram-bio-badge.admin {
+  background: var(--danger-bg);
+  color: var(--danger-color);
+}
+
+.instagram-bio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.instagram-bio-item svg {
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+/* Instagram Grid Tabs */
+.instagram-tabs-nav {
+  display: flex;
+  justify-content: center;
+  gap: 4rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.instagram-tab-btn {
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  color: var(--text-tertiary);
+  padding: 1.15rem 0.5rem;
+  font-size: 0.825rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+  margin-top: -1px;
+}
+
+.instagram-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.instagram-tab-btn.active {
+  border-top-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+/* responsive media adjustments */
+@media (max-width: 768px) {
+  .instagram-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+  .instagram-row-1 {
+    justify-content: center;
+  }
+  .instagram-row-2 {
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  .instagram-bio-badge {
+    margin: 0.25rem auto;
+  }
+  .instagram-bio-item {
+    justify-content: center;
+  }
+  .instagram-tabs-nav {
+    gap: 2rem;
+  }
+}
+
+
 
