@@ -3,17 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, 
   FileText, Award, LogOut, Edit2, Check, X, Settings,
-  Calendar, TrendingUp, HeartHandshake, Users, Database, Activity 
+  Calendar, TrendingUp, HeartHandshake, Users, Database, Activity,
+  Flame, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { ProfileDropdown } from '../components/layout/ProfileDropdown';
+import { Modal } from '../components/ui/Modal';
 import './pages.css';
 
 export const Perfil = () => {
   const { profile, user, role, isSuperAdmin, isBrigadista, isVoluntario, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  
+  // Exclusividad de desarrollador para thony.karter
+  const isDeveloper = user?.email?.toLowerCase()?.includes('thony.karter');
+
+  // Estados para Depuración de Fábrica (Exclusivo thony.karter)
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState('');
+  const [resetSuccess, setResetSuccess] = useState('');
   
   // Estados para cambio de contraseña
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -130,6 +142,83 @@ export const Perfil = () => {
       setError(err.message || 'Error al actualizar el nombre.');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleFactoryReset = async () => {
+    if (resetConfirmText.trim().toUpperCase() !== 'DEPURAR') {
+      setResetError('Por favor, escribe exactamente la palabra DEPURAR para continuar.');
+      return;
+    }
+
+    setIsResetting(true);
+    setResetError('');
+    setResetSuccess('');
+
+    try {
+      // 1. Borrar Movimientos (Historial de transacciones)
+      const { error: errMov } = await supabase
+        .from('movimientos')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (errMov) throw new Error(`Error en movimientos: ${errMov.message}`);
+
+      // 2. Borrar Lotes (Control unitario FEFO/FIFO)
+      const { error: errLot } = await supabase
+        .from('lotes')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (errLot) throw new Error(`Error en lotes: ${errLot.message}`);
+
+      // 3. Borrar Medicinas (Catálogo de productos)
+      const { error: errMed } = await supabase
+        .from('medicinas')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (errMed) throw new Error(`Error en catálogo (medicinas): ${errMed.message}`);
+
+      // 4. Borrar Evaluaciones de Salud
+      const { error: errEv } = await supabase
+        .from('evaluaciones_salud')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (errEv) throw new Error(`Error en evaluaciones de salud: ${errEv.message}`);
+
+      // 5. Borrar Beneficiarios (Directorio)
+      const { error: errBen } = await supabase
+        .from('beneficiarios')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (errBen) throw new Error(`Error en beneficiarios: ${errBen.message}`);
+
+      // 6. Borrar Donantes (Directorio)
+      const { error: errDon } = await supabase
+        .from('donantes')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (errDon) throw new Error(`Error en donantes: ${errDon.message}`);
+
+      setResetSuccess('¡Sistema restaurado con éxito! Se han depurado los 5 componentes seleccionados de fábrica.');
+      setResetConfirmText('');
+      
+      // Actualizar métricas del perfil
+      fetchRoleSpecificMetrics();
+
+      // Notificar a otras vistas
+      window.dispatchEvent(new Event('inventario-updated'));
+      window.dispatchEvent(new Event('evaluaciones-updated'));
+      window.dispatchEvent(new Event('beneficiarios-updated'));
+      window.dispatchEvent(new Event('donantes-updated'));
+
+      setTimeout(() => {
+        setShowResetModal(false);
+        setResetSuccess('');
+      }, 3500);
+    } catch (err) {
+      console.error('Error durante la depuración de fábrica:', err);
+      setResetError(err.message || 'Ocurrió un error inesperado al restablecer el sistema.');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -504,6 +593,120 @@ export const Perfil = () => {
             )}
           </div>
         </div>
+
+        {/* Exclusive Developer Zone (thony.karter@gmail.com) */}
+        {isDeveloper && (
+          <div className="card glass developer-zone-card animate-fade-in" style={{ marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+              <div className="developer-icon-container">
+                <Flame size={18} />
+              </div>
+              <span style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--danger-color)' }}>Zona del Desarrollador (Acceso Exclusivo)</span>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.6' }}>
+                Atención <strong>{profile?.nombre || 'thony.karter'}</strong>: Este panel es visible exclusivamente para ti. Desde aquí puedes realizar un restablecimiento completo y limpieza de fábrica de los componentes clave de la base de datos.
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Componentes a Depurar:</span>
+                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Inventario (Lotes y Movimientos)</span>
+                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Catálogo (Medicamentos)</span>
+                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Evaluaciones de Salud</span>
+                  <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>• Beneficiarios y Donantes</span>
+                </div>
+                <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <span style={{ fontWeight: '700', color: 'var(--text-primary)' }}>Registros Preservados:</span>
+                  <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Cuentas de Usuario y Credenciales</span>
+                  <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Perfiles y Roles Operativos</span>
+                  <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>✓ Categorías del Sistema</span>
+                </div>
+              </div>
+
+              <Button 
+                className="factory-reset-btn"
+                onClick={() => {
+                  setShowResetModal(true);
+                  setResetConfirmText('');
+                  setResetError('');
+                  setResetSuccess('');
+                }}
+                style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.75rem 1.25rem', borderRadius: 'var(--radius-md)' }}
+              >
+                <Flame size={16} /> Depurar Sistema de Fábrica
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Doble Confirmación para Depuración */}
+        <Modal
+          isOpen={showResetModal}
+          onClose={() => !isResetting && setShowResetModal(false)}
+          title="⚠️ DOBLE CONFIRMACIÓN: DEPURA DE FÁBRICA"
+          footer={
+            <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+              <Button
+                variant="ghost"
+                onClick={() => setShowResetModal(false)}
+                disabled={isResetting}
+                style={{ flex: 1, justifyContent: 'center' }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                className="factory-reset-btn"
+                onClick={handleFactoryReset}
+                disabled={isResetting || resetConfirmText.trim().toUpperCase() !== 'DEPURAR'}
+                style={{ flex: 1, justifyContent: 'center' }}
+              >
+                {isResetting ? 'Depurando...' : 'Confirmar Depuración'}
+              </Button>
+            </div>
+          }
+        >
+          <div className="danger-modal-glow-container" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', background: 'var(--danger-bg)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', color: 'var(--danger-color)', fontSize: '0.85rem' }}>
+              <AlertTriangle size={24} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div style={{ lineHeight: '1.5' }}>
+                <strong>¡Acción Altamente Destructiva!</strong> Esto eliminará de forma permanente todo el historial de transacciones, lotes de inventario, el catálogo completo de medicamentos, evaluaciones de salud, y directorios de beneficiarios y donantes. Esta acción es irreversible.
+              </div>
+            </div>
+
+            {resetError && (
+              <div className="status-alert danger">
+                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{resetError}</span>
+              </div>
+            )}
+            {resetSuccess && (
+              <div className="status-alert success">
+                <CheckCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{resetSuccess}</span>
+              </div>
+            )}
+
+            <div className="security-challenge-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, fontWeight: '500' }}>
+                Para desbloquear esta acción, escribe la palabra <strong>DEPURAR</strong> a continuación:
+              </p>
+              <input
+                type="text"
+                className="input-field"
+                style={{ margin: 0, width: '100%', textTransform: 'uppercase', textAlign: 'center', fontSize: '1.1rem', fontWeight: '800', letterSpacing: '0.1em', borderColor: resetConfirmText.trim().toUpperCase() === 'DEPURAR' ? 'var(--danger-color)' : 'var(--border-color)' }}
+                placeholder="Escribe DEPURAR"
+                value={resetConfirmText}
+                onChange={e => setResetConfirmText(e.target.value)}
+                disabled={isResetting}
+                autoFocus
+              />
+            </div>
+          </div>
+        </Modal>
+
       </div>
     </div>
   );
