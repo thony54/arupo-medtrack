@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, 
   FileText, Award, LogOut, Edit2, Check, X, Settings,
   Calendar, TrendingUp, HeartHandshake, Users, Database, Activity,
-  Flame, AlertTriangle
+  Flame, AlertTriangle, Camera, Phone, MapPin, Briefcase, Clock, Building
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -41,6 +41,18 @@ export const Perfil = () => {
   const [tempNombre, setTempNombre] = useState(profile?.nombre || '');
   const [showEmail, setShowEmail] = useState(false);
 
+  // Estados para información adicional de perfil por rol
+  const [tempTelefono, setTempTelefono] = useState('');
+  const [tempDireccion, setTempDireccion] = useState('');
+  const [tempEspecialidad, setTempEspecialidad] = useState('');
+  const [tempLicenciaMedica, setTempLicenciaMedica] = useState('');
+  const [tempInstitucion, setTempInstitucion] = useState('');
+  const [tempAreaApoyo, setTempAreaApoyo] = useState('');
+  const [tempDisponibilidad, setTempDisponibilidad] = useState('');
+  
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
   // Estadísticas Personales o Rol
   const [metrics, setMetrics] = useState({
     lastActive: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long' }),
@@ -49,8 +61,136 @@ export const Perfil = () => {
 
   useEffect(() => {
     fetchRoleSpecificMetrics();
-    if (profile?.nombre) setTempNombre(profile.nombre);
+    if (profile) {
+      setTempNombre(profile.nombre || '');
+      setTempTelefono(profile.telefono || '');
+      setTempDireccion(profile.direccion || '');
+      setTempEspecialidad(profile.especialidad || '');
+      setTempLicenciaMedica(profile.licencia_medica || '');
+      setTempInstitucion(profile.institucion || '');
+      setTempAreaApoyo(profile.area_apoyo || '');
+      setTempDisponibilidad(profile.disponibilidad || '');
+    }
   }, [role, profile]);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor, selecciona un archivo de imagen válido.');
+      return;
+    }
+
+    setAvatarUploading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const max_size = 256;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > max_size) {
+              height *= max_size / width;
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width *= max_size / height;
+              height = max_size;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+          try {
+            const { error: updateError } = await supabase
+              .from('perfiles')
+              .update({ avatar: compressedBase64 })
+              .eq('id', user.id);
+
+            if (updateError) {
+              if (updateError.message?.includes('column "avatar" of relation "perfiles" does not exist') || updateError.code === '42703') {
+                throw new Error('La base de datos requiere una actualización. Por favor, ejecuta el script "schema_v15.sql" en el SQL Editor de Supabase para habilitar las fotos de perfil.');
+              }
+              throw updateError;
+            }
+
+            setSuccess('¡Foto de perfil actualizada con éxito!');
+            refreshProfile();
+            setTimeout(() => setSuccess(''), 4000);
+          } catch (dbErr) {
+            console.error('Error de base de datos:', dbErr);
+            setError(dbErr.message || 'Error al guardar la foto de perfil en la base de datos.');
+          }
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error(err);
+      setError('Ocurrió un error al procesar la imagen.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleSaveRoleFields = async () => {
+    setUpdating(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const updates = {
+        telefono: tempTelefono.trim(),
+        direccion: tempDireccion.trim(),
+      };
+
+      if (isBrigadista) {
+        updates.especialidad = tempEspecialidad.trim();
+        updates.licencia_medica = tempLicenciaMedica.trim();
+        updates.institucion = tempInstitucion.trim();
+      }
+
+      if (isVoluntario) {
+        updates.area_apoyo = tempAreaApoyo.trim();
+        updates.disponibilidad = tempDisponibilidad.trim();
+      }
+
+      const { error: updateError } = await supabase
+        .from('perfiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (updateError) {
+        if (updateError.message?.includes('does not exist') || updateError.code === '42703') {
+          throw new Error('La base de datos requiere una actualización. Por favor, ejecuta el script "schema_v15.sql" en el SQL Editor de Supabase para habilitar los campos avanzados de perfil.');
+        }
+        throw updateError;
+      }
+
+      setSuccess('¡Datos del perfil actualizados correctamente!');
+      refreshProfile();
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Error al guardar los datos del perfil.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const fetchRoleSpecificMetrics = async () => {
     try {
@@ -273,17 +413,57 @@ export const Perfil = () => {
           </div>
 
           <div className="profile-info-content">
-            {/* Avatar con Anillo de Animación Dinámica */}
+            {/* Hidden file input for avatar upload */}
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleAvatarChange} 
+              style={{ display: 'none' }} 
+              accept="image/*" 
+            />
+
+            {/* Avatar con Anillo de Animación Dinámica y Subida de Imagen */}
             <div className="premium-avatar-container">
-              <div className="premium-avatar" style={{ 
-                background: isBrigadista 
-                  ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
-                  : isVoluntario 
-                    ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-                    : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
-              }}>
-                {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+              <div 
+                className="premium-avatar-wrapper"
+                onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                title="Haga clic para cambiar su foto de perfil"
+              >
+                <div className="premium-avatar" style={{ 
+                  background: profile?.avatar 
+                    ? 'none' 
+                    : isBrigadista 
+                      ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
+                      : isVoluntario 
+                        ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
+                        : 'linear-gradient(135deg, var(--danger-color), #f43f5e)',
+                  border: profile?.avatar ? '2px solid var(--border-color)' : 'none',
+                  padding: 0,
+                  overflow: 'hidden'
+                }}>
+                  {profile?.avatar ? (
+                    <img 
+                      src={profile.avatar} 
+                      alt="Avatar de Usuario" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    (profile?.nombre || 'U').substring(0, 2).toUpperCase()
+                  )}
+                </div>
+                
+                {/* Overlay on hover */}
+                <div className="avatar-upload-overlay">
+                  <Camera size={18} style={{ marginBottom: '2px' }} />
+                  <span>Subir Foto</span>
+                </div>
+                
+                {/* Visual camera helper button */}
+                <div className="avatar-camera-btn">
+                  <Camera size={14} />
+                </div>
               </div>
+
               <div className="premium-avatar-ring" style={{ 
                 borderColor: getRoleColor(profile?.rol),
                 opacity: 0.5 
@@ -409,6 +589,200 @@ export const Perfil = () => {
               <span className="metric-label-text">Acceso Autorizado</span>
               <span className="metric-val-num" style={{ fontSize: '1.15rem', color: 'var(--warning-color)' }}>Protegido</span>
             </div>
+          </div>
+        </div>
+
+        {/* Tarjeta de Información de Contacto e Identidad por Rol */}
+        <div className="card glass" style={{ padding: '1.75rem', position: 'relative', overflow: 'hidden' }}>
+          {/* Subtle decorative background gradient matching the role */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '180px',
+            height: '180px',
+            background: isBrigadista 
+              ? 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)' 
+              : isVoluntario 
+                ? 'radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%)' 
+                : 'radial-gradient(circle, rgba(225, 29, 72, 0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
+            zIndex: 0
+          }} />
+
+          <h3 style={{ 
+            fontSize: '1.15rem', 
+            fontWeight: '700', 
+            marginBottom: '1.25rem', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.65rem', 
+            color: 'var(--text-primary)', 
+            borderBottom: '1px solid var(--border-color)', 
+            paddingBottom: '0.75rem',
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <User size={20} color="var(--primary-color)" /> 
+            Datos de Perfil Avanzado ({getRoleLabel(profile?.rol)})
+          </h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
+            
+            {/* Campos Comunes: Teléfono y Dirección */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Phone size={14} style={{ color: 'var(--primary-color)' }} />
+                  Teléfono de Contacto
+                </label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  style={{ marginBottom: 0 }}
+                  value={tempTelefono}
+                  onChange={e => setTempTelefono(e.target.value)}
+                  placeholder="Ej. +593 999 999 999"
+                  disabled={updating}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <MapPin size={14} style={{ color: 'var(--primary-color)' }} />
+                  Dirección Domiciliaria
+                </label>
+                <input 
+                  type="text" 
+                  className="input-field" 
+                  style={{ marginBottom: 0 }}
+                  value={tempDireccion}
+                  onChange={e => setTempDireccion(e.target.value)}
+                  placeholder="Ciudad, Provincia o Dirección Completa"
+                  disabled={updating}
+                />
+              </div>
+            </div>
+
+            {/* Campos Específicos para Brigadistas (Médicos) */}
+            {isBrigadista && (
+              <>
+                <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Briefcase size={14} style={{ color: 'var(--success-color)' }} />
+                      Especialidad Médica / Área
+                    </label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      style={{ marginBottom: 0 }}
+                      value={tempEspecialidad}
+                      onChange={e => setTempEspecialidad(e.target.value)}
+                      placeholder="Ej. Medicina General, Enfermería, Pediatría"
+                      disabled={updating}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Award size={14} style={{ color: 'var(--success-color)' }} />
+                      Licencia Médica / Registro
+                    </label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      style={{ marginBottom: 0 }}
+                      value={tempLicenciaMedica}
+                      onChange={e => setTempLicenciaMedica(e.target.value)}
+                      placeholder="Ej. Registro Profesional / SENESCYT"
+                      disabled={updating}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Building size={14} style={{ color: 'var(--success-color)' }} />
+                    Institución Hospitalaria o de Afiliación
+                  </label>
+                  <input 
+                    type="text" 
+                    className="input-field" 
+                    style={{ marginBottom: 0 }}
+                    value={tempInstitucion}
+                    onChange={e => setTempInstitucion(e.target.value)}
+                    placeholder="Ej. Hospital IESS, Ministerio de Salud Pública, Práctica Privada"
+                    disabled={updating}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* Campos Específicos para Voluntarios */}
+            {isVoluntario && (
+              <>
+                <div style={{ height: '1px', background: 'var(--border-color)', margin: '0.5rem 0' }} />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Briefcase size={14} style={{ color: '#7c3aed' }} />
+                      Área de Apoyo Principal
+                    </label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      style={{ marginBottom: 0 }}
+                      value={tempAreaApoyo}
+                      onChange={e => setTempAreaApoyo(e.target.value)}
+                      placeholder="Ej. Logística de Entregas, Gestión de Donaciones, CRM"
+                      disabled={updating}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Clock size={14} style={{ color: '#7c3aed' }} />
+                      Disponibilidad Horaria
+                    </label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      style={{ marginBottom: 0 }}
+                      value={tempDisponibilidad}
+                      onChange={e => setTempDisponibilidad(e.target.value)}
+                      placeholder="Ej. Fines de semana, Tardes (Lunes a Viernes)"
+                      disabled={updating}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <Button 
+              variant="primary" 
+              onClick={handleSaveRoleFields}
+              disabled={updating}
+              style={{ 
+                marginTop: '0.5rem', 
+                width: '100%', 
+                justifyContent: 'center', 
+                display: 'flex', 
+                gap: '0.5rem',
+                boxShadow: isBrigadista 
+                  ? '0 4px 12px rgba(16,185,129,0.2)' 
+                  : isVoluntario 
+                    ? '0 4px 12px rgba(124,58,237,0.2)' 
+                    : '0 4px 12px rgba(16,185,129,0.2)'
+              }}
+            >
+              <CheckCircle size={16} />
+              {updating ? 'Guardando...' : 'Guardar Información de Perfil'}
+            </Button>
+
           </div>
         </div>
 

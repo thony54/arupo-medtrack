@@ -74,8 +74,21 @@ export const ProfileDropdown = () => {
       {isOpen && (
         <div className="profile-popover glass animate-scale-in">
           <div className="popover-header">
-            <div className="user-avatar" style={{ backgroundColor: getRoleColor(profile?.rol) }}>
-              {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+            <div className="user-avatar" style={{ 
+              backgroundColor: profile?.avatar ? 'transparent' : getRoleColor(profile?.rol),
+              overflow: 'hidden',
+              border: profile?.avatar ? '1px solid var(--border-color)' : 'none',
+              padding: 0
+            }}>
+              {profile?.avatar ? (
+                <img 
+                  src={profile.avatar} 
+                  alt="Avatar" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+              ) : (
+                (profile?.nombre || 'U').substring(0, 2).toUpperCase()
+              )}
             </div>
             <div className="user-info">
               {isEditingName ? (

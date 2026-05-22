@@ -228,16 +228,26 @@ export const Sidebar = () => {
               width: '34px', 
               height: '34px', 
               borderRadius: '50%', 
-              backgroundColor: getRoleColor(profile?.rol), 
+              backgroundColor: profile?.avatar ? 'transparent' : getRoleColor(profile?.rol), 
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: '700',
               fontSize: '0.85rem',
-              flexShrink: 0
+              flexShrink: 0,
+              overflow: 'hidden',
+              border: profile?.avatar ? '1px solid var(--border-color)' : 'none'
             }}>
-              {(profile?.nombre || 'U').substring(0, 2).toUpperCase()}
+              {profile?.avatar ? (
+                <img 
+                  src={profile.avatar} 
+                  alt="Avatar" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+              ) : (
+                (profile?.nombre || 'U').substring(0, 2).toUpperCase()
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: '0.8rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
