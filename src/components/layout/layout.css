@@ -8,7 +8,7 @@
   overflow-x: hidden;
 }
 
-/* Ambient Visual Elements - Performance Optimized */
+/* Ambient Visual Elements - Performance Optimized (Hidden on PC by default) */
 .ambient-glow {
   position: fixed;
   z-index: 0;
@@ -17,6 +17,7 @@
   transform: translateZ(0); /* Promotes to GPU layer for 60fps animation */
   animation: floatingGlow 25s infinite ease-in-out alternate;
   border-radius: 50%;
+  display: none;
 }
 
 .glow-1 {
@@ -191,6 +192,10 @@
 
 /* Mobile Adjustments (Bottom Nav) */
 @media (max-width: 768px) {
+  .ambient-glow {
+    display: block; /* Visible on mobile */
+  }
+
   .layout-container {
     flex-direction: column;
   }
@@ -319,8 +324,9 @@
     font-weight: 700;
   }
 
+  .nav-item.active::before,
   .nav-item.active::after {
-    display: none; /* Quitamos la barra inferior para usar el background */
+    display: none !important; /* Hide floating lines/pills on mobile navigation icons */
   }
 
   .sidebar-footer {
