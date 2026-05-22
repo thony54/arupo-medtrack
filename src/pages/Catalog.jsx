@@ -12,16 +12,40 @@ const CATEGORIAS_MEDICAS_SUGERIDAS = ['Analgésicos', 'Antibióticos', 'Antiinfl
 
 // Sinónimos inteligentes para mapear automáticamente las columnas del archivo Excel
 const COLUMN_SYNONYMS = {
+  categoria: ['categoría', 'categoria', 'grupo', 'tipo', 'clase', 'category', 'department', 'seccion', 'grupo farmacológico', 'grupo farmacologico'],
+  nombre_generico: ['nombre genérico', 'nombre generico', 'genérico', 'generico', 'principio activo', 'fórmula', 'formula'],
+  nombre_comercial: ['nombre comercial', 'nombre comercial.', 'nombre registrado', 'marca comercial', 'comercial', 'marca'],
   nombre: ['nombre del medicamento', 'nombre del medicamento.', 'nombre', 'name', 'medicina', 'medicamento', 'producto', 'item', 'descripción', 'descripcion', 'artículo', 'articulo', 'desc'],
-  categoria: ['categoría', 'categoria', 'grupo', 'tipo', 'clase', 'category', 'department', 'seccion'],
-  laboratorio: ['laboratorio.', 'laboratorio', 'lab', 'fabricante', 'marca', 'laboratory', 'maker', 'brand'],
-  presentacion: ['presentación.', 'presentación', 'presentacion', 'formato', 'envase', 'tipo envase', 'presentation', 'unit'],
-  cantidad_por_presentacion: ['cantidad x presentación', 'cantidad x presentacion', 'cant x pres', 'cantidad por presentación', 'cantidad por presentacion', 'cpp'],
-  cantidad: ['cant. total', 'cant total', 'cantidad total', 'stock', 'cantidad', 'total', 'cant', 'quantity', 'inventario', 'inicial', 'qty'],
-  lote: ['lote', 'lote nro', 'lote #', 'numero lote', 'número lote', 'batch', 'lot', 'serial'],
   fecha_vencimiento: ['caducidad.', 'caducidad', 'fecha vencimiento', 'vencimiento', 'vence', 'fecha caducidad', 'fecha de vencimiento', 'expiration', 'expiry', 'fecha', 'venc'],
+  lote: ['lote', 'lote nro', 'lote #', 'numero lote', 'número lote', 'batch', 'lot', 'serial'],
+  concentracion: ['concentración', 'concentracion', 'dosis', 'concentracion del medicamento'],
+  presentacion: ['presentación.', 'presentación', 'presentacion', 'formato', 'envase', 'tipo envase', 'presentation', 'unit'],
+  via_administracion: ['vía de administración', 'via de administracion', 'via administracion', 'via de admin', 'via admin', 'via', 'administracion', 'administración'],
+  cantidad_por_presentacion: ['cantidad (por caja/unidad)', 'cantidad por caja', 'unidades por caja', 'cantidad por unidad', 'unidades', 'cantidad x presentación', 'cantidad x presentacion', 'cant x pres', 'cantidad por presentación', 'cantidad por presentacion', 'cpp'],
+  numero_cajas: ['número de cajas', 'numero de cajas', 'cajas', 'nro cajas', 'nro de cajas', 'num cajas', 'caja', 'boxes', 'box qty'],
+  cantidad: ['cant. total', 'cant total', 'cantidad total', 'stock', 'cantidad', 'total', 'cant', 'quantity', 'inventario', 'inicial', 'qty', 'total stock', 'stock total', 'stock actual'],
+  laboratorio: ['laboratorio.', 'laboratorio', 'lab', 'fabricante', 'marca', 'laboratory', 'maker', 'brand'],
   observaciones: ['observaciones', 'notas', 'comentarios', 'observación', 'observacion', 'notes', 'comments', 'obs']
 };
+
+// Etiquetas profesionales en español para la interfaz de mapeo de Excel
+const COLUMN_LABELS = {
+  categoria: 'Grupo Farmacológico (Categoría)',
+  nombre_generico: 'Nombre Genérico',
+  nombre_comercial: 'Nombre Comercial',
+  nombre: 'Nombre Maestro (General)',
+  fecha_vencimiento: 'Fecha de Vencimiento',
+  lote: 'Lote',
+  concentracion: 'Concentración',
+  presentacion: 'Presentación',
+  via_administracion: 'Vía de Administración',
+  cantidad_por_presentacion: 'Cantidad (por caja/unidad)',
+  numero_cajas: 'Número de cajas',
+  cantidad: 'Total Stock (Cantidad Total)',
+  laboratorio: 'Laboratorio',
+  observaciones: 'Observaciones'
+};
+
 
 const autoMapHeaders = (excelHeaders) => {
   const mapping = {};
@@ -403,13 +427,20 @@ export const Catalog = () => {
       for (const row of importRows) {
         // Obtener campos mapeados
         const rawNombre = row[columnMapping.nombre];
-        if (!rawNombre) continue; // Omitir filas sin nombre
+        const rawNombreGenerico = row[columnMapping.nombre_generico];
+        const rawNombreComercial = row[columnMapping.nombre_comercial];
+        const rawViaAdministracion = row[columnMapping.via_administracion];
+        const rawConcentracion = row[columnMapping.concentracion];
         
-        const nombreVal = rawNombre.toString().trim();
+        // Omitir si no tenemos cómo identificar el nombre
+        if (!rawNombre && !rawNombreGenerico) continue;
+        
+        const nombreVal = rawNombre ? rawNombre.toString().trim() : '';
         const rawCategoria = row[columnMapping.categoria];
         const rawLab = row[columnMapping.laboratorio];
         const rawPres = row[columnMapping.presentacion];
         const rawCPP = row[columnMapping.cantidad_por_presentacion];
+        const rawCajas = row[columnMapping.numero_cajas];
         const rawCant = row[columnMapping.cantidad];
         const rawLote = row[columnMapping.lote];
         const rawVenc = row[columnMapping.fecha_vencimiento];
@@ -449,17 +480,59 @@ export const Catalog = () => {
         }
         
         const esMedico = esCategoriaMediaca(finalCatNombre);
-        const stockVal = rawCant ? Number(rawCant) : 0;
         
+        // Cálculo inteligente de stock total
+        let stockVal = 0;
+        if (rawCant !== undefined && rawCant !== '') {
+          stockVal = Number(rawCant) || 0;
+        } else if (rawCPP !== undefined && rawCPP !== '' && rawCajas !== undefined && rawCajas !== '') {
+          const cppNum = Number(rawCPP) || 0;
+          const cajasNum = Number(rawCajas) || 0;
+          stockVal = cppNum * cajasNum;
+        } else if (rawCPP !== undefined && rawCPP !== '') {
+          stockVal = Number(rawCPP) || 0;
+        }
+        
+        // Calcular Nombre Genérico y Comercial si es medicina
+        let finalGen = '';
+        let finalCom = '';
+
+        if (esMedico) {
+          if (rawNombreGenerico && rawNombreGenerico.toString().trim()) {
+            finalGen = rawNombreGenerico.toString().trim();
+            finalCom = rawNombreComercial ? rawNombreComercial.toString().trim() : '';
+          } else if (nombreVal) {
+            const match = nombreVal.match(/^([^(]+)\s*\(([^)]+)\)$/);
+            if (match) {
+              finalGen = match[1].trim();
+              finalCom = match[2].trim();
+            } else {
+              finalGen = nombreVal;
+              finalCom = '';
+            }
+          }
+          if (!finalGen) {
+            finalGen = nombreVal || 'Medicamento sin nombre genérico';
+          }
+        }
+
+        const finalNombre = esMedico
+          ? (finalCom ? `${finalGen} (${finalCom})` : finalGen)
+          : (nombreVal || finalGen);
+
         // Insertar Medicina/Ítem
         const medData = {
-          nombre: nombreVal,
+          nombre: finalNombre,
           categoria_id: finalCatId,
           presentacion: rawPres ? rawPres.toString().trim() : (esMedico ? 'Tabletas' : 'Unidad'),
           laboratorio: esMedico ? (rawLab ? rawLab.toString().trim() : null) : null,
           cantidad_por_presentacion: rawCPP ? rawCPP.toString().trim() : null,
           observaciones: rawObs ? rawObs.toString().trim() : 'Importado vía Excel',
-          stock_actual: stockVal
+          stock_actual: stockVal,
+          nombre_generico: esMedico ? finalGen : null,
+          nombre_comercial: esMedico ? (finalCom || null) : null,
+          via_administracion: esMedico ? (rawViaAdministracion ? rawViaAdministracion.toString().trim() : null) : null,
+          concentracion: esMedico ? (rawConcentracion ? rawConcentracion.toString().trim() : null) : null
         };
         
         const { data: newMedList, error: medInsertErr } = await supabase.from('medicinas').insert(medData).select();
@@ -846,7 +919,7 @@ export const Catalog = () => {
               <Button
                 type="button"
                 variant="primary"
-                disabled={importLoading || !columnMapping.nombre}
+                disabled={importLoading || (!columnMapping.nombre && !columnMapping.nombre_generico)}
                 onClick={executeImport}
                 style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none' }}
               >
@@ -928,8 +1001,8 @@ export const Catalog = () => {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', background: 'var(--bg-surface-hover)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                 {Object.keys(COLUMN_SYNONYMS).map(field => (
                   <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'capitalize', color: 'var(--text-secondary)' }}>
-                      {field.replace('_', ' ')} {field === 'nombre' && <span style={{ color: 'var(--danger-color)' }}>*</span>}
+                    <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                      {COLUMN_LABELS[field] || field.replace('_', ' ')} {(field === 'nombre' || field === 'nombre_generico') && <span style={{ color: 'var(--danger-color)' }}>*</span>}
                     </label>
                     <select
                       className="input-field"
@@ -963,10 +1036,39 @@ export const Catalog = () => {
                     <tbody>
                       {importRows.slice(0, 4).map((row, idx) => (
                         <tr key={idx} style={{ borderBottom: idx < 3 ? '1px solid var(--border-color)' : 'none' }}>
-                          <td style={{ padding: '0.5rem', fontWeight: '600' }}>{row[columnMapping.nombre] || <span style={{ color: 'var(--danger-color)', fontStyle: 'italic' }}>Vacío (se omitirá)</span>}</td>
+                          <td style={{ padding: '0.5rem', fontWeight: '600' }}>
+                            {(() => {
+                              const rawN = row[columnMapping.nombre];
+                              const rawG = row[columnMapping.nombre_generico];
+                              const rawC = row[columnMapping.nombre_comercial];
+                              if (rawG) {
+                                return rawC ? `${rawG.toString().trim()} (${rawC.toString().trim()})` : rawG.toString().trim();
+                              }
+                              if (rawN) {
+                                return rawN.toString().trim();
+                              }
+                              return <span style={{ color: 'var(--danger-color)', fontStyle: 'italic' }}>Vacío (se omitirá)</span>;
+                            })()}
+                          </td>
                           <td style={{ padding: '0.5rem' }}>{row[columnMapping.categoria] || 'Otros'}</td>
                           <td style={{ padding: '0.5rem' }}>{row[columnMapping.laboratorio] || '—'}</td>
-                          <td style={{ padding: '0.5rem', fontWeight: '700', textAlign: 'center' }}>{row[columnMapping.cantidad] || 0}</td>
+                           <td style={{ padding: '0.5rem', fontWeight: '700', textAlign: 'center' }}>
+                            {(() => {
+                              const rawCant = row[columnMapping.cantidad];
+                              const rawCPP = row[columnMapping.cantidad_por_presentacion];
+                              const rawCajas = row[columnMapping.numero_cajas];
+                              if (rawCant !== undefined && rawCant !== '') {
+                                return Number(rawCant) || 0;
+                              }
+                              if (rawCPP !== undefined && rawCPP !== '' && rawCajas !== undefined && rawCajas !== '') {
+                                return (Number(rawCPP) || 0) * (Number(rawCajas) || 0);
+                              }
+                              if (rawCPP !== undefined && rawCPP !== '') {
+                                return Number(rawCPP) || 0;
+                              }
+                              return 0;
+                            })()}
+                          </td>
                           <td style={{ padding: '0.5rem' }}>{parseExcelDate(row[columnMapping.fecha_vencimiento]) || 'N/A'}</td>
                         </tr>
                       ))}
