@@ -97,16 +97,6 @@ export const Sidebar = () => {
             {/* Botones Médicos: Visibles para Super Admin y Brigadistas */}
             {(isSuperAdmin || isBrigadista) && (
               <div style={{ display: 'flex', gap: '0.3rem' }}>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSaludStepper(true)}
-                  className="mobile-only"
-                  style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#ec4899', borderColor: '#fbcfe8' }}
-                  aria-label="Nueva Evaluación de Salud"
-                  title="Nueva Evaluación de Salud"
-                >
-                  <Activity size={16} />
-                </Button>
                 <Button variant="outline" onClick={() => setShowSalida(true)} style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--success-color)', borderColor: 'var(--success-color)' }} aria-label="Entregar Donación Médica" title="Entregar Donación Médica">
                   <HandHeart size={16} />
                 </Button>
