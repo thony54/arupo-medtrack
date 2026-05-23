@@ -121,7 +121,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Vista de Paneles en cuadrícula o flexibles de acuerdo al rol */}
-      <div className="grid-responsive" style={{ 
+      <div className="dashboard-panels-container grid-responsive" style={{ 
         marginTop: '1.5rem', 
         display: (isSuperAdmin) ? 'grid' : 'flex', 
         flexDirection: 'column' 

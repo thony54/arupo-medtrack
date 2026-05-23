@@ -179,12 +179,53 @@
   }
 
   .kpi-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 0.75rem;
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 0.85rem !important;
+    padding: 0.25rem 0.15rem 0.75rem 0.15rem !important;
+    margin-bottom: 1rem !important;
+    width: calc(100% + 0.3rem) !important;
+    margin-left: -0.15rem !important;
+    scrollbar-width: none;
+  }
+
+  .kpi-grid::-webkit-scrollbar {
+    display: none;
   }
 
   .kpi-card {
-    padding: 1rem !important;
+    flex: 0 0 200px !important;
+    scroll-snap-align: start !important;
+    padding: 1.25rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .dashboard-panels-container {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 1rem !important;
+    padding: 0.25rem 0.15rem 0.75rem 0.15rem !important;
+    width: calc(100% + 0.3rem) !important;
+    margin-left: -0.15rem !important;
+    margin-top: 1rem !important;
+    scrollbar-width: none;
+  }
+
+  .dashboard-panels-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dashboard-panels-container > div {
+    flex: 0 0 88vw !important; /* Suggests additional cards dynamically on the side! */
+    scroll-snap-align: start !important;
+    width: auto !important;
+    margin-bottom: 0 !important;
   }
 
   .kpi-value {
