@@ -67,7 +67,6 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
     const { data } = await supabase
       .from('beneficiarios')
       .select('id, nombre_completo, cedula')
-      .eq('estado', 'Activo')
       .order('nombre_completo');
     setBeneficiarios(data || []);
   };
@@ -398,17 +397,40 @@ const ActaGeneral = ({ actaData, onClose }) => {
     iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;';
     document.body.appendChild(iframe);
     const doc = iframe.contentWindow.document;
-    doc.open();
     doc.write(`<html><head><title>Acta General — Fundación Arupo</title>
-      <style>body{font-family:Arial,sans-serif;padding:2rem;color:#111;max-width:750px;margin:0 auto}
-      h1{color:#7c3aed;font-size:1.5rem;margin:0 0 .25rem 0}.subtitle{color:#6b7280;font-size:.85rem;margin:0}
-      table{width:100%;border-collapse:collapse;margin-top:1rem}
-      th{background:#f5f3ff;color:#4b5563;padding:.75rem 1rem;text-align:left;font-size:.75rem;text-transform:uppercase;border:1px solid #e5e7eb}
-      td{padding:.75rem 1rem;border:1px solid #e5e7eb;font-size:.9rem}
-      .grand-total{margin-top:1.5rem;text-align:right;font-size:1.1rem;font-weight:bold;padding:1rem;background:#f5f3ff;border-radius:8px;color:#6d28d9;border:1px dashed #a855f7}
-      .footer{margin-top:2.5rem;font-size:.75rem;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:1rem;text-align:center}
-      .signatures{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:3rem;text-align:center}
-      .sig-line{border-top:1px solid #111;padding-top:.5rem;font-weight:bold;font-size:.85rem}</style>
+      <style>
+        :root {
+          --primary-color: #059669;
+          --primary-hover: #047857;
+          --primary-light: #ecfdf5;
+          --success-color: #10b981;
+          --success-bg: #d1fae5;
+          --warning-color: #f59e0b;
+          --warning-bg: #fef3c7;
+          --danger-color: #ef4444;
+          --danger-bg: #fee2e2;
+          --text-primary: #111827;
+          --text-secondary: #4b5563;
+          --text-tertiary: #9ca3af;
+          --bg-color: #f9fafb;
+          --bg-surface: #ffffff;
+          --bg-surface-hover: #f3f4f6;
+          --border-color: #e5e7eb;
+          --radius-sm: 0.25rem;
+          --radius-md: 0.375rem;
+          --radius-lg: 0.5rem;
+          --radius-xl: 0.75rem;
+          --radius-pill: 9999px;
+        }
+        body{font-family:Arial,sans-serif;padding:2rem;color:#111;max-width:750px;margin:0 auto}
+        h1{color:#7c3aed;font-size:1.5rem;margin:0 0 .25rem 0}.subtitle{color:#6b7280;font-size:.85rem;margin:0}
+        table{width:100%;border-collapse:collapse;margin-top:1rem}
+        th{background:#f5f3ff;color:#4b5563;padding:.75rem 1rem;text-align:left;font-size:.75rem;text-transform:uppercase;border:1px solid #e5e7eb}
+        td{padding:.75rem 1rem;border:1px solid #e5e7eb;font-size:.9rem}
+        .grand-total{margin-top:1.5rem;text-align:right;font-size:1.1rem;font-weight:bold;padding:1rem;background:#f5f3ff;border-radius:8px;color:#6d28d9;border:1px dashed #a855f7}
+        .footer{margin-top:2.5rem;font-size:.75rem;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:1rem;text-align:center}
+        .signatures{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:3rem;text-align:center}
+        .sig-line{border-top:1px solid #111;padding-top:.5rem;font-weight:bold;font-size:.85rem}</style>
       </head><body>${content}</body></html>`);
     doc.close();
     setTimeout(() => { iframe.contentWindow.focus(); iframe.contentWindow.print(); setTimeout(() => document.body.removeChild(iframe), 1000); }, 500);
@@ -426,7 +448,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
 
       <div ref={printRef} style={{ fontSize: '0.9rem', background: '#fff', color: '#111', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid #7c3aed', paddingBottom: '1.5rem' }}>
-          <img src="/logo.png" alt="Logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+          <img src="/arupo-logo.png" alt="Logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
           <div>
             <h1>Acta de Entrega de Ítems Generales</h1>
             <p className="subtitle">Fundación Arupo — Programa de Ayuda Humanitaria<br/>Fecha: {dateStr} a las {timeStr}</p>

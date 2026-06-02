@@ -41,6 +41,29 @@ export const ActaIngreso = ({ donante, items = [], onClose, modoGeneral = false 
         <head>
           <title>${tituloDoc} — Fundación Arupo</title>
           <style>
+            :root {
+              --primary-color: #059669;
+              --primary-hover: #047857;
+              --primary-light: #ecfdf5;
+              --success-color: #10b981;
+              --success-bg: #d1fae5;
+              --warning-color: #f59e0b;
+              --warning-bg: #fef3c7;
+              --danger-color: #ef4444;
+              --danger-bg: #fee2e2;
+              --text-primary: #111827;
+              --text-secondary: #4b5563;
+              --text-tertiary: #9ca3af;
+              --bg-color: #f9fafb;
+              --bg-surface: #ffffff;
+              --bg-surface-hover: #f3f4f6;
+              --border-color: #e5e7eb;
+              --radius-sm: 0.25rem;
+              --radius-md: 0.375rem;
+              --radius-lg: 0.5rem;
+              --radius-xl: 0.75rem;
+              --radius-pill: 9999px;
+            }
             body { font-family: Arial, sans-serif; padding: 2rem; color: #111; max-width: 750px; margin: 0 auto; }
             .header-flex { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 2px solid #059669; padding-bottom: 1.5rem; }
             .logo { max-width: 150px; max-height: 80px; object-fit: contain; }
@@ -97,7 +120,7 @@ export const ActaIngreso = ({ donante, items = [], onClose, modoGeneral = false 
 
         {/* Header con Logo */}
         <div className="header-flex" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid #059669', paddingBottom: '1.5rem' }}>
-          <img src="/logo.png" alt="Logo Fundación Arupo" className="logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src="/arupo-logo.png" alt="Logo Fundación Arupo" className="logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
           <div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#059669', margin: '0 0 0.25rem 0' }}>
               {tituloDoc}
