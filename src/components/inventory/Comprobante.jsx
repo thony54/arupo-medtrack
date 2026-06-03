@@ -50,7 +50,7 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
               --radius-xl: 0.75rem;
               --radius-pill: 9999px;
             }
-            body { font-family: Arial, sans-serif; padding: 2rem; color: #111; max-width: 750px; margin: 0 auto; }
+            body { font-family: Arial, sans-serif; padding: 2rem; color: #111; width: 750px; margin: 0 auto; }
             .header-flex { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 2px solid #059669; padding-bottom: 1.5rem; }
             .logo { max-width: 150px; max-height: 80px; object-fit: contain; }
             h1 { color: #059669; font-size: 1.6rem; margin: 0 0 0.25rem 0; }
@@ -117,9 +117,9 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
         {/* Info Beneficiario */}
         <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           <div className="info-box" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #d1fae5' }}>
-            <div className="info-label" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Entregado a</div>
-            <div className="info-value" style={{ fontWeight: 'bold', fontSize: '1rem' }}>{beneficiario?.nombre_completo || '—'}</div>
-            {beneficiario?.cedula && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>ID/CI: {beneficiario.cedula}</div>}
+            <div className="info-label" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Entregado a / Destino</div>
+            <div className="info-value" style={{ fontWeight: 'bold', fontSize: '1rem' }}>{beneficiario?.nombre || '—'}</div>
+            {beneficiario?.cedula && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>ID: {beneficiario.cedula}</div>}
           </div>
           {beneficiario?.condicion_medica && (
             <div className="info-box" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #d1fae5' }}>

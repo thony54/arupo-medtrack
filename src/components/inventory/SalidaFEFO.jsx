@@ -41,8 +41,8 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
   const fetchBeneficiarios = async () => {
     if (!supabase) return;
     const { data } = await supabase
-      .from('beneficiarios').select('id, nombre_completo, cedula, condicion_medica')
-      .order('nombre_completo');
+      .from('beneficiarios').select('id, nombre, cedula, condicion_medica')
+      .order('nombre');
     setBeneficiarios(data || []);
   };
 
@@ -128,7 +128,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
       }
 
       setActaData({
-        beneficiario: beneficiarioId ? beneficiarios.find(b => b.id === beneficiarioId) : { nombre_completo: destinoLibre },
+        beneficiario: beneficiarioId ? beneficiarios.find(b => b.id === beneficiarioId) : { nombre: destinoLibre },
         donaciones: donacionesProcesadas
       });
       
@@ -177,7 +177,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
                 value={beneficiarioId} onChange={e => { setBeneficiarioId(e.target.value); if (e.target.value) setDestinoLibre(''); }}>
                 <option value="">— Seleccionar del CRM (opcional) —</option>
                 {beneficiarios.map(b => (
-                  <option key={b.id} value={b.id}>{b.nombre_completo}{b.cedula ? ` — ${b.cedula}` : ''}{b.condicion_medica ? ` (${b.condicion_medica})` : ''}</option>
+                  <option key={b.id} value={b.id}>{b.nombre}{b.cedula ? ` — ${b.cedula}` : ''}{b.condicion_medica ? ` (${b.condicion_medica})` : ''}</option>
                 ))}
               </select>
             </div>

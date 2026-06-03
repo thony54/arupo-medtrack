@@ -64,7 +64,7 @@ export const ActaIngreso = ({ donante, items = [], onClose, modoGeneral = false 
               --radius-xl: 0.75rem;
               --radius-pill: 9999px;
             }
-            body { font-family: Arial, sans-serif; padding: 2rem; color: #111; max-width: 750px; margin: 0 auto; }
+            body { font-family: Arial, sans-serif; padding: 2rem; color: #111; width: 750px; margin: 0 auto; }
             .header-flex { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; border-bottom: 2px solid #059669; padding-bottom: 1.5rem; }
             .logo { max-width: 150px; max-height: 80px; object-fit: contain; }
             h1 { color: #059669; font-size: 1.6rem; margin: 0 0 0.25rem 0; }

@@ -66,8 +66,8 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
     if (!supabase) return;
     const { data } = await supabase
       .from('beneficiarios')
-      .select('id, nombre_completo, cedula')
-      .order('nombre_completo');
+      .select('id, nombre, cedula')
+      .order('nombre');
     setBeneficiarios(data || []);
   };
 
@@ -201,7 +201,7 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
       setActaData({
         beneficiario: beneficiarioId
           ? beneficiarios.find(b => b.id === beneficiarioId)
-          : { nombre_completo: destinoLibre },
+          : { nombre: destinoLibre },
         donaciones: donacionesProcesadas,
         esGeneral: true,
       });
@@ -264,7 +264,7 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
               >
                 <option value="">— Seleccionar del CRM (opcional) —</option>
                 {beneficiarios.map(b => (
-                  <option key={b.id} value={b.id}>{b.nombre_completo}{b.cedula ? ` — ${b.cedula}` : ''}</option>
+                  <option key={b.id} value={b.id}>{b.nombre}{b.cedula ? ` — ${b.cedula}` : ''}</option>
                 ))}
               </select>
             </div>
@@ -422,7 +422,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
           --radius-xl: 0.75rem;
           --radius-pill: 9999px;
         }
-        body{font-family:Arial,sans-serif;padding:2rem;color:#111;max-width:750px;margin:0 auto}
+        body{font-family:Arial,sans-serif;padding:2rem;color:#111;width:750px;margin:0 auto}
         h1{color:#7c3aed;font-size:1.5rem;margin:0 0 .25rem 0}.subtitle{color:#6b7280;font-size:.85rem;margin:0}
         table{width:100%;border-collapse:collapse;margin-top:1rem}
         th{background:#f5f3ff;color:#4b5563;padding:.75rem 1rem;text-align:left;font-size:.75rem;text-transform:uppercase;border:1px solid #e5e7eb}
@@ -442,7 +442,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
         <Gift size={28} color="#7c3aed" />
         <div>
           <div style={{ fontWeight: '700', color: '#7c3aed' }}>¡Entrega general registrada con éxito!</div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Se entregaron {totalGeneral} ítems en total a {beneficiario?.nombre_completo}.</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Se entregaron {totalGeneral} ítems en total a {beneficiario?.nombre}.</div>
         </div>
       </div>
 
@@ -458,7 +458,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
           <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#6d28d9', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Entregado a</div>
-            <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{beneficiario?.nombre_completo || '—'}</div>
+            <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{beneficiario?.nombre || '—'}</div>
             {beneficiario?.cedula && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>ID/CI: {beneficiario.cedula}</div>}
           </div>
         </div>
