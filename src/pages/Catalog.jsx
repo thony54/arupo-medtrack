@@ -130,6 +130,7 @@ export const Catalog = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const isInitializingEdit = React.useRef(false);
 
   // Filtro visual (médicos / generales / todos)
   const [filtroTipo, setFiltroTipo] = useState('todos');
@@ -172,12 +173,15 @@ export const Catalog = () => {
 
   // Recalcular stock automáticamente en base a Cantidad (unidades por caja) y Número de Cajas
   useEffect(() => {
-    if (tipoRegistro === 'medico' && !editingId) {
+    if (isInitializingEdit.current) return; // no sobreescribir durante carga de edición
+    if (tipoRegistro === 'medico') {
       const unidades = Number(cantidadUnidades) || 0;
       const cajas = Number(numeroCajas) || 0;
-      setCantidadTotal(unidades * cajas > 0 ? String(unidades * cajas) : '');
+      if (unidades > 0 || cajas > 0) {
+        setCantidadTotal(unidades * cajas > 0 ? String(unidades * cajas) : '');
+      }
     }
-  }, [cantidadUnidades, numeroCajas, tipoRegistro, editingId]);
+  }, [cantidadUnidades, numeroCajas, tipoRegistro]);
 
   const fetchData = async () => {
     if (!supabase) return;
@@ -235,6 +239,7 @@ export const Catalog = () => {
   };
 
   const handleEditMedicine = (med) => {
+    isInitializingEdit.current = true;
     resetForm();
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
     setTipoRegistro(esMedico ? 'medico' : 'general');
@@ -276,10 +281,12 @@ export const Catalog = () => {
       }
     }
     
-    setCantidadTotal(med.stock_actual || '');
+    setCantidadTotal(med.stock_actual != null ? String(med.stock_actual) : '');
     setObservaciones(med.observaciones || '');
     setEditingId(med.id);
     setIsModalOpen(true);
+    // Defer flag clear so useEffect doesn't override the loaded stock
+    setTimeout(() => { isInitializingEdit.current = false; }, 0);
   };
 
   const handleExcelFileChange = (e) => {
@@ -652,7 +659,7 @@ export const Catalog = () => {
           presentacion: presentacion.trim() || null,
           concentracion: tipoRegistro === 'medico' ? (concentracion.trim() || null) : null,
           laboratorio: tipoRegistro === 'medico' ? (laboratorio.trim() || null) : null,
-          cantidad_por_presentacion: tipoRegistro === 'medico' ? (cantidadUnidades.trim() || null) : (presentacion.trim() || null),
+          cantidad_por_presentacion: tipoRegistro === 'medico' ? (cantidadUnidades.trim() || null) : (cantidadPorPresentacion.trim() || null),
           observaciones: observaciones.trim() || null,
           stock_actual: cantidadTotal ? Number(cantidadTotal) : 0,
           nombre_generico: tipoRegistro === 'medico' ? nombreGenerico.trim() : null,
@@ -1481,16 +1488,16 @@ export const Catalog = () => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   <label htmlFor="cat-total-stock" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                    Total Stock
+                    Total Stock {editingId && <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>(editable)</span>}
                   </label>
                   <input
                     id="cat-total-stock"
                     type="number"
                     className="input-field"
                     value={cantidadTotal}
-                    disabled
+                    onChange={(e) => setCantidadTotal(e.target.value)}
                     placeholder="0"
-                    style={{ marginBottom: 0, cursor: 'not-allowed', backgroundColor: 'var(--bg-surface-hover)' }}
+                    style={{ marginBottom: 0 }}
                   />
                 </div>
               </div>
