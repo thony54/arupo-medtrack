@@ -687,7 +687,7 @@ export const Catalog = () => {
         if (editingId) {
           const { error: updateError } = await supabase.from('medicinas').update(medData).eq('id', editingId);
           if (updateError) throw updateError;
-          
+
           // Actualizar también el lote principal si estamos en modo edición
           if (editingLoteId) {
             const esMedico = esCategoriaMediaca(finalCategoriaNombre);
@@ -699,6 +699,26 @@ export const Catalog = () => {
             const { error: loteUpdateError } = await supabase.from('lotes').update(loteDataUpdate).eq('id', editingLoteId);
             if (loteUpdateError) throw loteUpdateError;
           }
+
+          // ─── Actualización optimista: parchear el item en el estado local inmediatamente ───
+          const catSeleccionada = categorias.find(c => c.id === finalCategoriaId);
+          setMedicinas(prev => {
+            const updated = prev.map(m => {
+              if (m.id !== editingId) return m;
+              return {
+                ...m,
+                ...medData,
+                categorias: catSeleccionada ? { nombre: catSeleccionada.nombre } : m.categorias,
+                lotes: editingLoteId
+                  ? (m.lotes || []).map(l => l.id === editingLoteId
+                      ? { ...l, numero_lote: numeroLote.trim() || l.numero_lote, fecha_vencimiento: fechaVencimiento || l.fecha_vencimiento }
+                      : l)
+                  : m.lotes,
+              };
+            });
+            return updated;
+          });
+
         } else {
           const { data: newMed, error: insertError } = await supabase.from('medicinas').insert(medData).select();
           if (insertError) throw insertError;
@@ -706,10 +726,20 @@ export const Catalog = () => {
             throw new Error('El ítem fue guardado, pero no se pudo recuperar el ID. Intenta recargar la página.');
           }
           savedMedId = newMed[0].id;
+
+          // ─── Actualización optimista: añadir el nuevo item al estado local ───
+          const catSeleccionadaNew = categorias.find(c => c.id === finalCategoriaId);
+          const nuevoItem = {
+            ...newMed[0],
+            categorias: catSeleccionadaNew ? { nombre: catSeleccionadaNew.nombre } : null,
+            lotes: [],
+          };
+          setMedicinas(prev =>
+            [...prev, nuevoItem].sort((a, b) => a.nombre.localeCompare(b.nombre))
+          );
         }
 
-        // Si se proporcionó lote o cantidad total y NO estamos editando (o si el usuario quiere crear un lote inicial)
-        // Solo creamos lote si hay cantidad o número de lote
+        // Si se proporcionó lote o cantidad total y NO estamos editando
         if (!editingId && (cantidadTotal || numeroLote)) {
           const esMedico = esCategoriaMediaca(finalCategoriaNombre);
           const loteData = {
@@ -719,10 +749,10 @@ export const Catalog = () => {
             fecha_vencimiento: esMedico ? (fechaVencimiento || FECHA_NO_VENCE) : FECHA_NO_VENCE,
             estado: 'Disponible'
           };
-          
+
           const { error: loteError } = await supabase.from('lotes').insert(loteData);
           if (loteError) throw loteError;
-          
+
           if (cantidadTotal && Number(cantidadTotal) > 0) {
             const { error: movError } = await supabase.from('movimientos').insert({
               medicina_id: savedMedId,
@@ -734,9 +764,12 @@ export const Catalog = () => {
           }
         }
 
-        await fetchData();
+        // Cerrar modal y resetear INMEDIATAMENTE (no esperar el fetch)
         setIsModalOpen(false);
         resetForm();
+
+        // Sincronizar con la BD en segundo plano (sin bloquear la UI)
+        fetchData();
       }
     } catch (err) {
       setError(err.message || 'Error al guardar el ítem.');
@@ -750,12 +783,19 @@ export const Catalog = () => {
       try {
         setLoading(true);
         if (supabase) {
-          // Borrar recursiva/manualmente movimientos y lotes para blindar restricciones de FK
+          // Optimistic delete: quitar el item del estado local inmediatamente
+          setMedicinas(prev => prev.filter(m => m.id !== id));
+          // Borrar en BD (con cascada manual por FK)
           await supabase.from('movimientos').delete().eq('medicina_id', id);
           await supabase.from('lotes').delete().eq('producto_id', id);
           const { error: delError } = await supabase.from('medicinas').delete().eq('id', id);
-          if (delError) throw delError;
-          await fetchData();
+          if (delError) {
+            // Revertir en caso de error
+            fetchData();
+            throw delError;
+          }
+          // Sincronizar en segundo plano
+          fetchData();
         }
       } catch (err) {
         alert(err.message || 'Error al borrar el ítem.');
