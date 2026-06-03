@@ -155,6 +155,7 @@ export const Catalog = () => {
   const [fechaVencimiento, setFechaVencimiento] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [editingLoteId, setEditingLoteId] = useState(null);
 
   // Excel Import states
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -187,7 +188,7 @@ export const Catalog = () => {
     if (!supabase) return;
     try {
       const [medRes, catRes] = await Promise.all([
-        supabase.from('medicinas').select('*, categorias(nombre)').order('nombre'),
+        supabase.from('medicinas').select('*, categorias(nombre), lotes(id, numero_lote, fecha_vencimiento)').order('nombre'),
         supabase.from('categorias').select('*').order('nombre')
       ]);
       if (medRes.error) throw medRes.error;
@@ -219,6 +220,7 @@ export const Catalog = () => {
     setObservaciones('');
     setTipoRegistro('medico');
     setEditingId(null);
+    setEditingLoteId(null);
     setError('');
   };
 
@@ -282,6 +284,19 @@ export const Catalog = () => {
     }
     
     setCantidadTotal(med.stock_actual != null ? String(med.stock_actual) : '');
+    
+    // Cargar datos del lote principal (si existe) para permitir su edición
+    if (med.lotes && med.lotes.length > 0) {
+      const primaryLote = med.lotes[0];
+      setNumeroLote(primaryLote.numero_lote || '');
+      setFechaVencimiento(primaryLote.fecha_vencimiento || '');
+      setEditingLoteId(primaryLote.id);
+    } else {
+      setNumeroLote('');
+      setFechaVencimiento('');
+      setEditingLoteId(null);
+    }
+    
     setObservaciones(med.observaciones || '');
     setEditingId(med.id);
     setIsModalOpen(true);
@@ -672,6 +687,18 @@ export const Catalog = () => {
         if (editingId) {
           const { error: updateError } = await supabase.from('medicinas').update(medData).eq('id', editingId);
           if (updateError) throw updateError;
+          
+          // Actualizar también el lote principal si estamos en modo edición
+          if (editingLoteId) {
+            const esMedico = esCategoriaMediaca(finalCategoriaNombre);
+            const loteDataUpdate = {
+              numero_lote: esMedico ? (numeroLote.trim() || 'S/N') : (numeroLote.trim() || generarLoteGeneral()),
+              fecha_vencimiento: esMedico ? (fechaVencimiento || FECHA_NO_VENCE) : FECHA_NO_VENCE,
+              cantidad_actual: cantidadTotal ? Number(cantidadTotal) : 0,
+            };
+            const { error: loteUpdateError } = await supabase.from('lotes').update(loteDataUpdate).eq('id', editingLoteId);
+            if (loteUpdateError) throw loteUpdateError;
+          }
         } else {
           const { data: newMed, error: insertError } = await supabase.from('medicinas').insert(medData).select();
           if (insertError) throw insertError;
@@ -1340,9 +1367,8 @@ export const Catalog = () => {
                 />
               </div>
 
-              {/* 4 y 5. Fecha de vencimiento y Lote (solo si no es edición, para mantener coherencia de lote inicial) */}
-              {!editingId && (
-                <div className="grid-responsive" style={{ gap: '1rem' }}>
+              {/* 4 y 5. Fecha de vencimiento y Lote (editable para correcciones) */}
+              <div className="grid-responsive" style={{ gap: '1rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     <label htmlFor="cat-venc-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
                       Fecha de vencimiento
@@ -1370,7 +1396,6 @@ export const Catalog = () => {
                     />
                   </div>
                 </div>
-              )}
 
               {/* 6. Concentración */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
