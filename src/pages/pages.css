@@ -1262,7 +1262,7 @@
 /* ── Scrollbar horizontal visible en PC para tablas largas ── */
 @media (min-width: 769px) {
   .table-container {
-    overflow-x: auto;
+    overflow-x: scroll;
     /* Compatibilidad con Firefox */
     scrollbar-width: thin;
     scrollbar-color: var(--primary-color) var(--bg-surface-hover);
