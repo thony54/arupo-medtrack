@@ -260,6 +260,7 @@ export const Inventory = () => {
             <tr>
               <th>N. Genérico</th>
               <th>N. Comercial</th>
+              <th>Concentración</th>
               <th>Tipo</th>
               <th>Categoría</th>
               <th>Presentación</th>
@@ -271,10 +272,10 @@ export const Inventory = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>Cargando inventario...</td></tr>
+              <tr><td colSpan="10" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>Cargando inventario...</td></tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan="10" style={{ textAlign: 'center', padding: '3rem' }}>
                   <Package size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
                   <span style={{ color: 'var(--text-secondary)' }}>No se encontraron resultados.</span>
                 </td>
@@ -296,7 +297,6 @@ export const Inventory = () => {
                           return '—';
                         })()}
                       </div>
-                      {med.concentracion && <div style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>{med.concentracion}</div>}
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>
                       {/* N. Comercial: campo separado si existe, si no parsear nombre */}
@@ -309,6 +309,10 @@ export const Inventory = () => {
                         }
                         return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
                       })()}
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      {/* Concentración: campo 100% separado */}
+                      {med.concentracion || (esMedico ? '—' : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>)}
                     </td>
                     <td>
                       <span style={{
