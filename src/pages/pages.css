@@ -1259,6 +1259,27 @@
 }
 
 
+/* ── Scrollbar horizontal visible en PC para tablas largas ── */
+@media (min-width: 769px) {
+  .table-container {
+    overflow-x: scroll;
+  }
 
+  .table-container::-webkit-scrollbar {
+    height: 7px;
+  }
 
+  .table-container::-webkit-scrollbar-track {
+    background: var(--bg-surface-hover);
+    border-radius: var(--radius-pill);
+  }
 
+  .table-container::-webkit-scrollbar-thumb {
+    background: var(--text-tertiary);
+    border-radius: var(--radius-pill);
+  }
+
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+  }
+}
