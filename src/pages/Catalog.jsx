@@ -189,15 +189,46 @@ export const Catalog = () => {
     try {
       const [medRes, catRes] = await Promise.all([
         supabase.from('medicinas').select('*, categorias(nombre), lotes(id, numero_lote, fecha_vencimiento)').order('nombre'),
-        supabase.from('categorias').select('*').order('nombre')
+        supabase.from('categorias').select('*')
       ]);
       if (medRes.error) throw medRes.error;
       if (catRes.error) throw catRes.error;
       setMedicinas(medRes.data || []);
-      setCategorias(catRes.data || []);
+      // Ordenar categorías según el orden en que aparecen en los medicamentos registrados
+      const catData = catRes.data || [];
+      const ordenado = [];
+      const seen = new Set();
+      (medRes.data || []).forEach(m => {
+        const nombre = m.categorias?.nombre;
+        if (nombre && !seen.has(nombre)) {
+          seen.add(nombre);
+          const obj = catData.find(c => c.nombre === nombre);
+          if (obj) ordenado.push(obj);
+        }
+      });
+      catData.forEach(c => { if (!seen.has(c.nombre)) ordenado.push(c); });
+      setCategorias(ordenado);
     } catch (err) {
       console.error('Error al cargar datos:', err);
     }
+  };
+
+  // Obtiene la fecha de caducidad más próxima de los lotes (excluye 2099)
+  const getFechaCaducidadCat = (lotes) => {
+    if (!lotes || lotes.length === 0) return null;
+    const validos = lotes
+      .filter(l => l.fecha_vencimiento && !l.fecha_vencimiento.startsWith('2099'))
+      .sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
+    return validos.length > 0 ? validos[0].fecha_vencimiento : null;
+  };
+
+  const formatFechaCat = (fechaStr) => {
+    if (!fechaStr) return null;
+    const fecha = new Date(fechaStr + 'T12:00:00');
+    const hoy = new Date();
+    const diffDias = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+    const texto = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return { texto, dias: diffDias };
   };
 
   const resetForm = () => {
@@ -805,12 +836,19 @@ export const Catalog = () => {
     }
   };
 
+  // Filtro por categoría seleccionada en la barra de chips
+  const [filtroCategoriaCatalog, setFiltroCategoriaCatalog] = useState('');
+
   const presentacionOptions = ['Tabletas', 'Cápsulas', 'Jarabe', 'Ampolla', 'Crema', 'Gotas', 'Unidad', 'Par', 'Kit', 'Otro'];
 
-  // Filtrar la lista según el tipo seleccionado
+  // Filtrar la lista según el tipo seleccionado y la categoría
   const medicinasFiltered = medicinas.filter(m => {
-    if (filtroTipo === 'medico') return esCategoriaMediaca(m.categorias?.nombre);
-    if (filtroTipo === 'general') return !esCategoriaMediaca(m.categorias?.nombre);
+    if (filtroTipo === 'medico') {
+      if (!esCategoriaMediaca(m.categorias?.nombre)) return false;
+    } else if (filtroTipo === 'general') {
+      if (esCategoriaMediaca(m.categorias?.nombre)) return false;
+    }
+    if (filtroCategoriaCatalog && m.categorias?.nombre !== filtroCategoriaCatalog) return false;
     return true;
   });
 
@@ -853,8 +891,8 @@ export const Catalog = () => {
         </div>
       </div>
 
-      {/* Filtro tipo */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+      {/* Filtro tipo + filtro por categoría */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
         {[
           { key: 'todos', label: 'Todos', count: medicinas.length },
           { key: 'medico', label: 'Médicos', count: medicinas.filter(m => esCategoriaMediaca(m.categorias?.nombre)).length },
@@ -862,7 +900,7 @@ export const Catalog = () => {
         ].map(f => (
           <button
             key={f.key}
-            onClick={() => setFiltroTipo(f.key)}
+            onClick={() => { setFiltroTipo(f.key); setFiltroCategoriaCatalog(''); }}
             style={{
               padding: '0.4rem 1rem',
               borderRadius: 'var(--radius-pill)',
@@ -881,6 +919,58 @@ export const Catalog = () => {
         ))}
       </div>
 
+      {/* Filtro por categoría (chips en el orden que aparecen en los datos) */}
+      {(() => {
+        // Obtener las categorías visibles según el filtro de tipo activo
+        const catsFiltradas = categorias.filter(c => {
+          if (filtroTipo === 'medico') return esCategoriaMediaca(c.nombre);
+          if (filtroTipo === 'general') return !esCategoriaMediaca(c.nombre);
+          return true;
+        });
+        if (catsFiltradas.length === 0) return null;
+        return (
+          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: '600', marginRight: '0.25rem' }}>Categoría:</span>
+            <button
+              onClick={() => setFiltroCategoriaCatalog('')}
+              style={{
+                padding: '0.3rem 0.8rem',
+                borderRadius: 'var(--radius-pill)',
+                border: `1.5px solid ${!filtroCategoriaCatalog ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                background: !filtroCategoriaCatalog ? 'var(--primary-light)' : 'var(--bg-surface)',
+                color: !filtroCategoriaCatalog ? 'var(--primary-hover)' : 'var(--text-secondary)',
+                fontWeight: !filtroCategoriaCatalog ? '700' : '400',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-family)',
+              }}
+            >
+              Todas
+            </button>
+            {catsFiltradas.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setFiltroCategoriaCatalog(filtroCategoriaCatalog === c.nombre ? '' : c.nombre)}
+                style={{
+                  padding: '0.3rem 0.8rem',
+                  borderRadius: 'var(--radius-pill)',
+                  border: `1.5px solid ${filtroCategoriaCatalog === c.nombre ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                  background: filtroCategoriaCatalog === c.nombre ? 'var(--primary-light)' : 'var(--bg-surface)',
+                  color: filtroCategoriaCatalog === c.nombre ? 'var(--primary-hover)' : 'var(--text-secondary)',
+                  fontWeight: filtroCategoriaCatalog === c.nombre ? '700' : '400',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-family)',
+                  transition: 'all var(--transition-fast)',
+                }}
+              >
+                {c.nombre}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       <div className="card" style={{ padding: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ background: filtroTipo === 'general' ? '#f5f3ff' : 'var(--primary-light)', color: filtroTipo === 'general' ? '#7c3aed' : 'var(--primary-color)', width: '36px', height: '36px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -895,11 +985,13 @@ export const Catalog = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Nombre</th>
+                <th>N. Genérico</th>
+                <th>N. Comercial</th>
                 <th>Tipo</th>
                 <th>Categoría</th>
                 <th>Laboratorio</th>
                 <th>Stock</th>
+                <th>Caducidad</th>
                 <th>Presentación</th>
                 <th style={{ width: '80px', textAlign: 'center' }}>Acciones</th>
               </tr>
@@ -907,10 +999,15 @@ export const Catalog = () => {
             <tbody>
               {medicinasFiltered.map((med) => {
                 const esMedico = esCategoriaMediaca(med.categorias?.nombre);
+                const fechaCad = esMedico ? getFechaCaducidadCat(med.lotes) : null;
+                const cadInfo = fechaCad ? formatFechaCat(fechaCad) : null;
                 return (
                   <tr key={med.id}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{med.nombre}</div>
+                      <div style={{ fontWeight: '600' }}>{med.nombre_generico || med.nombre || '—'}</div>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>
+                      {med.nombre_comercial || (esMedico ? '—' : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>)}
                     </td>
                     <td>
                       <span style={{
@@ -941,6 +1038,17 @@ export const Catalog = () => {
                         {med.stock_actual || 0}
                       </span>
                     </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {!esMedico
+                        ? <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>N/A</span>
+                        : cadInfo
+                          ? <span style={{ fontSize: '0.8rem', fontWeight: '600', color: cadInfo.dias <= 30 ? 'var(--danger-color)' : cadInfo.dias <= 90 ? 'var(--warning-color)' : 'var(--text-secondary)' }}>
+                              {cadInfo.texto}
+                              {cadInfo.dias <= 30 && <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.85 }}>{cadInfo.dias}d</span>}
+                            </span>
+                          : <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>—</span>
+                      }
+                    </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{med.presentacion || '-'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: '0.25rem' }}>
@@ -967,7 +1075,7 @@ export const Catalog = () => {
               })}
               {medicinasFiltered.length === 0 && (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Pill size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
                     <span style={{ color: 'var(--text-secondary)' }}>No hay ítems en esta categoría.<br />Añade el primero usando los botones de arriba.</span>
                   </td>

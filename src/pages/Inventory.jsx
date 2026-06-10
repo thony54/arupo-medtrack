@@ -57,13 +57,29 @@ export const Inventory = () => {
     try {
       if (!supabase) throw new Error('Sin conexión');
       const [medRes, catRes, alertRes] = await Promise.all([
-        supabase.from('medicinas').select('*, categorias(nombre)').order('nombre'),
-        supabase.from('categorias').select('*').order('nombre'),
+        supabase.from('medicinas').select('*, categorias(nombre), lotes(id, fecha_vencimiento, estado)').order('nombre'),
+        supabase.from('categorias').select('*'),
         supabase.from('alertas_vencimiento').select('*').limit(10)
       ]);
       if (medRes.error) throw medRes.error;
       setMedicinas(medRes.data || []);
-      setCategorias(catRes.data || []);
+      // Ordenar categorías por el orden en que aparecen en los medicamentos (no alfabético)
+      const catData = catRes.data || [];
+      const ordenCategoriasEnDatos = [];
+      const seen = new Set();
+      (medRes.data || []).forEach(m => {
+        const catNombre = m.categorias?.nombre;
+        if (catNombre && !seen.has(catNombre)) {
+          seen.add(catNombre);
+          const catObj = catData.find(c => c.nombre === catNombre);
+          if (catObj) ordenCategoriasEnDatos.push(catObj);
+        }
+      });
+      // Agregar categorías que no tienen medicamentos al final
+      catData.forEach(c => {
+        if (!seen.has(c.nombre)) ordenCategoriasEnDatos.push(c);
+      });
+      setCategorias(ordenCategoriasEnDatos);
       // Filtrar alertas: excluir ítems generales (fecha 2099) para evitar falsos positivos
       setAlertas(filtrarAlertasMedicas(alertRes.data || []));
     } catch {
@@ -80,6 +96,24 @@ export const Inventory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Obtiene la fecha de caducidad más próxima (no 2099) del primer lote disponible
+  const getFechaCaducidad = (lotes) => {
+    if (!lotes || lotes.length === 0) return null;
+    const validos = lotes
+      .filter(l => l.fecha_vencimiento && !l.fecha_vencimiento.startsWith('2099'))
+      .sort((a, b) => new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento));
+    return validos.length > 0 ? validos[0].fecha_vencimiento : null;
+  };
+
+  const formatCaducidad = (fechaStr) => {
+    if (!fechaStr) return '—';
+    const fecha = new Date(fechaStr + 'T12:00:00');
+    const hoy = new Date();
+    const diffDias = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+    const fechaFmt = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return { texto: fechaFmt, dias: diffDias };
   };
 
   const getStockStatus = (s) => s === 0 ? 'agotado' : s < 10 ? 'critico' : 'normal';
@@ -212,16 +246,17 @@ export const Inventory = () => {
               <th>Categoría</th>
               <th>Presentación</th>
               <th style={{ textAlign: 'center' }}>Cantidad</th>
+              <th style={{ textAlign: 'center' }}>Caducidad</th>
               <th style={{ textAlign: 'center' }}>Estado</th>
               <th style={{ textAlign: 'center' }}>Ver Lotes</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>Cargando inventario...</td></tr>
+              <tr><td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>Cargando inventario...</td></tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
                   <Package size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
                   <span style={{ color: 'var(--text-secondary)' }}>No se encontraron resultados.</span>
                 </td>
@@ -264,6 +299,21 @@ export const Inventory = () => {
                           <div style={{ width: `${Math.min(100, (med.stock_actual / 200) * 100)}%`, height: '100%', backgroundColor: getStockBarColor(med.stock_actual), borderRadius: '9999px' }} />
                         </div>
                       </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {(() => {
+                        if (!esMedico) return <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>N/A</span>;
+                        const fechaCad = getFechaCaducidad(med.lotes);
+                        if (!fechaCad) return <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>—</span>;
+                        const { texto, dias } = formatCaducidad(fechaCad);
+                        const color = dias <= 30 ? 'var(--danger-color)' : dias <= 90 ? 'var(--warning-color)' : 'var(--text-secondary)';
+                        return (
+                          <span style={{ fontSize: '0.8rem', fontWeight: '600', color }}>
+                            {texto}
+                            {dias <= 30 && <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.85 }}>{dias}d restantes</span>}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td style={{ textAlign: 'center' }}>{getStockBadge(med.stock_actual)}</td>
                     <td style={{ textAlign: 'center' }}>
