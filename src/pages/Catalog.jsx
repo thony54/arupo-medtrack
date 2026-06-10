@@ -836,19 +836,12 @@ export const Catalog = () => {
     }
   };
 
-  // Filtro por categoría seleccionada en la barra de chips
-  const [filtroCategoriaCatalog, setFiltroCategoriaCatalog] = useState('');
-
   const presentacionOptions = ['Tabletas', 'Cápsulas', 'Jarabe', 'Ampolla', 'Crema', 'Gotas', 'Unidad', 'Par', 'Kit', 'Otro'];
 
-  // Filtrar la lista según el tipo seleccionado y la categoría
+  // Filtrar la lista según el tipo seleccionado
   const medicinasFiltered = medicinas.filter(m => {
-    if (filtroTipo === 'medico') {
-      if (!esCategoriaMediaca(m.categorias?.nombre)) return false;
-    } else if (filtroTipo === 'general') {
-      if (esCategoriaMediaca(m.categorias?.nombre)) return false;
-    }
-    if (filtroCategoriaCatalog && m.categorias?.nombre !== filtroCategoriaCatalog) return false;
+    if (filtroTipo === 'medico') return esCategoriaMediaca(m.categorias?.nombre);
+    if (filtroTipo === 'general') return !esCategoriaMediaca(m.categorias?.nombre);
     return true;
   });
 
@@ -891,8 +884,8 @@ export const Catalog = () => {
         </div>
       </div>
 
-      {/* Filtro tipo + filtro por categoría */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+      {/* Filtro tipo */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         {[
           { key: 'todos', label: 'Todos', count: medicinas.length },
           { key: 'medico', label: 'Médicos', count: medicinas.filter(m => esCategoriaMediaca(m.categorias?.nombre)).length },
@@ -900,7 +893,7 @@ export const Catalog = () => {
         ].map(f => (
           <button
             key={f.key}
-            onClick={() => { setFiltroTipo(f.key); setFiltroCategoriaCatalog(''); }}
+            onClick={() => setFiltroTipo(f.key)}
             style={{
               padding: '0.4rem 1rem',
               borderRadius: 'var(--radius-pill)',
@@ -918,58 +911,6 @@ export const Catalog = () => {
           </button>
         ))}
       </div>
-
-      {/* Filtro por categoría (chips en el orden que aparecen en los datos) */}
-      {(() => {
-        // Obtener las categorías visibles según el filtro de tipo activo
-        const catsFiltradas = categorias.filter(c => {
-          if (filtroTipo === 'medico') return esCategoriaMediaca(c.nombre);
-          if (filtroTipo === 'general') return !esCategoriaMediaca(c.nombre);
-          return true;
-        });
-        if (catsFiltradas.length === 0) return null;
-        return (
-          <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: '600', marginRight: '0.25rem' }}>Categoría:</span>
-            <button
-              onClick={() => setFiltroCategoriaCatalog('')}
-              style={{
-                padding: '0.3rem 0.8rem',
-                borderRadius: 'var(--radius-pill)',
-                border: `1.5px solid ${!filtroCategoriaCatalog ? 'var(--primary-color)' : 'var(--border-color)'}`,
-                background: !filtroCategoriaCatalog ? 'var(--primary-light)' : 'var(--bg-surface)',
-                color: !filtroCategoriaCatalog ? 'var(--primary-hover)' : 'var(--text-secondary)',
-                fontWeight: !filtroCategoriaCatalog ? '700' : '400',
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-family)',
-              }}
-            >
-              Todas
-            </button>
-            {catsFiltradas.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setFiltroCategoriaCatalog(filtroCategoriaCatalog === c.nombre ? '' : c.nombre)}
-                style={{
-                  padding: '0.3rem 0.8rem',
-                  borderRadius: 'var(--radius-pill)',
-                  border: `1.5px solid ${filtroCategoriaCatalog === c.nombre ? 'var(--primary-color)' : 'var(--border-color)'}`,
-                  background: filtroCategoriaCatalog === c.nombre ? 'var(--primary-light)' : 'var(--bg-surface)',
-                  color: filtroCategoriaCatalog === c.nombre ? 'var(--primary-hover)' : 'var(--text-secondary)',
-                  fontWeight: filtroCategoriaCatalog === c.nombre ? '700' : '400',
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  fontFamily: 'var(--font-family)',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                {c.nombre}
-              </button>
-            ))}
-          </div>
-        );
-      })()}
 
       <div className="card" style={{ padding: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
