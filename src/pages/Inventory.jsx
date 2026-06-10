@@ -128,8 +128,14 @@ export const Inventory = () => {
   const filtered = medicinas.filter(m => {
     const q = searchTerm.toLowerCase();
     const matchQ = m.nombre.toLowerCase().includes(q) ||
+      (m.nombre_generico || '').toLowerCase().includes(q) ||
+      (m.nombre_comercial || '').toLowerCase().includes(q) ||
       (m.categorias?.nombre || '').toLowerCase().includes(q) ||
-      (m.concentracion || '').toLowerCase().includes(q);
+      (m.laboratorio || '').toLowerCase().includes(q) ||
+      (m.concentracion || '').toLowerCase().includes(q) ||
+      (m.presentacion || '').toLowerCase().includes(q) ||
+      (m.via_administracion || '').toLowerCase().includes(q) ||
+      (esProductoMedico(m) ? 'medico médica' : 'general').toLowerCase().includes(q);
     const matchCat = !filtroCategoria || m.categorias?.nombre === filtroCategoria;
     const matchEst = !filtroEstado || getStockStatus(m.stock_actual) === filtroEstado;
     return matchQ && matchCat && matchEst;

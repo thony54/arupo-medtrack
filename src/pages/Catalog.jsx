@@ -277,7 +277,7 @@ export const Catalog = () => {
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
     setTipoRegistro(esMedico ? 'medico' : 'general');
     setNombre(med.nombre);
-    setNombreGenerico(med.nombre_generico || '');
+    setNombreGenerico(med.nombre_generico || med.nombre || '');
     setNombreComercial(med.nombre_comercial || '');
     setConcentracion(med.concentracion || '');
     
@@ -912,7 +912,7 @@ export const Catalog = () => {
         ))}
       </div>
 
-      <div className="card" style={{ padding: 0 }}>
+      <div className="card" style={{ padding: 0, overflow: 'hidden', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ background: filtroTipo === 'general' ? '#f5f3ff' : 'var(--primary-light)', color: filtroTipo === 'general' ? '#7c3aed' : 'var(--primary-color)', width: '36px', height: '36px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {filtroTipo === 'general' ? <ShoppingBag size={18} /> : <Database size={18} />}
