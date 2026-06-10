@@ -125,9 +125,12 @@ export const Inventory = () => {
   const getStockBarColor = (s) =>
     s === 0 ? 'var(--danger-color)' : s < 10 ? 'var(--warning-color)' : 'var(--success-color)';
 
-  const filtered = medicinas.filter(m => {
+  // Primero filtrar solo por texto (sin aplicar aún filtroCategoria ni filtroEstado)
+  // para que el dropdown de categorías muestre solo las presentes en los resultados del texto
+  const filtradosPorTexto = medicinas.filter(m => {
+    if (!searchTerm) return true;
     const q = searchTerm.toLowerCase();
-    const matchQ = m.nombre.toLowerCase().includes(q) ||
+    return m.nombre.toLowerCase().includes(q) ||
       (m.nombre_generico || '').toLowerCase().includes(q) ||
       (m.nombre_comercial || '').toLowerCase().includes(q) ||
       (m.categorias?.nombre || '').toLowerCase().includes(q) ||
@@ -136,9 +139,17 @@ export const Inventory = () => {
       (m.presentacion || '').toLowerCase().includes(q) ||
       (m.via_administracion || '').toLowerCase().includes(q) ||
       (esProductoMedico(m) ? 'medico médica' : 'general').toLowerCase().includes(q);
+  });
+
+  // Categorías disponibles en el dropdown: solo las que aparecen en los resultados del texto
+  const categoriasEnResultados = categorias.filter(c =>
+    filtradosPorTexto.some(m => m.categorias?.nombre === c.nombre)
+  );
+
+  const filtered = filtradosPorTexto.filter(m => {
     const matchCat = !filtroCategoria || m.categorias?.nombre === filtroCategoria;
     const matchEst = !filtroEstado || getStockStatus(m.stock_actual) === filtroEstado;
-    return matchQ && matchCat && matchEst;
+    return matchCat && matchEst;
   });
 
   const activeFilters = [filtroCategoria, filtroEstado].filter(Boolean).length;
@@ -209,7 +220,7 @@ export const Inventory = () => {
               <select className="input-field" style={{ marginBottom: 0, cursor: 'pointer', width: '100%' }}
                 value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}>
                 <option value="">Todas las categorías</option>
-                {categorias.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
+                {categoriasEnResultados.map(c => <option key={c.id} value={c.nombre}>{c.nombre}</option>)}
               </select>
             </div>
             <div style={{ flex: '1 1 100%', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
