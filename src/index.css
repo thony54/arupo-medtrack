@@ -224,6 +224,11 @@ body {
   border-color: rgba(20, 184, 166, 0.35);
 }
 
+/* Card que no debe levitarse al hover (ej: tablas grandes) */
+.card-static:hover {
+  transform: none;
+}
+
 
 /* Responsive Utilities */
 .grid-responsive {
