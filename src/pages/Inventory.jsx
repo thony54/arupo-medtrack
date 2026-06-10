@@ -258,7 +258,8 @@ export const Inventory = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Producto</th>
+              <th>N. Genérico</th>
+              <th>N. Comercial</th>
               <th>Tipo</th>
               <th>Categoría</th>
               <th>Presentación</th>
@@ -270,10 +271,10 @@ export const Inventory = () => {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>Cargando inventario...</td></tr>
+              <tr><td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>Cargando inventario...</td></tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan="9" style={{ textAlign: 'center', padding: '3rem' }}>
                   <Package size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
                   <span style={{ color: 'var(--text-secondary)' }}>No se encontraron resultados.</span>
                 </td>
@@ -284,8 +285,30 @@ export const Inventory = () => {
                 return (
                   <tr key={med.id}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{med.nombre}</div>
+                      {/* N. Genérico: campo separado si existe, si no parsear nombre */}
+                      <div style={{ fontWeight: '600' }}>
+                        {(() => {
+                          if (med.nombre_generico) return med.nombre_generico;
+                          if (med.nombre) {
+                            const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+                            return m ? m[1].trim() : med.nombre.trim();
+                          }
+                          return '—';
+                        })()}
+                      </div>
                       {med.concentracion && <div style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>{med.concentracion}</div>}
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>
+                      {/* N. Comercial: campo separado si existe, si no parsear nombre */}
+                      {(() => {
+                        if (!esMedico) return <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>;
+                        if (med.nombre_comercial) return med.nombre_comercial;
+                        if (med.nombre) {
+                          const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+                          return m ? m[2].trim() : <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+                        }
+                        return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+                      })()}
                     </td>
                     <td>
                       <span style={{
