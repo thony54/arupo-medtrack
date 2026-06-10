@@ -225,8 +225,13 @@ body {
 }
 
 /* Card que no debe levitarse al hover (ej: tablas grandes) */
+/* overflow: clip recorta el contenido sin crear un scroll container, */
+/* permitiendo que los scrollbars de hijos sean visibles */
 .card-static:hover {
   transform: none;
+}
+.card-static {
+  overflow: clip;
 }
 
 
