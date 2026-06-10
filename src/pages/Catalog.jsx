@@ -277,8 +277,30 @@ export const Catalog = () => {
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
     setTipoRegistro(esMedico ? 'medico' : 'general');
     setNombre(med.nombre);
-    setNombreGenerico(med.nombre_generico || med.nombre || '');
-    setNombreComercial(med.nombre_comercial || '');
+
+    // Si la medicina ya tiene los campos separados (registradas con schema v14+), usarlos directamente.
+    // Si no (registros más antiguos), parsear el campo `nombre` que siempre tuvo el formato
+    // "Nombre Genérico (Nombre Comercial)" — NUNCA mezclar con concentracion.
+    if (med.nombre_generico) {
+      setNombreGenerico(med.nombre_generico);
+      setNombreComercial(med.nombre_comercial || '');
+    } else if (med.nombre) {
+      // Intentar extraer genérico y comercial del campo nombre: "Genérico (Comercial)"
+      const match = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+      if (match) {
+        setNombreGenerico(match[1].trim());
+        setNombreComercial(match[2].trim());
+      } else {
+        // Sin paréntesis: todo el nombre es el genérico, comercial vacío
+        setNombreGenerico(med.nombre.trim());
+        setNombreComercial('');
+      }
+    } else {
+      setNombreGenerico('');
+      setNombreComercial('');
+    }
+
+    // concentracion es un campo 100% separado, nunca forma parte del nombre
     setConcentracion(med.concentracion || '');
     
     if (med.via_administracion) {
