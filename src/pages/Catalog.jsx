@@ -950,6 +950,7 @@ export const Catalog = () => {
               <tr>
                 <th>N. Genérico</th>
                 <th>N. Comercial</th>
+                <th>Concentración</th>
                 <th>Tipo</th>
                 <th>Categoría</th>
                 <th>Laboratorio</th>
@@ -967,10 +968,33 @@ export const Catalog = () => {
                 return (
                   <tr key={med.id}>
                     <td>
-                      <div style={{ fontWeight: '600' }}>{med.nombre_generico || med.nombre || '—'}</div>
+                      {/* N. Genérico: usar campo separado si existe, si no parsear nombre */}
+                      <div style={{ fontWeight: '600' }}>
+                        {(() => {
+                          if (med.nombre_generico) return med.nombre_generico;
+                          if (med.nombre) {
+                            const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+                            return m ? m[1].trim() : med.nombre.trim();
+                          }
+                          return '—';
+                        })()}
+                      </div>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>
-                      {med.nombre_comercial || (esMedico ? '—' : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>)}
+                      {/* N. Comercial: usar campo separado si existe, si no parsear nombre */}
+                      {(() => {
+                        if (!esMedico) return <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>;
+                        if (med.nombre_comercial) return med.nombre_comercial;
+                        if (med.nombre) {
+                          const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+                          return m ? m[2].trim() : <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+                        }
+                        return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+                      })()}
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      {/* Concentración: campo 100% separado, nunca proviene del nombre */}
+                      {med.concentracion || (esMedico ? '—' : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>)}
                     </td>
                     <td>
                       <span style={{
