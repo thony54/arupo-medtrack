@@ -21,7 +21,7 @@ export const Login = () => {
     setLoading(true);
 
     try {
-      const { data, error: loginErr } = await signIn(email, password);
+      const { data, error: loginErr } = await signIn(email.trim().toLowerCase(), password);
       
       if (loginErr) {
         let msg = loginErr.message;
