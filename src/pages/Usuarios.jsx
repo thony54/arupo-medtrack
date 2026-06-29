@@ -11,13 +11,21 @@ import './pages.css';
 
 import { useAuth } from '../contexts/AuthContext';
 
-const ROLES = [
-  { value: 'brigadista', label: 'Brigadista (Manejo Médico e Inventario)' },
-  { value: 'voluntario', label: 'Voluntario (CRM, Donantes y Beneficiarios)' }
-];
-
 export const Usuarios = () => {
   const { user } = useAuth();
+  
+  const isDeveloper = user?.email?.toLowerCase() === 'thony.karter@gmail.com';
+  
+  const rolesDisponibles = isDeveloper 
+    ? [
+        { value: 'super_admin', label: 'Super Admin (Acceso Total)' },
+        { value: 'brigadista', label: 'Brigadista (Manejo Médico e Inventario)' },
+        { value: 'voluntario', label: 'Voluntario (CRM, Donantes y Beneficiarios)' }
+      ]
+    : [
+        { value: 'brigadista', label: 'Brigadista (Manejo Médico e Inventario)' },
+        { value: 'voluntario', label: 'Voluntario (CRM, Donantes y Beneficiarios)' }
+      ];
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -591,9 +599,34 @@ export const Usuarios = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol y Nivel de Acceso <span style={{ color: 'var(--danger-color)' }}>*</span></label>
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              {ROLES.map(r => {
+              {rolesDisponibles.map(r => {
                 const isActive = rol === r.value;
-                const Icon = r.value === 'brigadista' ? Shield : HandHeart;
+                let Icon = Shield;
+                if (r.value === 'voluntario') Icon = HandHeart;
+                if (r.value === 'super_admin') Icon = Shield;
+
+                let label = '';
+                let desc = '';
+                let activeColor = 'var(--primary-color)';
+                let activeBg = 'var(--primary-light)';
+
+                if (r.value === 'super_admin') {
+                  label = 'Super Admin';
+                  desc = 'Acceso total e irrestricto en todos los módulos y gestión de personal.';
+                  activeColor = 'var(--danger-color)';
+                  activeBg = 'var(--danger-bg)';
+                } else if (r.value === 'brigadista') {
+                  label = 'Brigadista';
+                  desc = 'Acceso a inventario médico, registro de lotes y entregas de medicinas.';
+                  activeColor = 'var(--primary-color)';
+                  activeBg = 'var(--primary-light)';
+                } else {
+                  label = 'Voluntario';
+                  desc = 'Acceso a CRM, gestión de donantes y registro de beneficiarios.';
+                  activeColor = '#7c3aed';
+                  activeBg = '#ede9fe';
+                }
+
                 return (
                   <button
                     key={r.value}
@@ -603,8 +636,8 @@ export const Usuarios = () => {
                       flex: '1 1 200px',
                       padding: '1rem',
                       borderRadius: 'var(--radius-lg)',
-                      border: `2px solid ${isActive ? 'var(--primary-color)' : 'var(--border-color)'}`,
-                      background: isActive ? 'var(--primary-light)' : 'var(--bg-surface)',
+                      border: `2px solid ${isActive ? activeColor : 'var(--border-color)'}`,
+                      background: isActive ? activeBg : 'var(--bg-surface)',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.5rem',
@@ -613,14 +646,12 @@ export const Usuarios = () => {
                       transition: 'all var(--transition-fast)'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isActive ? 'var(--primary-color)' : 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isActive ? activeColor : 'var(--text-secondary)' }}>
                       <Icon size={18} />
-                      <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{r.value === 'brigadista' ? 'Brigadista' : 'Voluntario'}</span>
+                      <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{label}</span>
                     </div>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>
-                      {r.value === 'brigadista' 
-                        ? 'Acceso a inventario médico, registro de lotes y entregas de medicinas.' 
-                        : 'Acceso a CRM, gestión de donantes y registro de beneficiarios.'}
+                      {desc}
                     </p>
                   </button>
                 );
