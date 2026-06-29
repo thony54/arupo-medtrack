@@ -12,7 +12,7 @@ import './pages.css';
 import { useAuth } from '../contexts/AuthContext';
 
 export const Usuarios = () => {
-  const { user } = useAuth();
+  const { user } = useAuth() || {};
   
   const isDeveloper = user?.email?.toLowerCase() === 'thony.karter@gmail.com';
   
