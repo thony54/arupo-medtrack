@@ -272,6 +272,19 @@
   scrollbar-width: thin;
 }
 
+/* Las tablas dentro de un modal (ej. carrito de "Entregar Donación") NO deben
+   heredar el min-width: 1100px ni el overflow-x: scroll forzado que usan las
+   tablas grandes de las páginas. Aquí el contenido es corto y debe caber en el
+   ancho del modal sin barra de scroll horizontal. */
+.modal-body .table-container {
+  overflow-x: auto;
+}
+
+.modal-body .data-table {
+  min-width: 0;
+  white-space: normal;
+}
+
 /* Ensure dropdown */
 @keyframes pulse {
   0% { opacity: 1; transform: scale(1); }
