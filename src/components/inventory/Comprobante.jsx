@@ -94,7 +94,7 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
         <Heart size={28} color="var(--success-color)" fill="var(--success-color)" />
         <div>
           <div style={{ fontWeight: '700', color: 'var(--success-color)' }}>¡Donación registrada con éxito!</div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Se entregaron {totalGeneral} unidades en total a {beneficiario?.nombre_completo}.</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Se entregaron {totalGeneral} unidades en total a {beneficiario?.nombre}.</div>
         </div>
       </div>
 

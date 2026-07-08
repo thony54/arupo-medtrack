@@ -103,7 +103,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
     }
 
     const destino = beneficiarioId
-      ? beneficiarios.find(b => b.id === beneficiarioId)?.nombre_completo
+      ? beneficiarios.find(b => b.id === beneficiarioId)?.nombre
       : destinoLibre.trim();
 
     try {
@@ -198,7 +198,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
               <Plus size={16} color="var(--primary-color)" /> 2. Añadir Medicamento a la Lista
             </div>
             
-            <div className="grid-responsive" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label htmlFor="sf-prod" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Medicamento <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                 <select id="sf-prod" className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
