@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Users, Phone, MapPin, FileText, Search, X, Trash2, IdCard } from 'lucide-react';
+import { UserPlus, Users, Phone, MapPin, FileText, Search, X, Trash2, IdCard, FileDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
+import { Comprobante } from '../components/inventory/Comprobante';
 import './pages.css';
 
 const CONDICIONES = ['Diabetes', 'Hipertensión', 'Cardiopatía', 'Embarazo', 'Adulto Mayor', 'Pediatría', 'Oncología', 'VIH/SIDA', 'Otra'];
@@ -19,6 +20,8 @@ export const Beneficiarios = () => {
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null); // for history panel
   const [historial, setHistorial] = useState([]);
+  const [entregas, setEntregas] = useState([]); // saved actas for the selected beneficiary
+  const [actaView, setActaView] = useState(null); // acta being viewed/printed
 
   // Form states
   const [nombre, setNombre] = useState('');
@@ -66,6 +69,17 @@ export const Beneficiarios = () => {
   const fetchHistorial = async (ben) => {
     setSelected(ben);
     if (!supabase) return;
+
+    // Actas de entrega guardadas (una factura por donación, descargable)
+    const { data: entregasData } = await supabase
+      .from('entregas')
+      .select('*')
+      .eq('beneficiario_id', ben.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setEntregas(entregasData || []);
+
+    // Movimientos individuales (respaldo / donaciones anteriores sin acta)
     const { data } = await supabase
       .from('movimientos')
       .select('*, medicinas(nombre)')
@@ -234,7 +248,7 @@ export const Beneficiarios = () => {
                 <div style={{ fontWeight: '700', fontSize: '1rem', lineHeight: '1.2' }}>{selected.nombre}</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>{selected.tipo} • ID: {selected.cedula || 'N/A'}</div>
               </div>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={18} /></button>
+              <button onClick={() => { setSelected(null); setEntregas([]); setHistorial([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={18} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
@@ -246,10 +260,39 @@ export const Beneficiarios = () => {
             <div style={{ fontWeight: '600', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
               Historial de Donaciones Recibidas
             </div>
-            {historial.length === 0 ? (
+
+            {entregas.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                {entregas.map(ent => {
+                  const meds = ent.acta?.donaciones || [];
+                  return (
+                    <div key={ent.id} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', background: 'var(--bg-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {new Date(ent.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                        <div style={{ color: 'var(--text-tertiary)', marginTop: '0.2rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {meds.length} medicamento{meds.length !== 1 ? 's' : ''} · <span style={{ fontWeight: '700', color: 'var(--success-color)' }}>{ent.total_unidades} u.</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setActaView(ent.acta)}
+                        title="Descargar / imprimir factura de esta donación"
+                        style={{ background: 'var(--primary-light)', border: '1px solid rgba(5,150,105,0.25)', color: 'var(--primary-color)', cursor: 'pointer', padding: '0.5rem', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                      >
+                        <FileDown size={18} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : historial.length === 0 ? (
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>Aún no ha recibido donaciones registradas.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem', fontStyle: 'italic', margin: '0 0 0.25rem' }}>
+                  Estas donaciones se registraron antes de activar las facturas descargables, por eso no tienen acta.
+                </p>
                 {historial.map(h => (
                   <div key={h.id} style={{ padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', background: 'var(--bg-surface)' }}>
                     <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{h.medicinas?.nombre}</div>
@@ -381,6 +424,21 @@ export const Beneficiarios = () => {
 
           <button type="submit" id="b-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
+      </Modal>
+
+      {/* Acta / Factura de una donación guardada */}
+      <Modal
+        isOpen={!!actaView}
+        onClose={() => setActaView(null)}
+        title="Acta de Donación"
+      >
+        {actaView && (
+          <Comprobante
+            beneficiario={actaView.beneficiario}
+            donaciones={actaView.donaciones || []}
+            onClose={() => setActaView(null)}
+          />
+        )}
       </Modal>
     </>
   );

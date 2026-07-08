@@ -127,11 +127,29 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
         });
       }
 
-      setActaData({
+      const acta = {
         beneficiario: beneficiarioId ? beneficiarios.find(b => b.id === beneficiarioId) : { nombre: destinoLibre },
         donaciones: donacionesProcesadas
-      });
-      
+      };
+
+      // Guardar el acta completa para poder descargarla despues desde el
+      // historial del beneficiario. No es critico: si falla (p.ej. la tabla
+      // 'entregas' aun no existe), la entrega ya quedo registrada igual.
+      try {
+        const totalUnidades = donacionesProcesadas.reduce((sum, d) => sum + (d.total_despachado || 0), 0);
+        const { error: saveErr } = await supabase.from('entregas').insert({
+          beneficiario_id: beneficiarioId || null,
+          destino,
+          acta,
+          total_unidades: totalUnidades
+        });
+        if (saveErr) console.warn('No se pudo guardar el acta de la entrega:', saveErr.message);
+      } catch (saveErr) {
+        console.warn('No se pudo guardar el acta de la entrega:', saveErr);
+      }
+
+      setActaData(acta);
+
     } catch (err) {
       setError(err.message || 'Error al procesar la donación. Revisa el stock.');
     } finally {
