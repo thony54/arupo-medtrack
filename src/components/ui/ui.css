@@ -285,6 +285,23 @@
   white-space: normal;
 }
 
+/* Las rejillas de formulario dentro de un modal NO deben usar las 3 columnas
+   que .grid-responsive aplica a partir de 1024px: el modal solo mide 34rem, así
+   que tres campos no caben y la rejilla se desborda. Como .modal-body recorta el
+   eje X (overflow-x: hidden), los campos de la derecha —cédula, correo,
+   discapacidad— quedaban cortados fuera de la pantalla.
+   minmax(0, 1fr) permite además que cada columna se encoja por debajo del ancho
+   intrínseco de un <input>, que es lo que provocaba el desborde. */
+.modal-body .grid-responsive {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .modal-body .grid-responsive {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Ensure dropdown */
 @keyframes pulse {
   0% { opacity: 1; transform: scale(1); }

@@ -368,7 +368,7 @@ export const Donantes = () => {
                 onChange={e => setTieneCarnet(e.target.checked)} 
                 style={{ width: '16px', height: '16px', accentColor: 'var(--primary-color)' }}
               />
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Posee Carnet de Discapacidad (CONADIS / MSP)</span>
+              <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>¿Posee Calificación de discapacidad?</span>
             </label>
           </div>
 
