@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { Printer, Heart } from 'lucide-react';
 import { Button } from '../ui/Button';
+// Logo oficial de los documentos (actas, comprobantes, PDFs).
+import logoArupo from '../../assets/logo.png';
 
 export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
   const printRef = useRef(null);
@@ -102,7 +104,7 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
         
         {/* Header con Logo */}
         <div className="header-flex" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--primary-color)', paddingBottom: '1.5rem' }}>
-          <img src="/arupo-logo.png" alt="Logo Fundación Arupo" className="logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+          <img src={logoArupo} alt="Logo Fundación Arupo" className="logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
           <div>
             <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary-color)', margin: '0 0 0.25rem 0' }}>
               Acta de Donación de Medicamentos

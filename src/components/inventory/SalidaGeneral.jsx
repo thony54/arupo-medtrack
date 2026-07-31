@@ -17,6 +17,8 @@ import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { CATEGORIAS_GENERALES, FECHA_NO_VENCE, formatFechaVenc } from '../../utils/itemUtils';
+// Logo oficial de los documentos (actas, comprobantes, PDFs).
+import logoArupo from '../../assets/logo.png';
 
 export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
   const [productos, setProductos] = useState([]);
@@ -448,7 +450,7 @@ const ActaGeneral = ({ actaData, onClose }) => {
 
       <div ref={printRef} style={{ fontSize: '0.9rem', background: '#fff', color: '#111', padding: '1.5rem', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid #7c3aed', paddingBottom: '1.5rem' }}>
-          <img src="/arupo-logo.png" alt="Logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+          <img src={logoArupo} alt="Logo" style={{ maxWidth: '120px', maxHeight: '80px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
           <div>
             <h1>Acta de Entrega de Ítems Generales</h1>
             <p className="subtitle">Fundación Arupo — Programa de Ayuda Humanitaria<br/>Fecha: {dateStr} a las {timeStr}</p>
