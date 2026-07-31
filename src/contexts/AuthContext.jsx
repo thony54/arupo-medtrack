@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, variablesFaltantes } from '../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -144,12 +144,22 @@ export const AuthProvider = ({ children }) => {
             No se ha podido establecer la conexión con la base de datos. Por favor, configura las variables de entorno en Vercel.
           </p>
           <div style={{ textAlign: 'left', background: '#f1f5f9', padding: '1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#334155', border: '1px solid #e2e8f0' }}>
-            <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600' }}>Variables requeridas en tu panel de Vercel:</p>
-            <code style={{ display: 'block', background: '#fff', padding: '0.4rem', borderRadius: '4px', marginBottom: '0.4rem', border: '1px solid #e2e8f0' }}>VITE_SUPABASE_URL</code>
-            <code style={{ display: 'block', background: '#fff', padding: '0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>VITE_SUPABASE_ANON_KEY</code>
+            <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600' }}>
+              {variablesFaltantes.length > 0
+                ? `Falta${variablesFaltantes.length > 1 ? 'n' : ''} en este build:`
+                : 'Variables requeridas en tu panel de Vercel:'}
+            </p>
+            {(variablesFaltantes.length > 0
+              ? variablesFaltantes
+              : ['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
+            ).map(v => (
+              <code key={v} style={{ display: 'block', background: '#fff', padding: '0.4rem', borderRadius: '4px', marginBottom: '0.4rem', border: '1px solid #e2e8f0' }}>{v}</code>
+            ))}
           </div>
-          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '1.5rem' }}>
-            Ingresa a Vercel &gt; Settings &gt; Environment Variables para agregarlas.
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '1.5rem', lineHeight: '1.5' }}>
+            Vercel &gt; Settings &gt; Environment Variables. Las variables <code>VITE_*</code> se
+            incrustan al compilar: si acabas de añadirlas, hay que <strong>volver a desplegar</strong>
+            {' '}para que el navegador las reciba.
           </p>
         </div>
       </div>
