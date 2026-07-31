@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethoscope, Edit2, Upload, HelpCircle } from 'lucide-react';
+import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethoscope, Edit2, Upload, HelpCircle, Search, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -134,6 +134,8 @@ export const Catalog = () => {
 
   // Filtro visual (médicos / generales / todos)
   const [filtroTipo, setFiltroTipo] = useState('todos');
+  // Buscador en tiempo real del catálogo
+  const [search, setSearch] = useState('');
 
   // Form states
   const [nombre, setNombre] = useState('');
@@ -860,8 +862,25 @@ export const Catalog = () => {
 
   const presentacionOptions = ['Tabletas', 'Cápsulas', 'Jarabe', 'Ampolla', 'Crema', 'Gotas', 'Unidad', 'Par', 'Kit', 'Otro'];
 
-  // Filtrar la lista según el tipo seleccionado
-  const medicinasFiltered = medicinas.filter(m => {
+  // 1) Filtrar por texto. Busca en todos los campos visibles de la tabla para que
+  //    el usuario pueda escribir lo que ve (genérico, comercial, lote, laboratorio…).
+  const medicinasPorTexto = medicinas.filter(m => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (m.nombre || '').toLowerCase().includes(q) ||
+      (m.nombre_generico || '').toLowerCase().includes(q) ||
+      (m.nombre_comercial || '').toLowerCase().includes(q) ||
+      (m.categorias?.nombre || '').toLowerCase().includes(q) ||
+      (m.laboratorio || '').toLowerCase().includes(q) ||
+      (m.concentracion || '').toLowerCase().includes(q) ||
+      (m.presentacion || '').toLowerCase().includes(q) ||
+      (m.via_administracion || '').toLowerCase().includes(q) ||
+      (m.observaciones || '').toLowerCase().includes(q) ||
+      (m.lotes || []).some(l => (l.numero_lote || '').toLowerCase().includes(q));
+  });
+
+  // 2) Filtrar por tipo (médico / general) sobre el resultado del texto
+  const medicinasFiltered = medicinasPorTexto.filter(m => {
     if (filtroTipo === 'medico') return esCategoriaMediaca(m.categorias?.nombre);
     if (filtroTipo === 'general') return !esCategoriaMediaca(m.categorias?.nombre);
     return true;
@@ -906,12 +925,44 @@ export const Catalog = () => {
         </div>
       </div>
 
+      {/* Buscador en tiempo real */}
+      <div className="card" style={{ padding: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ position: 'relative' }}>
+          <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+          <input
+            className="input-field"
+            style={{ paddingLeft: '2.75rem', paddingRight: search ? '2.75rem' : '1rem', marginBottom: 0, width: '100%' }}
+            placeholder="Buscar por nombre, categoría, laboratorio, concentración o lote..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            aria-label="Buscar en el catálogo"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              aria-label="Limpiar búsqueda"
+              style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.25rem', display: 'flex' }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        {search && (
+          <div style={{ marginTop: '0.6rem', fontSize: '0.8rem', color: medicinasFiltered.length === 0 ? 'var(--danger-color)' : 'var(--text-tertiary)' }}>
+            {medicinasFiltered.length === 0
+              ? 'Ningún ítem coincide con la búsqueda.'
+              : `${medicinasFiltered.length} de ${medicinas.length} ítems`}
+          </div>
+        )}
+      </div>
+
       {/* Filtro tipo */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         {[
-          { key: 'todos', label: 'Todos', count: medicinas.length },
-          { key: 'medico', label: 'Médicos', count: medicinas.filter(m => esCategoriaMediaca(m.categorias?.nombre)).length },
-          { key: 'general', label: 'Generales', count: medicinas.filter(m => !esCategoriaMediaca(m.categorias?.nombre)).length },
+          { key: 'todos', label: 'Todos', count: medicinasPorTexto.length },
+          { key: 'medico', label: 'Médicos', count: medicinasPorTexto.filter(m => esCategoriaMediaca(m.categorias?.nombre)).length },
+          { key: 'general', label: 'Generales', count: medicinasPorTexto.filter(m => !esCategoriaMediaca(m.categorias?.nombre)).length },
         ].map(f => (
           <button
             key={f.key}
@@ -1064,7 +1115,11 @@ export const Catalog = () => {
                 <tr>
                   <td colSpan="9" style={{ textAlign: 'center', padding: '3rem' }}>
                     <Pill size={40} style={{ margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', display: 'block' }} />
-                    <span style={{ color: 'var(--text-secondary)' }}>No hay ítems en esta categoría.<br />Añade el primero usando los botones de arriba.</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>
+                      {search
+                        ? <>No se encontraron ítems para «{search}».<br />Prueba con otro término o limpia la búsqueda.</>
+                        : <>No hay ítems en esta categoría.<br />Añade el primero usando los botones de arriba.</>}
+                    </span>
                   </td>
                 </tr>
               )}
