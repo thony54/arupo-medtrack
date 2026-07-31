@@ -7,26 +7,61 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Estado de la carga del perfil: 'idle' | 'loading' | 'ready' | 'error'.
+  // ProtectedRoute lo usa para NO decidir permisos mientras el rol se desconoce.
+  const [profileStatus, setProfileStatus] = useState('idle');
 
+  // FAIL CLOSED: si el perfil no se puede leer, el usuario se queda SIN rol.
+  // Antes se le asignaba 'super_admin', de forma que un fallo de red o una
+  // política RLS restrictiva promovía a cualquiera a administrador.
   const fetchProfile = async (userId) => {
     if (!supabase) return;
+    setProfileStatus('loading');
     try {
       const { data, error } = await supabase
         .from('perfiles')
         .select('*')
         .eq('id', userId)
         .single();
-      
+
       if (error) {
-        console.warn('Aviso de perfil. Tabla perfiles pendiente:', error.message);
-        // Asignar fallback de Admin Provisional en segundo plano sin bloquear UI
-        setProfile({ rol: 'super_admin', nombre: 'Administrador General' });
+        console.error('No se pudo leer el perfil del usuario:', error.message);
+        setProfile(null);
+        setProfileStatus('error');
       } else {
         setProfile(data);
+        setProfileStatus('ready');
       }
     } catch (err) {
-      console.error('Error de perfil en segundo plano:', err);
-      setProfile({ rol: 'super_admin', nombre: 'Administrador General' });
+      console.error('Error al leer el perfil:', err);
+      setProfile(null);
+      setProfileStatus('error');
+    }
+  };
+
+  // Borra los datos que la app deja en el navegador. En una tablet compartida
+  // entre brigadistas, sin esto el siguiente usuario recupera los datos del
+  // anterior desde Cache Storage o localStorage con las devtools.
+  const purgarDatosLocales = async () => {
+    try {
+      // La cola de acciones sin sincronizar es trabajo real del usuario:
+      // si queda algo pendiente NO se toca localStorage, se avisa por consola.
+      const pendientes = localStorage.getItem('medtrack_pending_sync');
+      const hayPendientes = pendientes && JSON.parse(pendientes).length > 0;
+
+      if (hayPendientes) {
+        console.warn('Hay acciones sin sincronizar: se conserva la caché local.');
+      } else {
+        Object.keys(localStorage)
+          .filter(k => k.startsWith('medtrack_'))
+          .forEach(k => localStorage.removeItem(k));
+      }
+
+      if ('caches' in window) {
+        await caches.delete('supabase-api-cache');
+      }
+    } catch (err) {
+      console.error('No se pudo limpiar la caché local:', err);
     }
   };
 
@@ -62,6 +97,7 @@ export const AuthProvider = ({ children }) => {
         fetchProfile(currentSession.user.id);
       } else {
         setProfile(null);
+        setProfileStatus('idle');
       }
     });
 
@@ -124,13 +160,17 @@ export const AuthProvider = ({ children }) => {
     session,
     user: session?.user,
     profile,
-    role: profile?.rol || 'super_admin',
-    isSuperAdmin: (profile?.rol || 'super_admin') === 'super_admin',
+    profileStatus,
+    // Sin perfil no hay rol. Nunca se asume un privilegio que no se ha leído.
+    role: profile?.rol || null,
+    isSuperAdmin: profile?.rol === 'super_admin',
     isBrigadista: profile?.rol === 'brigadista',
     isVoluntario: profile?.rol === 'voluntario',
     signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
-    signOut: () => {
+    signOut: async () => {
       setProfile(null);
+      setProfileStatus('idle');
+      await purgarDatosLocales();
       return supabase.auth.signOut();
     },
     refreshProfile: () => session?.user && fetchProfile(session.user.id)

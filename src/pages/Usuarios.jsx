@@ -109,7 +109,10 @@ export const Usuarios = () => {
     e.preventDefault();
     if (!nombre.trim()) return setError('El nombre es obligatorio.');
     if (!email.trim()) return setError('El email es obligatorio.');
-    if (!password || password.length < 6) return setError('La contraseña debe tener al menos 6 caracteres.');
+    // 12 caracteres: son cuentas con acceso a datos personales y clínicos.
+    // Ojo: esto es validación de interfaz. El mínimo real se configura en
+    // Supabase → Authentication → Policies; si allí sigue en 6, la API acepta 6.
+    if (!password || password.length < 12) return setError('La contraseña debe tener al menos 12 caracteres.');
     if (!rol) return setError('El rol es obligatorio.');
 
     setSaving(true);
@@ -579,9 +582,9 @@ export const Usuarios = () => {
                 style={{ marginBottom: 0, paddingRight: '2.5rem' }}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 12 caracteres"
                 required
-                minLength={6}
+                minLength={12}
                 disabled={saving}
               />
               <button 

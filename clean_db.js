@@ -6,6 +6,27 @@ import fs from 'fs';
 const envConfig = dotenv.parse(fs.readFileSync('.env.local'));
 const supabaseUrl = envConfig.VITE_SUPABASE_URL;
 const supabaseKey = envConfig.VITE_SUPABASE_ANON_KEY;
+
+// ─────────────────────────────────────────────────────────────
+// SEGURO CONTRA EJECUCIÓN ACCIDENTAL
+// Este script BORRA TODOS LOS DATOS de la base a la que apunte
+// .env.local, que hoy es PRODUCCIÓN. Antes bastaba con `node
+// clean_db.js` — sin confirmación, sin aviso, sin vuelta atrás.
+// ─────────────────────────────────────────────────────────────
+if (process.env.MEDTRACK_CONFIRMAR_BORRADO !== 'SI-BORRAR-TODO') {
+  console.error('\n⛔ Ejecución bloqueada.\n');
+  console.error('Este script borra movimientos, lotes, medicinas, donantes y');
+  console.error('beneficiarios de la base:');
+  console.error(`   ${supabaseUrl}\n`);
+  console.error('Si es REALMENTE lo que quieres, vuelve a lanzarlo así:\n');
+  console.error('   PowerShell:  $env:MEDTRACK_CONFIRMAR_BORRADO="SI-BORRAR-TODO"; node clean_db.js');
+  console.error('   Bash:        MEDTRACK_CONFIRMAR_BORRADO=SI-BORRAR-TODO node clean_db.js\n');
+  console.error('Antes de hacerlo, comprueba que esa URL NO es la de producción.\n');
+  process.exit(1);
+}
+
+console.warn(`\n⚠️  Borrando datos de: ${supabaseUrl}\n`);
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function clean() {

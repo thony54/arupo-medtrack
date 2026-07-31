@@ -115,7 +115,8 @@ export const ProfileDropdown = () => {
                   {showEmail ? <EyeOff size={12} /> : <Eye size={12} />}
                 </button>
               </div>
-              <p className="user-role-mini">{role.replace('_', ' ')}</p>
+              {/* role puede ser null mientras el perfil carga o si no se pudo leer */}
+              <p className="user-role-mini">{(role || 'sin rol asignado').replace('_', ' ')}</p>
             </div>
           </div>
 

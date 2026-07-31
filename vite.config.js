@@ -40,16 +40,24 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.href.includes('supabase.co/rest/v1'),
+            // Solo se cachea lo que el modo offline necesita de verdad:
+            // catálogo, lotes y categorías. Antes se cacheaba TODO
+            // /rest/v1, incluidos `beneficiarios` (nombre, cédula,
+            // dirección) y `evaluaciones_salud` (datos clínicos), que
+            // quedaban 30 días en el disco del navegador.
+            urlPattern: ({ url }) =>
+              url.href.includes('supabase.co/rest/v1') &&
+              /\/rest\/v1\/(medicinas|lotes|categorias)(\?|$)/.test(url.href),
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'supabase-api-cache',
               expiration: {
                 maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 días
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 días (antes 30)
               },
               cacheableResponse: {
-                statuses: [0, 200]
+                // Sin el 0: las respuestas opacas no deben almacenarse.
+                statuses: [200]
               }
             }
           }

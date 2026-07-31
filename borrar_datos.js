@@ -7,6 +7,24 @@ import fs from 'fs';
 const envConfig = dotenv.parse(fs.readFileSync('.env.local'));
 const supabaseUrl = envConfig.VITE_SUPABASE_URL;
 const supabaseKey = envConfig.VITE_SUPABASE_ANON_KEY;
+
+// ─────────────────────────────────────────────────────────────
+// SEGURO CONTRA EJECUCIÓN ACCIDENTAL
+// Borra datos reales de la base indicada en .env.local (hoy,
+// PRODUCCIÓN). El menú interactivo no distingue de qué entorno
+// se trata, así que se exige una confirmación explícita antes.
+// ─────────────────────────────────────────────────────────────
+if (process.env.MEDTRACK_CONFIRMAR_BORRADO !== 'SI-BORRAR-TODO') {
+  console.error('\n⛔ Ejecución bloqueada.\n');
+  console.error(`Este script borra datos de: ${supabaseUrl}\n`);
+  console.error('Si es REALMENTE lo que quieres, vuelve a lanzarlo así:\n');
+  console.error('   PowerShell:  $env:MEDTRACK_CONFIRMAR_BORRADO="SI-BORRAR-TODO"; node borrar_datos.js');
+  console.error('   Bash:        MEDTRACK_CONFIRMAR_BORRADO=SI-BORRAR-TODO node borrar_datos.js\n');
+  process.exit(1);
+}
+
+console.warn(`\n⚠️  Conectado a: ${supabaseUrl}\n`);
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const rl = readline.createInterface({
