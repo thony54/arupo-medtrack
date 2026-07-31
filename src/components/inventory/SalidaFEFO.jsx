@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, ListChecks } from 'lucide-react';
+import { Plus, Trash2, ListChecks, Search, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -19,6 +19,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
   // Current item states
   const [productoId, setProductoId] = useState('');
   const [cantidad, setCantidad] = useState('');
+  const [busquedaMed, setBusquedaMed] = useState(''); // buscador en tiempo real del selector
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -47,8 +48,24 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const resetCurrentItem = () => {
-    setProductoId(''); setCantidad(''); setError('');
+    setProductoId(''); setCantidad(''); setBusquedaMed(''); setError('');
   };
+
+  // Buscador en tiempo real: filtra las opciones del selector mientras se escribe.
+  // El medicamento ya seleccionado siempre se mantiene visible aunque no coincida.
+  const medicinasFiltradas = (() => {
+    const q = busquedaMed.trim().toLowerCase();
+    if (!q) return medicinas;
+    const coincide = medicinas.filter(m =>
+      (m.nombre || '').toLowerCase().includes(q) ||
+      (m.concentracion || '').toLowerCase().includes(q)
+    );
+    if (productoId && !coincide.some(m => m.id === productoId)) {
+      const sel = medicinas.find(m => m.id === productoId);
+      if (sel) return [sel, ...coincide];
+    }
+    return coincide;
+  })();
 
   const resetAll = () => {
     resetCurrentItem();
@@ -219,13 +236,49 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label htmlFor="sf-prod" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Medicamento <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+
+                {/* Buscador en tiempo real — filtra el selector de abajo mientras se escribe */}
+                <div style={{ position: 'relative' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+                  <input
+                    id="sf-buscar"
+                    className="input-field"
+                    style={{ marginBottom: 0, paddingLeft: '2.4rem', paddingRight: busquedaMed ? '2.4rem' : undefined }}
+                    type="text"
+                    value={busquedaMed}
+                    onChange={e => setBusquedaMed(e.target.value)}
+                    placeholder="Buscar medicamento..."
+                    aria-label="Buscar medicamento en la lista"
+                    autoComplete="off"
+                  />
+                  {busquedaMed && (
+                    <button
+                      type="button"
+                      onClick={() => setBusquedaMed('')}
+                      aria-label="Limpiar búsqueda"
+                      style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '0.2rem', display: 'flex' }}
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+
                 <select id="sf-prod" className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
-                  value={productoId} onChange={e => setProductoId(e.target.value)} required>
+                  value={productoId} onChange={e => setProductoId(e.target.value)} required
+                  size={busquedaMed ? Math.min(6, Math.max(2, medicinasFiltradas.length + 1)) : undefined}>
                   <option value="">— Selecciona un medicamento —</option>
-                  {medicinas.map(m => (
+                  {medicinasFiltradas.map(m => (
                     <option key={m.id} value={m.id}>{m.nombre}{m.concentracion ? ` (${m.concentracion})` : ''} — Disp: {m.stock_actual}</option>
                   ))}
                 </select>
+
+                {busquedaMed && (
+                  <span style={{ fontSize: '0.75rem', color: medicinasFiltradas.length === 0 ? 'var(--danger-color)' : 'var(--text-tertiary)' }}>
+                    {medicinasFiltradas.length === 0
+                      ? 'Sin coincidencias con la búsqueda.'
+                      : `${medicinasFiltradas.length} de ${medicinas.length} medicamentos`}
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

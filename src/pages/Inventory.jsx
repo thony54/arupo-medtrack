@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Camera, X, ChevronRight, Package, Wifi, WifiOff, HandHeart, ShoppingBag } from 'lucide-react';
+import { Plus, Search, Filter, Camera, X, ChevronRight, Package, Wifi, WifiOff, HandHeart, ShoppingBag, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { Modal } from '../components/ui/Modal';
 import { useOfflineCache } from '../hooks/useOfflineCache';
-import { filtrarAlertasMedicas, esProductoMedico } from '../utils/itemUtils';
+import { filtrarAlertasMedicas, esProductoMedico, esCategoriaMediaca } from '../utils/itemUtils';
 import './pages.css';
+
+// Vías de administración sugeridas (mismo listado que el Catálogo Maestro)
+const VIAS_ADMINISTRACION = [
+  'Oral', 'Intravenosa', 'Intramuscular', 'Subcutánea', 'Tópica',
+  'Oftálmica', 'Ótica', 'Sublingual', 'Inhalatoria',
+];
 
 export const Inventory = () => {
   const navigate = useNavigate();
@@ -19,6 +26,15 @@ export const Inventory = () => {
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const { isOnline, pendingCount, fetchMedicinas: fetchOffline } = useOfflineCache();
+
+  // ─── Edición de ítem (solo datos descriptivos; el stock/lotes NO se tocan aquí) ───
+  const [editItem, setEditItem] = useState(null); // ítem en edición o null
+  const [editForm, setEditForm] = useState({
+    nombre: '', nombreGenerico: '', nombreComercial: '', concentracion: '',
+    categoriaId: '', presentacion: '', laboratorio: '', viaAdministracion: '', observaciones: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => { 
     fetchData(); 
@@ -114,6 +130,90 @@ export const Inventory = () => {
     const diffDias = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
     const fechaFmt = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
     return { texto: fechaFmt, dias: diffDias };
+  };
+
+  // ─── Edición de ítem ───────────────────────────────────────────────
+  // Abre el modal con los datos actuales. Los nombres genérico/comercial se
+  // toman de sus columnas si existen; si no, se parsea "Genérico (Comercial)".
+  const handleOpenEdit = (med) => {
+    let generico = med.nombre_generico || '';
+    let comercial = med.nombre_comercial || '';
+    if (!generico && med.nombre) {
+      const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
+      generico = m ? m[1].trim() : med.nombre.trim();
+      comercial = m ? m[2].trim() : '';
+    }
+    setEditForm({
+      nombre: med.nombre || '',
+      nombreGenerico: generico,
+      nombreComercial: comercial,
+      concentracion: med.concentracion || '',
+      categoriaId: med.categoria_id || '',
+      presentacion: med.presentacion || '',
+      laboratorio: med.laboratorio || '',
+      viaAdministracion: med.via_administracion || '',
+      observaciones: med.observaciones || '',
+    });
+    setEditError('');
+    setEditItem(med);
+  };
+
+  const closeEdit = () => { setEditItem(null); setEditError(''); };
+
+  // Categoría seleccionada en el modal → determina si el ítem es médico o general
+  const categoriaEdit = categorias.find(c => c.id === editForm.categoriaId);
+  const editEsMedico = esCategoriaMediaca(categoriaEdit?.nombre);
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    setEditError('');
+
+    if (editEsMedico && !editForm.nombreGenerico.trim()) {
+      setEditError('El nombre genérico es obligatorio.'); return;
+    }
+    if (!editEsMedico && !editForm.nombre.trim()) {
+      setEditError('El nombre del ítem es obligatorio.'); return;
+    }
+    if (!editForm.categoriaId) { setEditError('Debes seleccionar una categoría.'); return; }
+    if (!supabase) { setEditError('Sin conexión con el servidor. Intenta más tarde.'); return; }
+
+    // Nombre maestro: "Genérico (Comercial)" para médicos, nombre plano para generales
+    const gen = editForm.nombreGenerico.trim();
+    const com = editForm.nombreComercial.trim();
+    const finalNombre = editEsMedico
+      ? (com ? `${gen} (${com})` : gen)
+      : editForm.nombre.trim();
+
+    const medData = {
+      nombre: finalNombre,
+      categoria_id: editForm.categoriaId,
+      presentacion: editForm.presentacion.trim() || null,
+      observaciones: editForm.observaciones.trim() || null,
+      nombre_generico: editEsMedico ? gen : null,
+      nombre_comercial: editEsMedico ? (com || null) : null,
+      concentracion: editEsMedico ? (editForm.concentracion.trim() || null) : null,
+      laboratorio: editEsMedico ? (editForm.laboratorio.trim() || null) : null,
+      via_administracion: editEsMedico ? (editForm.viaAdministracion.trim() || null) : null,
+    };
+
+    try {
+      setSavingEdit(true);
+      const { error: updErr } = await supabase.from('medicinas').update(medData).eq('id', editItem.id);
+      if (updErr) throw updErr;
+
+      // Actualización optimista para que el cambio se vea al instante
+      setMedicinas(prev => prev.map(m => m.id === editItem.id
+        ? { ...m, ...medData, categorias: categoriaEdit ? { nombre: categoriaEdit.nombre } : m.categorias }
+        : m));
+
+      closeEdit();
+      fetchData(); // sincronizar en segundo plano
+    } catch (err) {
+      console.error('Error al actualizar el ítem:', err);
+      setEditError('No se pudo guardar el ítem. Verifica los datos e intenta de nuevo.');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const getStockStatus = (s) => s === 0 ? 'agotado' : s < 10 ? 'critico' : 'normal';
@@ -267,7 +367,7 @@ export const Inventory = () => {
               <th style={{ textAlign: 'center' }}>Cantidad</th>
               <th style={{ textAlign: 'center' }}>Caducidad</th>
               <th style={{ textAlign: 'center' }}>Estado</th>
-              <th style={{ textAlign: 'center' }}>Ver Lotes</th>
+              <th style={{ textAlign: 'center' }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -361,11 +461,20 @@ export const Inventory = () => {
                     </td>
                     <td style={{ textAlign: 'center' }}>{getStockBadge(med.stock_actual)}</td>
                     <td style={{ textAlign: 'center' }}>
-                      <Button variant="ghost" onClick={() => navigate(`/lotes/${med.id}`)}
-                        style={{ minWidth: '44px', minHeight: '44px', gap: '0.25rem' }}
-                        aria-label={`Ver lotes de ${med.nombre}`}>
-                        Ver <ChevronRight size={14} />
-                      </Button>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                        <Button variant="ghost" onClick={() => navigate(`/lotes/${med.id}`)}
+                          style={{ minWidth: '44px', minHeight: '44px', gap: '0.25rem' }}
+                          aria-label={`Ver lotes de ${med.nombre}`}>
+                          Ver <ChevronRight size={14} />
+                        </Button>
+                        <button
+                          onClick={() => handleOpenEdit(med)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary-color)', minWidth: '44px', minHeight: '44px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          title={esMedico ? 'Editar medicamento' : 'Editar ítem general'}
+                          aria-label={`Editar ${med.nombre}`}>
+                          <Edit2 size={17} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -374,6 +483,130 @@ export const Inventory = () => {
           </tbody>
         </table>
       </div>
+
+      {/* ─── Modal: Editar ítem (medicamento o ítem general) ─── */}
+      <Modal
+        isOpen={!!editItem}
+        onClose={closeEdit}
+        title={editEsMedico ? 'Editar Medicamento' : 'Editar Ítem General'}
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={closeEdit} disabled={savingEdit}>Cancelar</Button>
+            <Button type="submit" form="form-editar-item" variant="primary" disabled={savingEdit}>
+              {savingEdit ? 'Guardando...' : 'Guardar cambios'}
+            </Button>
+          </>
+        }
+      >
+        <form id="form-editar-item" onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ padding: '0.75rem 0.9rem', background: 'var(--bg-surface-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            Aquí se editan solo los <strong>datos del ítem</strong>. La cantidad, los lotes y las
+            fechas de vencimiento se gestionan desde <strong>Ver lotes</strong> para no alterar el stock registrado.
+          </div>
+
+          {editError && (
+            <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+              {editError}
+            </div>
+          )}
+
+          {editEsMedico ? (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="ed-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Nombre Genérico <span style={{ color: 'var(--danger-color)' }}>*</span>
+                </label>
+                <input id="ed-gen" className="input-field" style={{ marginBottom: 0 }} required
+                  value={editForm.nombreGenerico}
+                  onChange={e => setEditForm({ ...editForm, nombreGenerico: e.target.value })} />
+              </div>
+              <div className="grid-responsive" style={{ gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="ed-com" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nombre Comercial</label>
+                  <input id="ed-com" className="input-field" style={{ marginBottom: 0 }}
+                    value={editForm.nombreComercial}
+                    onChange={e => setEditForm({ ...editForm, nombreComercial: e.target.value })} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  <label htmlFor="ed-conc" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Concentración</label>
+                  <input id="ed-conc" className="input-field" style={{ marginBottom: 0 }} placeholder="Ej. 500mg"
+                    value={editForm.concentracion}
+                    onChange={e => setEditForm({ ...editForm, concentracion: e.target.value })} />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="ed-nom" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Nombre del ítem <span style={{ color: 'var(--danger-color)' }}>*</span>
+              </label>
+              <input id="ed-nom" className="input-field" style={{ marginBottom: 0 }} required
+                value={editForm.nombre}
+                onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
+            </div>
+          )}
+
+          <div className="grid-responsive" style={{ gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="ed-cat" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                Categoría <span style={{ color: 'var(--danger-color)' }}>*</span>
+              </label>
+              <select id="ed-cat" className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }} required
+                value={editForm.categoriaId}
+                onChange={e => setEditForm({ ...editForm, categoriaId: e.target.value })}>
+                <option value="">— Selecciona categoría —</option>
+                <optgroup label="Médicas">
+                  {categorias.filter(c => esCategoriaMediaca(c.nombre)).map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Generales">
+                  {categorias.filter(c => !esCategoriaMediaca(c.nombre)).map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <label htmlFor="ed-pres" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Presentación</label>
+              <input id="ed-pres" className="input-field" style={{ marginBottom: 0 }} placeholder="Ej. Tabletas / Unidad"
+                value={editForm.presentacion}
+                onChange={e => setEditForm({ ...editForm, presentacion: e.target.value })} />
+            </div>
+          </div>
+
+          {editEsMedico && (
+            <div className="grid-responsive" style={{ gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="ed-lab" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Laboratorio</label>
+                <input id="ed-lab" className="input-field" style={{ marginBottom: 0 }}
+                  value={editForm.laboratorio}
+                  onChange={e => setEditForm({ ...editForm, laboratorio: e.target.value })} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <label htmlFor="ed-via" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Vía de administración</label>
+                <input id="ed-via" className="input-field" style={{ marginBottom: 0 }} list="vias-admin-list" placeholder="Ej. Oral"
+                  value={editForm.viaAdministracion}
+                  onChange={e => setEditForm({ ...editForm, viaAdministracion: e.target.value })} />
+                <datalist id="vias-admin-list">
+                  {VIAS_ADMINISTRACION.map(v => <option key={v} value={v} />)}
+                </datalist>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            <label htmlFor="ed-obs" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Observaciones</label>
+            <textarea id="ed-obs" className="input-field" style={{ marginBottom: 0, minHeight: '70px', resize: 'vertical' }}
+              value={editForm.observaciones}
+              onChange={e => setEditForm({ ...editForm, observaciones: e.target.value })} />
+          </div>
+
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+            Cantidad actual en stock: <strong>{editItem?.stock_actual ?? 0}</strong> (no editable aquí)
+          </div>
+        </form>
+      </Modal>
 
     </div>
   );
