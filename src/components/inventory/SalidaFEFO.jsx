@@ -67,6 +67,12 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
     return coincide;
   })();
 
+  // Si la búsqueda deja un único resultado, se da por seleccionado sin que el
+  // usuario tenga que abrir el desplegable. Era el punto donde se atascaba:
+  // se buscaba el medicamento, se veía en la lista, pero nunca se elegía.
+  const productoIdEfectivo = productoId ||
+    (busquedaMed.trim() && medicinasFiltradas.length === 1 ? medicinasFiltradas[0].id : '');
+
   const resetAll = () => {
     resetCurrentItem();
     setBeneficiarioId(''); setDestinoLibre('');
@@ -77,11 +83,11 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
     e.preventDefault();
     setError('');
     
-    if (!productoId) { setError('Selecciona un medicamento.'); return; }
-    if (!cantidad || Number(cantidad) <= 0) { setError('La cantidad debe ser mayor a 0.'); return; }
+    if (!productoIdEfectivo) { setError('Selecciona un medicamento de la lista.'); return; }
+    if (!cantidad || Number(cantidad) <= 0) { setError('Indica una cantidad mayor a 0.'); return; }
 
-    const med = medicinas.find(m => m.id === productoId);
-    if (!med) return;
+    const med = medicinas.find(m => m.id === productoIdEfectivo);
+    if (!med) { setError('No se encontró el medicamento seleccionado. Vuelve a elegirlo.'); return; }
 
     if (Number(cantidad) > med.stock_actual) {
       setError(`Solo hay ${med.stock_actual} unidades disponibles de este medicamento.`);
@@ -89,7 +95,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
     }
 
     // Check if already in cart to sum quantities to avoid over-drafting
-    const existingQty = cart.filter(c => c.productoId === productoId).reduce((sum, item) => sum + item.cantidad, 0);
+    const existingQty = cart.filter(c => c.productoId === productoIdEfectivo).reduce((sum, item) => sum + item.cantidad, 0);
     if (existingQty + Number(cantidad) > med.stock_actual) {
       setError(`No hay suficiente stock. Ya tienes ${existingQty} en la lista y solo hay ${med.stock_actual} disponibles.`);
       return;
@@ -97,7 +103,7 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
 
     const newItem = {
       id: Date.now().toString(),
-      productoId,
+      productoId: productoIdEfectivo,
       medNameDisplay: `${med.nombre} ${med.concentracion ? `(${med.concentracion})` : ''}`,
       cantidad: Number(cantidad)
     };
@@ -247,6 +253,9 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
                     type="text"
                     value={busquedaMed}
                     onChange={e => setBusquedaMed(e.target.value)}
+                    // Enter aquí no debe enviar el formulario: el usuario está buscando,
+                    // todavía no añadiendo. Sin esto se dispara el submit a medio escribir.
+                    onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
                     placeholder="Buscar medicamento..."
                     aria-label="Buscar medicamento en la lista"
                     autoComplete="off"
@@ -263,9 +272,10 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
                   )}
                 </div>
 
+                {/* Desplegable normal a propósito: con `size` se convierte en listbox y
+                    es fácil creer que ya se eligió algo sin haber hecho clic en la fila. */}
                 <select id="sf-prod" className="input-field" style={{ marginBottom: 0, cursor: 'pointer' }}
-                  value={productoId} onChange={e => setProductoId(e.target.value)} required
-                  size={busquedaMed ? Math.min(6, Math.max(2, medicinasFiltradas.length + 1)) : undefined}>
+                  value={productoIdEfectivo} onChange={e => setProductoId(e.target.value)}>
                   <option value="">— Selecciona un medicamento —</option>
                   {medicinasFiltradas.map(m => (
                     <option key={m.id} value={m.id}>{m.nombre}{m.concentracion ? ` (${m.concentracion})` : ''} — Disp: {m.stock_actual}</option>
@@ -276,15 +286,20 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
                   <span style={{ fontSize: '0.75rem', color: medicinasFiltradas.length === 0 ? 'var(--danger-color)' : 'var(--text-tertiary)' }}>
                     {medicinasFiltradas.length === 0
                       ? 'Sin coincidencias con la búsqueda.'
-                      : `${medicinasFiltradas.length} de ${medicinas.length} medicamentos`}
+                      : medicinasFiltradas.length === 1
+                        ? '1 coincidencia — ya está seleccionada, indica la cantidad.'
+                        : `${medicinasFiltradas.length} de ${medicinas.length} medicamentos — elígelo en la lista`}
                   </span>
                 )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                 <label htmlFor="sf-cant" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Cantidad <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+                {/* Sin `required`: la validación la hace handleAddToCart y muestra el
+                    motivo dentro del modal. El aviso nativo del navegador puede quedar
+                    fuera de vista y da la sensación de que el botón no hace nada. */}
                 <input id="sf-cant" className="input-field" style={{ marginBottom: 0 }}
-                  type="number" min="1" value={cantidad} onChange={e => setCantidad(e.target.value)} placeholder="Ej. 30" required />
+                  type="number" min="1" value={cantidad} onChange={e => setCantidad(e.target.value)} placeholder="Ej. 30" />
               </div>
             </div>
 
