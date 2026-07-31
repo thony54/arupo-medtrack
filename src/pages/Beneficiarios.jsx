@@ -1,15 +1,113 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Users, Phone, MapPin, FileText, Search, X, Trash2, IdCard, FileDown } from 'lucide-react';
+import { UserPlus, Users, Phone, MapPin, FileText, Search, X, Trash2, IdCard, FileDown, Upload } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { Comprobante } from '../components/inventory/Comprobante';
+import * as XLSX from 'xlsx';
 import './pages.css';
 
 const CONDICIONES = ['Diabetes', 'Hipertensión', 'Cardiopatía', 'Embarazo', 'Adulto Mayor', 'Pediatría', 'Oncología', 'VIH/SIDA', 'Otra'];
 const TIPOS = ['Particular', 'ONG', 'Hospital', 'Centro de Salud', 'Fundación', 'Comunidad'];
 const DISCAPACIDADES = ['Física', 'Visual', 'Auditiva', 'Intelectual', 'Psicosocial', 'Múltiple'];
+
+// ─── Importación desde Excel ────────────────────────────────────────────
+// El orden de estas claves es EL MISMO que el del formulario "Registrar
+// Beneficiario", para que quien llene la plantilla siga la misma secuencia
+// de preguntas que hace al beneficiario en persona.
+const COLUMN_SYNONYMS = {
+  nombre: ['nombre / organización', 'nombre completo', 'nombre y apellido', 'nombres y apellidos', 'beneficiario', 'organización', 'organizacion', 'nombre', 'name'],
+  tipo: ['tipo de beneficiario', 'tipo', 'categoria', 'categoría', 'clase'],
+  contacto_responsable: ['contacto (responsable)', 'contacto responsable', 'responsable', 'quien recibe', 'contacto', 'representante'],
+  cedula: ['cédula / id', 'cedula / id', 'cédula', 'cedula', 'identificación', 'identificacion', 'documento', 'ci', 'dni', 'id'],
+  telefono: ['teléfono', 'telefono', 'celular', 'móvil', 'movil', 'contacto telefónico', 'contacto telefonico', 'tel'],
+  email: ['correo electrónico', 'correo electronico', 'correo', 'email', 'e-mail', 'mail'],
+  direccion: ['dirección', 'direccion', 'domicilio', 'sector', 'ubicación', 'ubicacion', 'barrio'],
+  condicion_medica: ['condición médica', 'condicion medica', 'condición', 'condicion', 'enfermedad', 'patología', 'patologia', 'diagnóstico', 'diagnostico'],
+  discapacidad_tipo: ['tipo de discapacidad', 'discapacidad', 'discapacidad tipo'],
+  tiene_carnet_discapacidad: ['posee calificación de discapacidad', 'posee calificacion de discapacidad', 'calificación de discapacidad', 'calificacion de discapacidad', 'carnet de discapacidad', 'carnet', 'conadis', 'tiene carnet'],
+  notas: ['notas adicionales', 'observaciones', 'notas', 'comentarios', 'observación', 'observacion'],
+};
+
+const COLUMN_LABELS = {
+  nombre: 'Nombre / Organización',
+  tipo: 'Tipo',
+  contacto_responsable: 'Contacto (Responsable)',
+  cedula: 'Cédula / ID',
+  telefono: 'Teléfono',
+  email: 'Correo Electrónico',
+  direccion: 'Dirección',
+  condicion_medica: 'Condición Médica',
+  discapacidad_tipo: 'Discapacidad',
+  tiene_carnet_discapacidad: '¿Posee Calificación de discapacidad?',
+  notas: 'Notas Adicionales',
+};
+
+// Empareja las cabeceras del Excel con los campos del formulario.
+// Primero busca coincidencia exacta y, si no la hay, parcial.
+const autoMapHeaders = (excelHeaders) => {
+  const mapping = {};
+  const usadas = new Set();
+  Object.keys(COLUMN_SYNONYMS).forEach(field => {
+    const sinonimos = COLUMN_SYNONYMS[field];
+    const norm = (h) => h.toString().trim().toLowerCase().replace(/[.:]$/, '');
+
+    let match = excelHeaders.find(h => h && !usadas.has(h) && sinonimos.some(s => s === norm(h)));
+    if (!match) {
+      match = excelHeaders.find(h => h && !usadas.has(h) && sinonimos.some(s => norm(h).includes(s)));
+    }
+    if (match) usadas.add(match);
+    mapping[field] = match || '';
+  });
+  return mapping;
+};
+
+// Cuántas celdas de una fila se reconocen como campos del formulario.
+const contarCamposReconocidos = (fila) => {
+  const norm = (h) => h.toString().trim().toLowerCase().replace(/[.:]$/, '');
+  const todos = Object.values(COLUMN_SYNONYMS);
+  return (fila || [])
+    .filter(c => c !== '' && c !== null && c !== undefined)
+    .filter(c => {
+      const h = norm(c);
+      return todos.some(sins => sins.some(s => h === s || h.includes(s)));
+    }).length;
+};
+
+// Localiza la fila de cabeceras. Se elige la que MÁS campos reconoce, no la
+// primera que mencione uno: un título como "LISTADO DE BENEFICIARIOS 2026"
+// contiene la palabra "beneficiarios" pero es una sola celda, no la tabla.
+const detectarFilaCabecera = (filas) => {
+  let mejor = -1;
+  let mejorPuntaje = 1; // hacen falta al menos 2 columnas reconocidas
+  for (let i = 0; i < Math.min(filas.length, 15); i++) {
+    const puntaje = contarCamposReconocidos(filas[i]);
+    if (puntaje > mejorPuntaje) { mejorPuntaje = puntaje; mejor = i; }
+  }
+  if (mejor !== -1) return mejor;
+  // Sin cabeceras reconocibles: la primera fila con varias celdas llenas
+  const alterno = filas.findIndex(f => f && f.filter(c => c !== '').length > 2);
+  return alterno === -1 ? 0 : alterno;
+};
+
+// "SI", "X", "1", "verdadero"… → true. Cualquier otra cosa → false.
+const parseBooleano = (valor) => {
+  if (valor === true) return true;
+  if (valor === undefined || valor === null || valor === '') return false;
+  const v = valor.toString().trim().toLowerCase();
+  return ['si', 'sí', 's', 'yes', 'y', 'true', 'verdadero', '1', 'x'].includes(v);
+};
+
+// Devuelve el valor de la lista oficial si coincide (ignorando tildes y
+// mayúsculas); si no, respeta lo que escribió el usuario en el Excel.
+const normalizarContraLista = (valor, lista) => {
+  if (!valor) return '';
+  const limpio = valor.toString().trim();
+  const sinTildes = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const encontrado = lista.find(op => sinTildes(op) === sinTildes(limpio));
+  return encontrado || limpio;
+};
 
 export const Beneficiarios = () => {
   const [beneficiarios, setBeneficiarios] = useState([]);
@@ -35,6 +133,17 @@ export const Beneficiarios = () => {
   const [discapacidad, setDiscapacidad] = useState('');
   const [tieneCarnet, setTieneCarnet] = useState(false);
   const [notas, setNotas] = useState('');
+
+  // ─── Estado de la importación desde Excel ───
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importStep, setImportStep] = useState(1); // 1: subir · 2: mapear · 3: resultado
+  const [importRows, setImportRows] = useState([]);
+  const [importHeaders, setImportHeaders] = useState([]);
+  const [columnMapping, setColumnMapping] = useState({});
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importOk, setImportOk] = useState(0);
+  const [importOmitidos, setImportOmitidos] = useState([]);
 
   useEffect(() => { fetchBeneficiarios(); }, []);
 
@@ -142,6 +251,160 @@ export const Beneficiarios = () => {
     }
   };
 
+  // ─── Importación desde Excel ─────────────────────────────────────────
+  const resetImport = () => {
+    setIsImportOpen(false);
+    setImportStep(1);
+    setImportRows([]);
+    setImportHeaders([]);
+    setColumnMapping({});
+    setImportLoading(false);
+    setImportError('');
+    setImportOk(0);
+    setImportOmitidos([]);
+    const input = document.getElementById('excel-beneficiarios-input');
+    if (input) input.value = ''; // permitir volver a elegir el mismo archivo
+  };
+
+  const handleExcelFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImportError('');
+    setImportLoading(true);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        // Fila de cabeceras (tolera títulos y filas vacías encima de la tabla)
+        const idxCabecera = detectarFilaCabecera(filas);
+
+        const cabeceras = (filas[idxCabecera] || [])
+          .map(h => (h ? h.toString().trim() : ''))
+          .filter(h => h !== '');
+        if (cabeceras.length === 0) {
+          throw new Error('No se reconocieron las cabeceras del archivo. Revisa que la primera fila tenga los nombres de las columnas.');
+        }
+
+        const datos = [];
+        for (let i = idxCabecera + 1; i < filas.length; i++) {
+          const fila = filas[i];
+          if (!fila || fila.length === 0) continue;
+          const obj = {};
+          let tieneContenido = false;
+          (filas[idxCabecera] || []).forEach((nombreCol, col) => {
+            if (nombreCol !== undefined && nombreCol !== null && nombreCol !== '') {
+              const val = fila[col];
+              obj[nombreCol.toString().trim()] = val !== undefined ? val : '';
+              if (val !== undefined && val !== '') tieneContenido = true;
+            }
+          });
+          if (tieneContenido) datos.push(obj);
+        }
+
+        if (datos.length === 0) {
+          throw new Error('El archivo no contiene filas de datos debajo de las cabeceras.');
+        }
+
+        setImportHeaders(cabeceras);
+        setImportRows(datos);
+        setColumnMapping(autoMapHeaders(cabeceras));
+        setImportStep(2);
+      } catch (err) {
+        setImportError(err.message || 'No se pudo leer el archivo Excel.');
+      } finally {
+        setImportLoading(false);
+      }
+    };
+    reader.onerror = () => {
+      setImportError('Error al leer el archivo.');
+      setImportLoading(false);
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // Convierte una fila del Excel en el mismo objeto que guarda el formulario
+  const filaABeneficiario = (row) => {
+    const val = (campo) => {
+      const col = columnMapping[campo];
+      if (!col) return '';
+      const v = row[col];
+      return v === undefined || v === null ? '' : v.toString().trim();
+    };
+
+    return {
+      nombre: val('nombre'),
+      tipo: normalizarContraLista(val('tipo'), TIPOS) || 'Particular',
+      contacto_responsable: val('contacto_responsable') || null,
+      cedula: val('cedula') || null,
+      telefono: val('telefono') || null,
+      email: val('email') || null,
+      direccion: val('direccion') || null,
+      condicion_medica: normalizarContraLista(val('condicion_medica'), CONDICIONES) || null,
+      discapacidad_tipo: normalizarContraLista(val('discapacidad_tipo'), DISCAPACIDADES) || null,
+      tiene_carnet_discapacidad: parseBooleano(columnMapping.tiene_carnet_discapacidad ? row[columnMapping.tiene_carnet_discapacidad] : ''),
+      notas: val('notas') || null,
+    };
+  };
+
+  const ejecutarImportacion = async () => {
+    if (!supabase) { setImportError('Sin conexión con el servidor.'); return; }
+    setImportLoading(true);
+    setImportError('');
+
+    const omitidos = [];
+    let correctos = 0;
+
+    // Cédulas ya registradas: evita chocar contra la restricción de unicidad
+    // y, de paso, no duplica a alguien que ya está en el sistema.
+    const cedulasExistentes = new Set(
+      beneficiarios.filter(b => b.cedula).map(b => b.cedula.trim().toLowerCase())
+    );
+
+    try {
+      for (let i = 0; i < importRows.length; i++) {
+        const fila = importRows[i];
+        const numeroFila = i + 1;
+        const datos = filaABeneficiario(fila);
+
+        if (!datos.nombre) {
+          omitidos.push({ fila: numeroFila, nombre: '(sin nombre)', motivo: 'Falta el nombre, es obligatorio' });
+          continue;
+        }
+
+        if (datos.cedula) {
+          const clave = datos.cedula.toLowerCase();
+          if (cedulasExistentes.has(clave)) {
+            omitidos.push({ fila: numeroFila, nombre: datos.nombre, motivo: `La cédula ${datos.cedula} ya está registrada` });
+            continue;
+          }
+          cedulasExistentes.add(clave); // también evita duplicados dentro del propio archivo
+        }
+
+        const { error: insertErr } = await supabase.from('beneficiarios').insert(datos);
+        if (insertErr) {
+          console.error(`Error al importar la fila ${numeroFila}:`, insertErr);
+          omitidos.push({ fila: numeroFila, nombre: datos.nombre, motivo: 'La base de datos rechazó el registro' });
+          continue;
+        }
+        correctos++;
+      }
+
+      setImportOk(correctos);
+      setImportOmitidos(omitidos);
+      setImportStep(3);
+      await fetchBeneficiarios();
+    } catch (err) {
+      console.error('Error durante la importación:', err);
+      setImportError('Ocurrió un error inesperado durante la importación.');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const filtered = beneficiarios.filter(b => {
     const s = search.toLowerCase();
     return (b.nombre || '').toLowerCase().includes(s) ||
@@ -164,9 +427,19 @@ export const Beneficiarios = () => {
                 {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
               </p>
             </div>
-            <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
-              <UserPlus size={18} /> Añadir Beneficiario
-            </Button>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <Button
+                variant="outline"
+                onClick={() => { resetImport(); setIsImportOpen(true); }}
+                style={{ color: '#16a34a', borderColor: '#16a34a', background: '#f0fdf4', gap: '0.4rem', fontWeight: '700' }}
+                aria-label="Importar beneficiarios desde archivo Excel"
+              >
+                <Upload size={16} /> Importar Excel
+              </Button>
+              <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
+                <UserPlus size={18} /> Añadir Beneficiario
+              </Button>
+            </div>
           </div>
 
           {/* Search */}
@@ -424,6 +697,190 @@ export const Beneficiarios = () => {
 
           <button type="submit" id="b-submit-trigger" style={{ display: 'none' }} aria-hidden="true" />
         </form>
+      </Modal>
+
+      {/* ─── Modal: Importar beneficiarios desde Excel ─── */}
+      <Modal
+        isOpen={isImportOpen}
+        onClose={resetImport}
+        title="Importar Beneficiarios desde Excel"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={resetImport} disabled={importLoading}>
+              {importStep === 3 ? 'Cerrar' : 'Cancelar'}
+            </Button>
+            {importStep === 2 && (
+              <Button
+                type="button"
+                variant="primary"
+                disabled={importLoading || !columnMapping.nombre}
+                onClick={ejecutarImportacion}
+                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none' }}
+              >
+                {importLoading ? 'Importando...' : `Importar ${importRows.length} fila(s)`}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div style={{ minHeight: '260px' }}>
+          {importError && (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', border: '1px solid rgba(239,68,68,0.2)' }}>
+              {importError}
+            </div>
+          )}
+
+          {/* Paso 1 — Subir el archivo */}
+          {importStep === 1 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div
+                onClick={() => document.getElementById('excel-beneficiarios-input').click()}
+                style={{ border: '2px dashed #16a34a', borderRadius: 'var(--radius-lg)', padding: '3rem 2rem', textAlign: 'center', background: '#f0fdf4', cursor: 'pointer' }}
+              >
+                <Upload size={44} style={{ color: '#16a34a', marginBottom: '1rem' }} />
+                <h3 style={{ color: '#15803d', fontWeight: '700', marginBottom: '0.5rem' }}>
+                  {importLoading ? 'Leyendo archivo...' : 'Subir documento Excel'}
+                </h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Haz clic para buscar el archivo. Admite .xlsx, .xls y .csv.
+                </p>
+                <input
+                  id="excel-beneficiarios-input"
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleExcelFile}
+                  style={{ display: 'none' }}
+                />
+              </div>
+
+              <div style={{ background: 'var(--bg-surface-hover)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+                <p style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                  Columnas esperadas (el mismo orden en que se le pregunta al beneficiario):
+                </p>
+                <ol style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', paddingLeft: '1.1rem', lineHeight: '1.7', margin: 0 }}>
+                  {Object.keys(COLUMN_LABELS).map(k => (
+                    <li key={k}>
+                      {COLUMN_LABELS[k]}
+                      {k === 'nombre' && <strong style={{ color: 'var(--danger-color)' }}> (obligatorio)</strong>}
+                    </li>
+                  ))}
+                </ol>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', marginBottom: 0 }}>
+                  No hace falta que estén todas ni con ese nombre exacto: en el siguiente paso
+                  podrás corregir a mano qué columna corresponde a cada campo.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Paso 2 — Mapear columnas y previsualizar */}
+          {importStep === 2 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ background: '#f0fdf4', padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>📋</span>
+                <div>
+                  <h4 style={{ fontWeight: '700', color: '#15803d', fontSize: '0.9rem' }}>Archivo leído correctamente</h4>
+                  <p style={{ fontSize: '0.8rem', color: '#166534' }}>
+                    Se detectaron <strong>{importRows.length}</strong> fila(s). Revisa que cada campo apunte a la columna correcta.
+                  </p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', background: 'var(--bg-surface-hover)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                {Object.keys(COLUMN_SYNONYMS).map(field => (
+                  <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
+                      {COLUMN_LABELS[field]}
+                      {field === 'nombre' && <span style={{ color: 'var(--danger-color)' }}> *</span>}
+                    </label>
+                    <select
+                      className="input-field"
+                      style={{ marginBottom: 0, fontSize: '0.825rem', padding: '0.35rem', cursor: 'pointer' }}
+                      value={columnMapping[field] || ''}
+                      onChange={e => setColumnMapping({ ...columnMapping, [field]: e.target.value })}
+                    >
+                      <option value="">— No importar —</option>
+                      {importHeaders.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {!columnMapping.nombre && (
+                <div style={{ padding: '0.75rem 1rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.825rem' }}>
+                  Indica qué columna contiene el <strong>Nombre / Organización</strong>: sin ese dato no se puede registrar a nadie.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                <h4 style={{ fontSize: '0.825rem', fontWeight: '700', color: 'var(--text-secondary)' }}>Vista previa de las primeras 4 filas:</h4>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', maxHeight: '190px' }}>
+                  <table style={{ width: '100%', fontSize: '0.725rem', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-surface-hover)', borderBottom: '1px solid var(--border-color)' }}>
+                        <th style={{ padding: '0.5rem' }}>Nombre</th>
+                        <th style={{ padding: '0.5rem' }}>Cédula</th>
+                        <th style={{ padding: '0.5rem' }}>Teléfono</th>
+                        <th style={{ padding: '0.5rem' }}>Discapacidad</th>
+                        <th style={{ padding: '0.5rem', textAlign: 'center' }}>Calificación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.slice(0, 4).map((row, idx) => {
+                        const b = filaABeneficiario(row);
+                        return (
+                          <tr key={idx} style={{ borderBottom: idx < 3 ? '1px solid var(--border-color)' : 'none' }}>
+                            <td style={{ padding: '0.5rem', fontWeight: '600' }}>
+                              {b.nombre || <span style={{ color: 'var(--danger-color)', fontStyle: 'italic' }}>Vacío (se omitirá)</span>}
+                            </td>
+                            <td style={{ padding: '0.5rem' }}>{b.cedula || '—'}</td>
+                            <td style={{ padding: '0.5rem' }}>{b.telefono || '—'}</td>
+                            <td style={{ padding: '0.5rem' }}>{b.discapacidad_tipo || '—'}</td>
+                            <td style={{ padding: '0.5rem', textAlign: 'center' }}>{b.tiene_carnet_discapacidad ? 'Sí' : 'No'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Paso 3 — Resultado */}
+          {importStep === 3 && (
+            <div style={{ padding: '1.5rem 0.5rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: importOmitidos.length > 0 ? '1.5rem' : 0 }}>
+                <div style={{ width: '64px', height: '64px', background: '#dcfce7', color: '#16a34a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: '2rem', fontWeight: 'bold' }}>
+                  ✓
+                </div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#15803d', marginBottom: '0.5rem' }}>Importación finalizada</h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Se registraron <strong>{importOk}</strong> beneficiario(s)
+                  {importOmitidos.length > 0 && <> y se omitieron <strong>{importOmitidos.length}</strong></>}.
+                </p>
+              </div>
+
+              {importOmitidos.length > 0 && (
+                <div style={{ background: 'var(--warning-bg)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
+                  <p style={{ fontSize: '0.825rem', fontWeight: '700', color: 'var(--warning-color)', marginBottom: '0.5rem' }}>
+                    Filas que no se importaron:
+                  </p>
+                  <div style={{ maxHeight: '180px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    {importOmitidos.map((o, i) => (
+                      <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        <strong>Fila {o.fila}</strong> — {o.nombre}: {o.motivo}
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.75rem', marginBottom: 0 }}>
+                    Corrige esas filas en el Excel y vuelve a importar solo ellas; las ya registradas no se duplicarán.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </Modal>
 
       {/* Acta / Factura de una donación guardada */}
