@@ -30,7 +30,7 @@ export const Inventory = () => {
   // ─── Edición de ítem (solo datos descriptivos; el stock/lotes NO se tocan aquí) ───
   const [editItem, setEditItem] = useState(null); // ítem en edición o null
   const [editForm, setEditForm] = useState({
-    nombre: '', nombreGenerico: '', nombreComercial: '', concentracion: '',
+    nombre: '', nombreComercial: '', concentracion: '',
     categoriaId: '', presentacion: '', laboratorio: '', viaAdministracion: '', observaciones: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
@@ -133,19 +133,20 @@ export const Inventory = () => {
   };
 
   // ─── Edición de ítem ───────────────────────────────────────────────
-  // Abre el modal con los datos actuales. Los nombres genérico/comercial se
-  // toman de sus columnas si existen; si no, se parsea "Genérico (Comercial)".
+  // Abre el modal con los datos actuales. Para medicinas el campo `nombre`
+  // puede venir como "Nombre (Comercial)": se separa en Nombre + Comercial.
   const handleOpenEdit = (med) => {
-    let generico = med.nombre_generico || '';
+    const cat = categorias.find(c => c.id === med.categoria_id);
+    const esMed = esCategoriaMediaca(cat?.nombre);
+    let nombre = med.nombre || '';
     let comercial = med.nombre_comercial || '';
-    if (!generico && med.nombre) {
+    if (esMed && med.nombre) {
       const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-      generico = m ? m[1].trim() : med.nombre.trim();
-      comercial = m ? m[2].trim() : '';
+      nombre = m ? m[1].trim() : med.nombre.trim();
+      if (!comercial) comercial = m ? m[2].trim() : '';
     }
     setEditForm({
-      nombre: med.nombre || '',
-      nombreGenerico: generico,
+      nombre,
       nombreComercial: comercial,
       concentracion: med.concentracion || '',
       categoriaId: med.categoria_id || '',
@@ -168,28 +169,24 @@ export const Inventory = () => {
     e.preventDefault();
     setEditError('');
 
-    if (editEsMedico && !editForm.nombreGenerico.trim()) {
-      setEditError('El nombre genérico es obligatorio.'); return;
-    }
-    if (!editEsMedico && !editForm.nombre.trim()) {
-      setEditError('El nombre del ítem es obligatorio.'); return;
+    if (!editForm.nombre.trim()) {
+      setEditError('El nombre es obligatorio.'); return;
     }
     if (!editForm.categoriaId) { setEditError('Debes seleccionar una categoría.'); return; }
     if (!supabase) { setEditError('Sin conexión con el servidor. Intenta más tarde.'); return; }
 
-    // Nombre maestro: "Genérico (Comercial)" para médicos, nombre plano para generales
-    const gen = editForm.nombreGenerico.trim();
+    // Nombre maestro: "Nombre (Comercial)" para médicos, nombre plano para generales
+    const gen = editForm.nombre.trim();
     const com = editForm.nombreComercial.trim();
     const finalNombre = editEsMedico
       ? (com ? `${gen} (${com})` : gen)
-      : editForm.nombre.trim();
+      : gen;
 
     const medData = {
       nombre: finalNombre,
       categoria_id: editForm.categoriaId,
       presentacion: editForm.presentacion.trim() || null,
       observaciones: editForm.observaciones.trim() || null,
-      nombre_generico: editEsMedico ? gen : null,
       nombre_comercial: editEsMedico ? (com || null) : null,
       concentracion: editEsMedico ? (editForm.concentracion.trim() || null) : null,
       laboratorio: editEsMedico ? (editForm.laboratorio.trim() || null) : null,
@@ -231,7 +228,6 @@ export const Inventory = () => {
     if (!searchTerm) return true;
     const q = searchTerm.toLowerCase();
     return m.nombre.toLowerCase().includes(q) ||
-      (m.nombre_generico || '').toLowerCase().includes(q) ||
       (m.nombre_comercial || '').toLowerCase().includes(q) ||
       (m.categorias?.nombre || '').toLowerCase().includes(q) ||
       (m.laboratorio || '').toLowerCase().includes(q) ||
@@ -358,7 +354,7 @@ export const Inventory = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>N. Genérico</th>
+              <th>Nombre</th>
               <th>N. Comercial</th>
               <th>Concentración</th>
               <th>Tipo</th>
@@ -386,10 +382,9 @@ export const Inventory = () => {
                 return (
                   <tr key={med.id}>
                     <td>
-                      {/* N. Genérico: campo separado si existe, si no parsear nombre */}
+                      {/* Nombre: si trae "(Comercial)" mostrar solo la parte del nombre */}
                       <div style={{ fontWeight: '600' }}>
                         {(() => {
-                          if (med.nombre_generico) return med.nombre_generico;
                           if (med.nombre) {
                             const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
                             return m ? m[1].trim() : med.nombre.trim();
@@ -513,12 +508,12 @@ export const Inventory = () => {
           {editEsMedico ? (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label htmlFor="ed-gen" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                  Nombre Genérico <span style={{ color: 'var(--danger-color)' }}>*</span>
+                <label htmlFor="ed-nombre" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Nombre <span style={{ color: 'var(--danger-color)' }}>*</span>
                 </label>
-                <input id="ed-gen" className="input-field" style={{ marginBottom: 0 }} required
-                  value={editForm.nombreGenerico}
-                  onChange={e => setEditForm({ ...editForm, nombreGenerico: e.target.value })} />
+                <input id="ed-nombre" className="input-field" style={{ marginBottom: 0 }} required
+                  value={editForm.nombre}
+                  onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} />
               </div>
               <div className="grid-responsive" style={{ gap: '1rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

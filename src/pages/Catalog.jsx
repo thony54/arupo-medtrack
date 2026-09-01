@@ -13,7 +13,6 @@ const CATEGORIAS_MEDICAS_SUGERIDAS = ['Analgésicos', 'Antibióticos', 'Antiinfl
 // Sinónimos inteligentes para mapear automáticamente las columnas del archivo Excel
 const COLUMN_SYNONYMS = {
   categoria: ['categoría', 'categoria', 'grupo', 'tipo', 'clase', 'category', 'department', 'seccion', 'grupo farmacológico', 'grupo farmacologico'],
-  nombre_generico: ['nombre genérico', 'nombre generico', 'genérico', 'generico', 'principio activo', 'fórmula', 'formula'],
   nombre_comercial: ['nombre comercial', 'nombre comercial.', 'nombre registrado', 'marca comercial', 'comercial', 'marca'],
   nombre: ['nombre del medicamento', 'nombre del medicamento.', 'nombre', 'name', 'medicina', 'medicamento', 'producto', 'item', 'descripción', 'descripcion', 'artículo', 'articulo', 'desc'],
   fecha_vencimiento: ['caducidad.', 'caducidad', 'fecha vencimiento', 'vencimiento', 'vence', 'fecha caducidad', 'fecha de vencimiento', 'expiration', 'expiry', 'fecha', 'venc'],
@@ -31,9 +30,8 @@ const COLUMN_SYNONYMS = {
 // Etiquetas profesionales en español para la interfaz de mapeo de Excel
 const COLUMN_LABELS = {
   categoria: 'Grupo Farmacológico (Categoría)',
-  nombre_generico: 'Nombre Genérico',
   nombre_comercial: 'Nombre Comercial',
-  nombre: 'Nombre Maestro (General)',
+  nombre: 'Nombre',
   fecha_vencimiento: 'Fecha de Vencimiento',
   lote: 'Lote',
   concentracion: 'Concentración',
@@ -139,7 +137,6 @@ export const Catalog = () => {
 
   // Form states
   const [nombre, setNombre] = useState('');
-  const [nombreGenerico, setNombreGenerico] = useState('');
   const [nombreComercial, setNombreComercial] = useState('');
   const [concentracion, setConcentracion] = useState('');
   const [viaAdministracion, setViaAdministracion] = useState('');
@@ -235,7 +232,6 @@ export const Catalog = () => {
 
   const resetForm = () => {
     setNombre('');
-    setNombreGenerico('');
     setNombreComercial('');
     setConcentracion('');
     setViaAdministracion('');
@@ -278,27 +274,21 @@ export const Catalog = () => {
     resetForm();
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
     setTipoRegistro(esMedico ? 'medico' : 'general');
-    setNombre(med.nombre);
 
-    // Si la medicina ya tiene los campos separados (registradas con schema v14+), usarlos directamente.
-    // Si no (registros más antiguos), parsear el campo `nombre` que siempre tuvo el formato
-    // "Nombre Genérico (Nombre Comercial)" — NUNCA mezclar con concentracion.
-    if (med.nombre_generico) {
-      setNombreGenerico(med.nombre_generico);
-      setNombreComercial(med.nombre_comercial || '');
-    } else if (med.nombre) {
-      // Intentar extraer genérico y comercial del campo nombre: "Genérico (Comercial)"
+    // El campo `nombre` es la fuente única. Para medicinas puede venir como
+    // "Nombre (Comercial)": se separa en Nombre + Comercial. Para generales es el
+    // nombre plano. La concentración es un campo aparte, nunca parte del nombre.
+    if (esMedico && med.nombre) {
       const match = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
       if (match) {
-        setNombreGenerico(match[1].trim());
+        setNombre(match[1].trim());
         setNombreComercial(match[2].trim());
       } else {
-        // Sin paréntesis: todo el nombre es el genérico, comercial vacío
-        setNombreGenerico(med.nombre.trim());
+        setNombre(med.nombre.trim());
         setNombreComercial('');
       }
     } else {
-      setNombreGenerico('');
+      setNombre(med.nombre || '');
       setNombreComercial('');
     }
 
@@ -504,13 +494,12 @@ export const Catalog = () => {
       for (const row of importRows) {
         // Obtener campos mapeados
         const rawNombre = row[columnMapping.nombre];
-        const rawNombreGenerico = row[columnMapping.nombre_generico];
         const rawNombreComercial = row[columnMapping.nombre_comercial];
         const rawViaAdministracion = row[columnMapping.via_administracion];
         const rawConcentracion = row[columnMapping.concentracion];
-        
+
         // Omitir si no tenemos cómo identificar el nombre
-        if (!rawNombre && !rawNombreGenerico) continue;
+        if (!rawNombre) continue;
         
         const nombreVal = rawNombre ? rawNombre.toString().trim() : '';
         const rawCategoria = row[columnMapping.categoria];
@@ -570,32 +559,28 @@ export const Catalog = () => {
           stockVal = Number(rawCPP) || 0;
         }
         
-        // Calcular Nombre Genérico y Comercial si es medicina
+        // Calcular Nombre y Comercial si es medicina, a partir del campo Nombre
         let finalGen = '';
         let finalCom = '';
 
         if (esMedico) {
-          if (rawNombreGenerico && rawNombreGenerico.toString().trim()) {
-            finalGen = rawNombreGenerico.toString().trim();
+          // El nombre puede venir como "Nombre (Comercial)" en una sola celda
+          const match = nombreVal.match(/^([^(]+)\s*\(([^)]+)\)$/);
+          if (match) {
+            finalGen = match[1].trim();
+            finalCom = match[2].trim();
+          } else {
+            finalGen = nombreVal;
             finalCom = rawNombreComercial ? rawNombreComercial.toString().trim() : '';
-          } else if (nombreVal) {
-            const match = nombreVal.match(/^([^(]+)\s*\(([^)]+)\)$/);
-            if (match) {
-              finalGen = match[1].trim();
-              finalCom = match[2].trim();
-            } else {
-              finalGen = nombreVal;
-              finalCom = '';
-            }
           }
           if (!finalGen) {
-            finalGen = nombreVal || 'Medicamento sin nombre genérico';
+            finalGen = 'Medicamento sin nombre';
           }
         }
 
         const finalNombre = esMedico
           ? (finalCom ? `${finalGen} (${finalCom})` : finalGen)
-          : (nombreVal || finalGen);
+          : nombreVal;
 
         // Insertar Medicina/Ítem
         const medData = {
@@ -606,7 +591,6 @@ export const Catalog = () => {
           cantidad_por_presentacion: rawCPP ? rawCPP.toString().trim() : null,
           observaciones: rawObs ? rawObs.toString().trim() : 'Importado vía Excel',
           stock_actual: stockVal,
-          nombre_generico: esMedico ? finalGen : null,
           nombre_comercial: esMedico ? (finalCom || null) : null,
           via_administracion: esMedico ? (rawViaAdministracion ? rawViaAdministracion.toString().trim() : null) : null,
           concentracion: esMedico ? (rawConcentracion ? rawConcentracion.toString().trim() : null) : null
@@ -670,11 +654,7 @@ export const Catalog = () => {
     e.preventDefault();
     setError('');
 
-    if (tipoRegistro === 'general') {
-      if (!nombre.trim()) { setError('El nombre es obligatorio.'); return; }
-    } else {
-      if (!nombreGenerico.trim()) { setError('El nombre genérico es obligatorio.'); return; }
-    }
+    if (!nombre.trim()) { setError('El nombre es obligatorio.'); return; }
     if (!categoriaId) { setError('Debes seleccionar una categoría.'); return; }
     if (categoriaId === 'NEW' && !newCategoriaNombre.trim()) { setError('Escribe el nombre de la nueva categoría.'); return; }
 
@@ -720,7 +700,7 @@ export const Catalog = () => {
 
         // Combinación del nombre maestro
         const finalNombre = tipoRegistro === 'medico'
-          ? (nombreComercial.trim() ? `${nombreGenerico.trim()} (${nombreComercial.trim()})` : nombreGenerico.trim())
+          ? (nombreComercial.trim() ? `${nombre.trim()} (${nombreComercial.trim()})` : nombre.trim())
           : nombre.trim();
 
         const medData = {
@@ -732,7 +712,6 @@ export const Catalog = () => {
           cantidad_por_presentacion: tipoRegistro === 'medico' ? (cantidadUnidades.trim() || null) : (cantidadPorPresentacion.trim() || null),
           observaciones: observaciones.trim() || null,
           stock_actual: cantidadTotal ? Number(cantidadTotal) : 0,
-          nombre_generico: tipoRegistro === 'medico' ? nombreGenerico.trim() : null,
           nombre_comercial: tipoRegistro === 'medico' ? (nombreComercial.trim() || null) : null,
           via_administracion: finalVia || null
         };
@@ -863,12 +842,11 @@ export const Catalog = () => {
   const presentacionOptions = ['Tabletas', 'Cápsulas', 'Jarabe', 'Ampolla', 'Crema', 'Gotas', 'Unidad', 'Par', 'Kit', 'Otro'];
 
   // 1) Filtrar por texto. Busca en todos los campos visibles de la tabla para que
-  //    el usuario pueda escribir lo que ve (genérico, comercial, lote, laboratorio…).
+  //    el usuario pueda escribir lo que ve (nombre, comercial, lote, laboratorio…).
   const medicinasPorTexto = medicinas.filter(m => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (m.nombre || '').toLowerCase().includes(q) ||
-      (m.nombre_generico || '').toLowerCase().includes(q) ||
       (m.nombre_comercial || '').toLowerCase().includes(q) ||
       (m.categorias?.nombre || '').toLowerCase().includes(q) ||
       (m.laboratorio || '').toLowerCase().includes(q) ||
@@ -999,7 +977,7 @@ export const Catalog = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>N. Genérico</th>
+                <th>Nombre</th>
                 <th>N. Comercial</th>
                 <th>Concentración</th>
                 <th>Tipo</th>
@@ -1019,10 +997,9 @@ export const Catalog = () => {
                 return (
                   <tr key={med.id}>
                     <td>
-                      {/* N. Genérico: usar campo separado si existe, si no parsear nombre */}
+                      {/* Nombre: si trae "(Comercial)" mostrar solo la parte del nombre */}
                       <div style={{ fontWeight: '600' }}>
                         {(() => {
-                          if (med.nombre_generico) return med.nombre_generico;
                           if (med.nombre) {
                             const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
                             return m ? m[1].trim() : med.nombre.trim();
@@ -1143,7 +1120,7 @@ export const Catalog = () => {
               <Button
                 type="button"
                 variant="primary"
-                disabled={importLoading || (!columnMapping.nombre && !columnMapping.nombre_generico)}
+                disabled={importLoading || !columnMapping.nombre}
                 onClick={executeImport}
                 style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', border: 'none' }}
               >
@@ -1207,7 +1184,7 @@ export const Catalog = () => {
                 {Object.keys(COLUMN_SYNONYMS).map(field => (
                   <div key={field} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                     <label style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)' }}>
-                      {COLUMN_LABELS[field] || field.replace('_', ' ')} {(field === 'nombre' || field === 'nombre_generico') && <span style={{ color: 'var(--danger-color)' }}>*</span>}
+                      {COLUMN_LABELS[field] || field.replace('_', ' ')} {field === 'nombre' && <span style={{ color: 'var(--danger-color)' }}>*</span>}
                     </label>
                     <select
                       className="input-field"
@@ -1244,13 +1221,10 @@ export const Catalog = () => {
                           <td style={{ padding: '0.5rem', fontWeight: '600' }}>
                             {(() => {
                               const rawN = row[columnMapping.nombre];
-                              const rawG = row[columnMapping.nombre_generico];
                               const rawC = row[columnMapping.nombre_comercial];
-                              if (rawG) {
-                                return rawC ? `${rawG.toString().trim()} (${rawC.toString().trim()})` : rawG.toString().trim();
-                              }
                               if (rawN) {
-                                return rawN.toString().trim();
+                                const n = rawN.toString().trim();
+                                return rawC ? `${n} (${rawC.toString().trim()})` : n;
                               }
                               return <span style={{ color: 'var(--danger-color)', fontStyle: 'italic' }}>Vacío (se omitirá)</span>;
                             })()}
@@ -1525,18 +1499,18 @@ export const Catalog = () => {
                 )}
               </div>
 
-              {/* 2. Nombre genérico */}
+              {/* 2. Nombre */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <label htmlFor="cat-nombre-generico" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                  Nombre genérico <span style={{ color: 'var(--danger-color)' }}>*</span>
+                <label htmlFor="cat-nombre-med" style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                  Nombre <span style={{ color: 'var(--danger-color)' }}>*</span>
                 </label>
                 <input
-                  id="cat-nombre-generico"
+                  id="cat-nombre-med"
                   className="input-field"
                   required
                   aria-required="true"
-                  value={nombreGenerico}
-                  onChange={(e) => setNombreGenerico(e.target.value)}
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
                   placeholder="Ej. Paracetamol, Ibuprofeno..."
                   style={{ marginBottom: 0 }}
                 />
@@ -1727,7 +1701,7 @@ export const Catalog = () => {
                   className="input-field"
                   value={laboratorio}
                   onChange={(e) => setLaboratorio(e.target.value)}
-                  placeholder="Ej. Pfizer, Bayer, Genérico..."
+                  placeholder="Ej. Pfizer, Bayer, MK..."
                   style={{ marginBottom: 0 }}
                 />
               </div>
