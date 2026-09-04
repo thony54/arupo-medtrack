@@ -24,6 +24,7 @@ pnpm-debug.log*
 # Editor
 .vscode/
 .idea/
+.vs/
 *.suo
 *.ntvs*
 *.njsproj
@@ -31,3 +32,15 @@ pnpm-debug.log*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Scripts sueltos / de un solo uso que se conectan a la base REAL.
+# Suelen leer .env.local y algunos BORRAN datos: no deben subirse nunca.
+# (Los trackeados históricamente —borrar_datos.js, clean_db.js, test.js— se
+#  gestionan aparte; esto evita que se cuelen los nuevos como _borrar_*.mjs.)
+_*.mjs
+_*.js
+scratch/
+tmp/
+
+# Salidas de herramientas locales (grafos, análisis)
+graphify-out/
