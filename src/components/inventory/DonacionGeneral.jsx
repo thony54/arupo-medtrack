@@ -80,7 +80,7 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
     if (!supabase) return;
     const { data } = await supabase
       .from('donantes')
-      .select('id, nombre, tipo')
+      .select('id, nombre, tipo, contacto_responsable, cedula, telefono, email, direccion')
       .order('nombre');
     setDonantes(data || []);
   };

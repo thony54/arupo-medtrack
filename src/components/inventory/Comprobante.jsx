@@ -121,7 +121,12 @@ export const Comprobante = ({ beneficiario, donaciones = [], onClose }) => {
           <div className="info-box" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #d1fae5' }}>
             <div className="info-label" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Entregado a / Destino</div>
             <div className="info-value" style={{ fontWeight: 'bold', fontSize: '1rem' }}>{beneficiario?.nombre || '—'}</div>
+            {beneficiario?.tipo && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>Tipo: {beneficiario.tipo}</div>}
             {beneficiario?.cedula && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>ID: {beneficiario.cedula}</div>}
+            {beneficiario?.contacto_responsable && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>Contacto (Responsable): {beneficiario.contacto_responsable}</div>}
+            {beneficiario?.telefono && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>Teléfono: {beneficiario.telefono}</div>}
+            {beneficiario?.email && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>Correo: {beneficiario.email}</div>}
+            {beneficiario?.direccion && <div style={{ fontSize: '0.8rem', color: '#4b5563', marginTop: '0.2rem' }}>Dirección: {beneficiario.direccion}</div>}
           </div>
           {beneficiario?.condicion_medica && (
             <div className="info-box" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #d1fae5' }}>

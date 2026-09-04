@@ -42,7 +42,8 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
   const fetchBeneficiarios = async () => {
     if (!supabase) return;
     const { data } = await supabase
-      .from('beneficiarios').select('id, nombre, cedula, condicion_medica')
+      .from('beneficiarios')
+      .select('id, nombre, tipo, contacto_responsable, cedula, telefono, email, direccion, condicion_medica')
       .order('nombre');
     setBeneficiarios(data || []);
   };

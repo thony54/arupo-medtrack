@@ -140,10 +140,14 @@ export const ActaIngreso = ({ donante, items = [], onClose, modoGeneral = false 
             <div className="info-label" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Donante / Proveedor</div>
             <div className="info-value" style={{ fontWeight: 'bold', fontSize: '1rem' }}>{donante?.nombre || '—'}</div>
             {donante?.tipo && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Tipo: {donante.tipo}</div>}
+            {donante?.cedula && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>ID: {donante.cedula}</div>}
           </div>
           <div className="info-box" style={{ background: '#f0fdf4', padding: '1rem', borderRadius: '8px', border: '1px solid #d1fae5' }}>
-            <div className="info-label" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Responsable</div>
-            <div className="info-value" style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{donante?.contacto_nombre || '—'}</div>
+            <div className="info-label" style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Contacto (Responsable)</div>
+            <div className="info-value" style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{donante?.contacto_responsable || '—'}</div>
+            {donante?.telefono && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Teléfono: {donante.telefono}</div>}
+            {donante?.email && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Correo: {donante.email}</div>}
+            {donante?.direccion && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Dirección: {donante.direccion}</div>}
           </div>
         </div>
 

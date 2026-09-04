@@ -68,7 +68,7 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
     if (!supabase) return;
     const { data } = await supabase
       .from('beneficiarios')
-      .select('id, nombre, cedula')
+      .select('id, nombre, tipo, contacto_responsable, cedula, telefono, email, direccion, condicion_medica')
       .order('nombre');
     setBeneficiarios(data || []);
   };
@@ -461,7 +461,12 @@ const ActaGeneral = ({ actaData, onClose }) => {
           <div style={{ background: '#f5f3ff', padding: '1rem', borderRadius: '8px', border: '1px solid #e9d5ff' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#6d28d9', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Entregado a</div>
             <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{beneficiario?.nombre || '—'}</div>
+            {beneficiario?.tipo && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Tipo: {beneficiario.tipo}</div>}
             {beneficiario?.cedula && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>ID/CI: {beneficiario.cedula}</div>}
+            {beneficiario?.contacto_responsable && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Contacto (Responsable): {beneficiario.contacto_responsable}</div>}
+            {beneficiario?.telefono && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Teléfono: {beneficiario.telefono}</div>}
+            {beneficiario?.email && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Correo: {beneficiario.email}</div>}
+            {beneficiario?.direccion && <div style={{ fontSize: '0.85rem', color: '#4b5563', marginTop: '0.2rem' }}>Dirección: {beneficiario.direccion}</div>}
           </div>
         </div>
 

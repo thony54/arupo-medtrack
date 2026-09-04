@@ -158,16 +158,21 @@ export const Beneficiarios = () => {
 
       if (err) throw err;
 
-      // Get donation count per beneficiary
-      const { data: movData } = await supabase
-        .from('movimientos')
-        .select('beneficiario_id')
-        .eq('tipo', 'Salida')
-        .not('beneficiario_id', 'is', null);
+      // Conteo de donaciones por beneficiario. La fuente de verdad actual son
+      // las actas guardadas en 'entregas' (una por donación). Para las
+      // donaciones antiguas —anteriores a las actas descargables— caemos a
+      // contar los 'movimientos' de salida. Así el número de la tabla coincide
+      // con lo que muestra el historial del panel lateral.
+      const [{ data: entData }, { data: movData }] = await Promise.all([
+        supabase.from('entregas').select('beneficiario_id').not('beneficiario_id', 'is', null),
+        supabase.from('movimientos').select('beneficiario_id').eq('tipo', 'Salida').not('beneficiario_id', 'is', null),
+      ]);
 
-      const countMap = {};
-      (movData || []).forEach(m => { countMap[m.beneficiario_id] = (countMap[m.beneficiario_id] || 0) + 1; });
-      setBeneficiarios((data || []).map(b => ({ ...b, donaciones_count: countMap[b.id] || 0 })));
+      const entMap = {};
+      (entData || []).forEach(e => { entMap[e.beneficiario_id] = (entMap[e.beneficiario_id] || 0) + 1; });
+      const movMap = {};
+      (movData || []).forEach(m => { movMap[m.beneficiario_id] = (movMap[m.beneficiario_id] || 0) + 1; });
+      setBeneficiarios((data || []).map(b => ({ ...b, donaciones_count: entMap[b.id] || movMap[b.id] || 0 })));
     } catch {
       setBeneficiarios([]);
     } finally {
@@ -891,7 +896,10 @@ export const Beneficiarios = () => {
       >
         {actaView && (
           <Comprobante
-            beneficiario={actaView.beneficiario}
+            /* Las actas antiguas guardaron solo nombre/cédula del beneficiario.
+               Completamos con la ficha actual (selected) para que el acta muestre
+               contacto, teléfono, dirección, etc. sin perder lo que quedó guardado. */
+            beneficiario={selected ? { ...actaView.beneficiario, ...selected } : actaView.beneficiario}
             donaciones={actaView.donaciones || []}
             onClose={() => setActaView(null)}
           />
