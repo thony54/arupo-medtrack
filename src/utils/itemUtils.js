@@ -73,6 +73,45 @@ export const generarLoteGeneral = () => {
 };
 
 /**
+ * Nombre "limpio" para mostrar y editar un medicamento.
+ *
+ * Fondo: el nombre maestro (`nombre`) puede venir con el comercial pegado como
+ * "Nombre (Comercial)" (así se guarda al registrar). El comercial también vive
+ * en su propia columna `nombre_comercial`. Antes se re-parseaba el nombre con
+ * una expresión regular que arrancaba CUALQUIER paréntesis y lo trataba como
+ * comercial; eso hacía que una concentración o una aclaración entre paréntesis
+ * terminara en la columna equivocada.
+ *
+ * Esta función quita ÚNICAMENTE el sufijo exacto "(<nombre_comercial>)" usando
+ * el valor real de esa columna. Nunca toca otros paréntesis. Si no hay comercial
+ * separado, devuelve el nombre tal cual se guardó (sin adivinar nada).
+ *
+ * @param {object} med - Objeto medicina con `nombre` y opcional `nombre_comercial`
+ * @returns {string}
+ */
+export const nombreLimpio = (med) => {
+  const nombre = (med?.nombre || '').trim();
+  if (!nombre) return '';
+  const comercial = (med?.nombre_comercial || '').trim();
+  if (!comercial) return nombre;
+  const sufijo = `(${comercial})`;
+  if (nombre.toLowerCase().endsWith(sufijo.toLowerCase())) {
+    return nombre.slice(0, nombre.length - sufijo.length).trim() || nombre;
+  }
+  return nombre;
+};
+
+/**
+ * Nombre comercial a mostrar. Lee SOLO la columna `nombre_comercial`; no infiere
+ * el comercial parseando el nombre, para no confundirlo con paréntesis que en
+ * realidad son concentración u otra aclaración.
+ *
+ * @param {object} med - Objeto medicina
+ * @returns {string} el comercial, o cadena vacía si no hay
+ */
+export const nombreComercialMostrar = (med) => (med?.nombre_comercial || '').trim();
+
+/**
  * Retorna una representación legible de la fecha de vencimiento.
  * Si es la fecha "no vence" (2099), retorna 'N/A'.
  *

@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { useOfflineCache } from '../hooks/useOfflineCache';
-import { filtrarAlertasMedicas, esProductoMedico, esCategoriaMediaca } from '../utils/itemUtils';
+import { filtrarAlertasMedicas, esProductoMedico, esCategoriaMediaca, nombreLimpio, nombreComercialMostrar } from '../utils/itemUtils';
 import './pages.css';
 
 // Vías de administración sugeridas (mismo listado que el Catálogo Maestro)
@@ -138,13 +138,11 @@ export const Inventory = () => {
   const handleOpenEdit = (med) => {
     const cat = categorias.find(c => c.id === med.categoria_id);
     const esMed = esCategoriaMediaca(cat?.nombre);
-    let nombre = med.nombre || '';
-    let comercial = med.nombre_comercial || '';
-    if (esMed && med.nombre) {
-      const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-      nombre = m ? m[1].trim() : med.nombre.trim();
-      if (!comercial) comercial = m ? m[2].trim() : '';
-    }
+    // Nombre y comercial se derivan del ayudante único: quita solo el sufijo
+    // "(Comercial)" exacto y lee el comercial de su columna. Nunca parte otros
+    // paréntesis (concentración, aclaraciones).
+    const nombre = esMed ? nombreLimpio(med) : (med.nombre || '');
+    const comercial = esMed ? (med.nombre_comercial || '') : '';
     setEditForm({
       nombre,
       nombreComercial: comercial,
@@ -382,27 +380,18 @@ export const Inventory = () => {
                 return (
                   <tr key={med.id}>
                     <td>
-                      {/* Nombre: si trae "(Comercial)" mostrar solo la parte del nombre */}
+                      {/* Nombre: ayudante único (quita solo el sufijo "(Comercial)"
+                          exacto, nunca otros paréntesis como la concentración) */}
                       <div style={{ fontWeight: '600' }}>
-                        {(() => {
-                          if (med.nombre) {
-                            const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-                            return m ? m[1].trim() : med.nombre.trim();
-                          }
-                          return '—';
-                        })()}
+                        {nombreLimpio(med) || '—'}
                       </div>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>
-                      {/* N. Comercial: campo separado si existe, si no parsear nombre */}
+                      {/* N. Comercial: SOLO de su propia columna, sin adivinar */}
                       {(() => {
                         if (!esMedico) return <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>;
-                        if (med.nombre_comercial) return med.nombre_comercial;
-                        if (med.nombre) {
-                          const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-                          return m ? m[2].trim() : <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
-                        }
-                        return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+                        const com = nombreComercialMostrar(med);
+                        return com || <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
                       })()}
                     </td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>

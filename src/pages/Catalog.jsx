@@ -3,7 +3,7 @@ import { Plus, Database, FlaskConical, Pill, Tag, Trash2, ShoppingBag, Stethosco
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
-import { CATEGORIAS_GENERALES, esCategoriaMediaca, generarLoteGeneral, FECHA_NO_VENCE } from '../utils/itemUtils';
+import { CATEGORIAS_GENERALES, esCategoriaMediaca, generarLoteGeneral, FECHA_NO_VENCE, nombreLimpio, nombreComercialMostrar } from '../utils/itemUtils';
 import * as XLSX from 'xlsx';
 import './pages.css';
 
@@ -275,18 +275,13 @@ export const Catalog = () => {
     const esMedico = esCategoriaMediaca(med.categorias?.nombre);
     setTipoRegistro(esMedico ? 'medico' : 'general');
 
-    // El campo `nombre` es la fuente única. Para medicinas puede venir como
-    // "Nombre (Comercial)": se separa en Nombre + Comercial. Para generales es el
-    // nombre plano. La concentración es un campo aparte, nunca parte del nombre.
-    if (esMedico && med.nombre) {
-      const match = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-      if (match) {
-        setNombre(match[1].trim());
-        setNombreComercial(match[2].trim());
-      } else {
-        setNombre(med.nombre.trim());
-        setNombreComercial('');
-      }
+    // El nombre para editar sale del ayudante único: quita solo el sufijo
+    // "(Comercial)" exacto usando la columna nombre_comercial; nunca parte otros
+    // paréntesis (concentraciones, aclaraciones). El comercial se lee de su
+    // propia columna. Para generales es el nombre plano, sin comercial.
+    if (esMedico) {
+      setNombre(nombreLimpio(med));
+      setNombreComercial(med.nombre_comercial || '');
     } else {
       setNombre(med.nombre || '');
       setNombreComercial('');
@@ -997,27 +992,18 @@ export const Catalog = () => {
                 return (
                   <tr key={med.id}>
                     <td>
-                      {/* Nombre: si trae "(Comercial)" mostrar solo la parte del nombre */}
+                      {/* Nombre: se lee del ayudante único (quita solo el sufijo
+                          "(Comercial)" exacto, nunca otros paréntesis) */}
                       <div style={{ fontWeight: '600' }}>
-                        {(() => {
-                          if (med.nombre) {
-                            const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-                            return m ? m[1].trim() : med.nombre.trim();
-                          }
-                          return '—';
-                        })()}
+                        {nombreLimpio(med) || '—'}
                       </div>
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>
-                      {/* N. Comercial: usar campo separado si existe, si no parsear nombre */}
+                      {/* N. Comercial: SOLO de su propia columna, sin adivinar */}
                       {(() => {
                         if (!esMedico) return <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>N/A</span>;
-                        if (med.nombre_comercial) return med.nombre_comercial;
-                        if (med.nombre) {
-                          const m = med.nombre.match(/^([^(]+?)\s*\(([^)]+)\)\s*$/);
-                          return m ? m[2].trim() : <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
-                        }
-                        return <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
+                        const com = nombreComercialMostrar(med);
+                        return com || <span style={{ color: 'var(--text-tertiary)' }}>—</span>;
                       })()}
                     </td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
