@@ -15,6 +15,13 @@ build/
 .env.test.local
 .env.production.local
 
+# Documentos de seguridad: NO se publican en un repo público.
+# Detallan exploits confirmados y datos personales expuestos de la app en
+# producción; se conservan solo en local (ver SECURITY.local.md).
+SECURITY.md
+SECURITY.local.md
+*.local.md
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
