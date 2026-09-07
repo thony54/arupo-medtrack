@@ -17,10 +17,13 @@ import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { CATEGORIAS_GENERALES, FECHA_NO_VENCE, formatFechaVenc } from '../../utils/itemUtils';
+import { useAuth } from '../../contexts/AuthContext';
+import { notificarDonacionEntregada } from '../../lib/notify';
 // Logo oficial de los documentos (actas, comprobantes, PDFs).
 import logoArupo from '../../assets/logo.png';
 
 export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
+  const { user, profile, role } = useAuth();
   const [productos, setProductos] = useState([]);
   const [beneficiarios, setBeneficiarios] = useState([]);
 
@@ -200,10 +203,26 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
         });
       }
 
+      const beneficiarioObj = beneficiarioId
+        ? beneficiarios.find(b => b.id === beneficiarioId)
+        : { nombre: destinoLibre };
+
+      // Notificación a Discord (fire-and-forget; una por entrega, consolidada).
+      {
+        const actor = { nombre: profile?.nombre || user?.email, rol: role, email: user?.email };
+        const totalGen = donacionesProcesadas.reduce((s, d) => s + (d.total_despachado || 0), 0);
+        notificarDonacionEntregada({
+          beneficiario: beneficiarioObj || {},
+          destino,
+          items: donacionesProcesadas.map(d => ({ nombre: d.producto?.nombre, cantidad: d.total_despachado })),
+          total: totalGen,
+          tipo: 'general',
+          actor,
+        });
+      }
+
       setActaData({
-        beneficiario: beneficiarioId
-          ? beneficiarios.find(b => b.id === beneficiarioId)
-          : { nombre: destinoLibre },
+        beneficiario: beneficiarioObj,
         donaciones: donacionesProcesadas,
         esGeneral: true,
       });

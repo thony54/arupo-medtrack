@@ -118,28 +118,38 @@ Además, Workbox cachea las respuestas de `supabase.co/rest/v1` durante 30 días
 (`vite.config.js`). Ten en cuenta las implicaciones de privacidad descritas en
 `SECURITY.md` antes de ampliar lo que se cachea.
 
-### Reporte de errores a Discord
+### Notificaciones a Discord (7 canales)
 
-Los errores en runtime se envían a un canal de Discord vía webhook. Piezas:
+Eventos de runtime y de negocio se envían a Discord, un canal por tipo de evento.
+Todo pasa por un **único proxy serverless** para que los webhooks no viajen en el
+bundle público. Piezas:
 
-- `src/lib/errorReporter.js` — instala captadores globales (`window.onerror`,
-  `unhandledrejection`) e **intercepta `console.error`** (todo el código ya
-  reporta errores así), redacta PII, deduplica y limita el ritmo, y encola en
-  `localStorage` si no hay red.
-- `src/components/ErrorBoundary.jsx` — captura crashes de render de React (que
-  `window.onerror` no ve). Envuelve `<App/>` en `main.jsx`.
-- `api/report-error.js` — **proxy serverless en Vercel**. El navegador publica
-  aquí, no directo a Discord, para que el webhook (`DISCORD_WEBHOOK_URL`, env
-  **sin** prefijo `VITE_`) no viaje en el bundle público. El proxy compone el
-  embed y vuelve a redactar por defensa en profundidad.
-- `AuthContext` expone `window.__MEDTRACK_ROLE__` (solo el rol, sin correo ni id)
-  para dar contexto a los reportes.
+- `api/notify.js` — **proxy único en Vercel**. Mapea `evento → webhook` (7 env
+  vars **sin** prefijo `VITE_`, ver abajo), compone el embed y bloquea @menciones.
+  Un evento sin su webhook responde `200` sin enviar (no rompe la app). Solo el
+  canal de errores se redacta server-side; los de negocio envían datos completos.
+- `src/lib/notify.js` — notificaciones de negocio (6 tipos: nuevo-medicamento,
+  nuevo-item, nuevo-beneficiario, donacion-entregada, nuevo-donante,
+  donacion-recibida) + cola offline en `localStorage`.
+- `src/lib/errorReporter.js` — errores → canal de errores (evento `error`).
+  Capta `window.onerror`, `unhandledrejection` e **intercepta `console.error`**;
+  redacta PII, deduplica, limita ritmo y encola offline.
+- `src/components/ErrorBoundary.jsx` — crashes de render de React. Envuelve `<App/>`.
+- `AuthContext` expone `window.__MEDTRACK_ROLE__` para el reporter de errores.
 
-**Privacidad:** correos, cédulas/teléfonos (7+ dígitos), JWT y claves `sb_...` se
-enmascaran antes de salir. Nunca sumes datos clínicos ni personales al payload.
-Si añades un `console.error`, ten en cuenta que se reenviará a Discord.
+**Quién actuó:** cada notificación de negocio lleva nombre + rol de quien la hizo
+(vía `useAuth()` en el componente). Así los canales sirven de registro por rol.
+Componentes que notifican: `LoteForm`, `DonacionGeneral`, `SalidaFEFO`,
+`SalidaGeneral`, `pages/Beneficiarios`, `pages/Donantes`.
 
-Conexión del webhook: ver `ERRORES-DISCORD.local.md` (local, gitignoreado).
+**Solapamiento:** un ingreso de stock con donante dispara el canal por producto
+**y** un `donacion-recibida` consolidado. Sin donante, no hay `donacion-recibida`.
+
+**Privacidad:** en `#errores-medtrack` se enmascaran correos, cédulas, JWT y
+claves `sb_...`. Los canales de negocio NO se redactan (decisión del usuario:
+trazabilidad completa). Si añades un `console.error`, se reenviará a Discord.
+
+Conexión de los webhooks: ver `NOTIFICACIONES-DISCORD.local.md` (local, gitignoreado).
 
 ## Convenciones
 
@@ -164,10 +174,17 @@ En local viven en `.env.local`; en producción, en Vercel → Settings → Envir
 Variables. Nota: cualquier variable con prefijo `VITE_` **se incrusta en el bundle del
 navegador** y es pública por definición. Nunca pongas ahí una clave `service_role`.
 
-Variable adicional, **solo en el servidor** (Vercel, sin prefijo `VITE_`):
+Variables adicionales, **solo en el servidor** (Vercel, sin prefijo `VITE_`) —
+los webhooks de Discord que usa `api/notify.js`, una por canal:
 
 ```
-DISCORD_WEBHOOK_URL    # webhook del canal de errores (lo usa api/report-error.js)
+DISCORD_WEBHOOK_ERRORES
+DISCORD_WEBHOOK_NUEVO_MEDICAMENTO
+DISCORD_WEBHOOK_NUEVO_ITEM
+DISCORD_WEBHOOK_NUEVO_BENEFICIARIO
+DISCORD_WEBHOOK_DONACION_ENTREGADA
+DISCORD_WEBHOOK_NUEVO_DONANTE
+DISCORD_WEBHOOK_DONACION_RECIBIDA
 ```
 
 ## Scripts de utilidad en la raíz

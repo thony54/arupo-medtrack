@@ -4,10 +4,13 @@ import './index.css'
 import App from './App.jsx'
 import { registerSW } from 'virtual:pwa-register'
 import { initErrorReporting } from './lib/errorReporter'
+import { initNotifyFlush } from './lib/notify'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Captadores globales de errores → Discord (antes de renderizar nada).
 initErrorReporting()
+// Reintento de notificaciones de negocio encoladas offline.
+initNotifyFlush()
 
 // Registro automático del Service Worker para modo offline
 registerSW({ immediate: true })

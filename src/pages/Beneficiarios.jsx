@@ -5,6 +5,8 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { Comprobante } from '../components/inventory/Comprobante';
+import { useAuth } from '../contexts/AuthContext';
+import { notificarBeneficiario, notificarBeneficiariosImportados } from '../lib/notify';
 import * as XLSX from 'xlsx';
 import './pages.css';
 
@@ -110,6 +112,7 @@ const normalizarContraLista = (valor, lista) => {
 };
 
 export const Beneficiarios = () => {
+  const { user, profile, role } = useAuth();
   const [beneficiarios, setBeneficiarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -231,6 +234,16 @@ export const Beneficiarios = () => {
         notas: notas.trim() || null
       });
       if (err) throw err;
+
+      notificarBeneficiario({
+        beneficiario: {
+          nombre: nombre.trim(), tipo, cedula: cedula.trim() || null,
+          telefono: telefono.trim() || null, direccion: direccion.trim() || null,
+          condicion_medica: condicion || null,
+        },
+        actor: { nombre: profile?.nombre || user?.email, rol: role, email: user?.email },
+      });
+
       resetForm(); setIsModalOpen(false); fetchBeneficiarios();
     } catch (err) {
       setError(err.message || 'Error al guardar. Asegúrate de que la Cédula/ID sea única si la ingresaste.');
@@ -401,6 +414,12 @@ export const Beneficiarios = () => {
       setImportOk(correctos);
       setImportOmitidos(omitidos);
       setImportStep(3);
+      if (correctos > 0) {
+        notificarBeneficiariosImportados({
+          cantidad: correctos,
+          actor: { nombre: profile?.nombre || user?.email, rol: role, email: user?.email },
+        });
+      }
       await fetchBeneficiarios();
     } catch (err) {
       console.error('Error durante la importación:', err);

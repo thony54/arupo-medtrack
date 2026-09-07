@@ -4,8 +4,11 @@ import { supabase } from '../../lib/supabase';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Comprobante } from './Comprobante';
+import { useAuth } from '../../contexts/AuthContext';
+import { notificarDonacionEntregada } from '../../lib/notify';
 
 export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
+  const { user, profile, role } = useAuth();
   const [medicinas, setMedicinas] = useState([]);
   const [beneficiarios, setBeneficiarios] = useState([]);
   
@@ -170,6 +173,20 @@ export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
         if (saveErr) console.warn('No se pudo guardar el acta de la entrega:', saveErr.message);
       } catch (saveErr) {
         console.warn('No se pudo guardar el acta de la entrega:', saveErr);
+      }
+
+      // Notificación a Discord (fire-and-forget; una por entrega, consolidada).
+      {
+        const actor = { nombre: profile?.nombre || user?.email, rol: role, email: user?.email };
+        const totalUnid = donacionesProcesadas.reduce((s, d) => s + (d.total_despachado || 0), 0);
+        notificarDonacionEntregada({
+          beneficiario: acta.beneficiario || {},
+          destino,
+          items: donacionesProcesadas.map(d => ({ nombre: d.producto?.nombre, cantidad: d.total_despachado })),
+          total: totalUnid,
+          tipo: 'médico',
+          actor,
+        });
       }
 
       setActaData(acta);

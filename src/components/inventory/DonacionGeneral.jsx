@@ -22,6 +22,8 @@ import {
   FECHA_NO_VENCE,
   generarLoteGeneral,
 } from '../../utils/itemUtils';
+import { useAuth } from '../../contexts/AuthContext';
+import { notificarNuevoItem, notificarDonacionRecibida } from '../../lib/notify';
 
 export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
   const [productos, setProductos] = useState([]);   // ítems del catálogo de categoría general
@@ -44,6 +46,8 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [actaData, setActaData] = useState(null);
+
+  const { user, profile, role } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -202,6 +206,27 @@ export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
       }
 
       const donante = donantes.find(d => d.id === donanteId);
+
+      // Notificaciones a Discord (fire-and-forget). Todos son ítems generales.
+      {
+        const actor = { nombre: profile?.nombre || user?.email, rol: role, email: user?.email };
+        for (const item of cart) {
+          notificarNuevoItem({
+            producto: item.medNameDisplay, categoria: item.nuevaCategoria || null,
+            cantidad: item.cantidad, numeroLote: item.numeroLote,
+            ubicacion: item.ubicacion, donante: donante?.nombre || null, actor,
+          });
+        }
+        if (donante) {
+          notificarDonacionRecibida({
+            donante,
+            items: cart.map(i => ({ nombre: i.medNameDisplay, cantidad: i.cantidad })),
+            total: cart.reduce((s, i) => s + i.cantidad, 0),
+            actor,
+          });
+        }
+      }
+
       setActaData({ donante, items: [...cart] });
       setCart([]);
       onSuccess();

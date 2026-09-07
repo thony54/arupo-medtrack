@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
+import { useAuth } from '../contexts/AuthContext';
+import { notificarNuevoDonante } from '../lib/notify';
 import './pages.css';
 
 const TIPOS = ['Hospital', 'Farmacia', 'ONG', 'Gobierno', 'Empresa', 'Particular', 'Centro de Salud', 'Fundación', 'Comunidad'];
@@ -11,6 +13,7 @@ const CONDICIONES = ['Diabetes', 'Hipertensión', 'Cardiopatía', 'Embarazo', 'A
 const DISCAPACIDADES = ['Física', 'Visual', 'Auditiva', 'Intelectual', 'Psicosocial', 'Múltiple'];
 
 export const Donantes = () => {
+  const { user, profile, role } = useAuth();
   const [donantes, setDonantes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -94,6 +97,16 @@ export const Donantes = () => {
         notas: notas.trim() || null
       });
       if (err) throw err;
+
+      notificarNuevoDonante({
+        donante: {
+          nombre: nombre.trim(), tipo, cedula: cedula.trim() || null,
+          telefono: telefono.trim() || null, email: email.trim() || null,
+          contacto_responsable: contactoResponsable.trim() || null,
+        },
+        actor: { nombre: profile?.nombre || user?.email, rol: role, email: user?.email },
+      });
+
       resetForm(); setIsModalOpen(false); fetchDonantes();
     } catch (err) {
       setError(err.message || 'Error al guardar. Asegúrate de que la Cédula/ID sea única si la ingresaste.');

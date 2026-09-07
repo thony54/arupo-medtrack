@@ -7,6 +7,8 @@ import { QRScanner } from './QRScanner';
 import { useOfflineCache } from '../../hooks/useOfflineCache';
 import { ActaIngreso } from './ActaIngreso';
 import { esProductoMedico, FECHA_NO_VENCE, generarLoteGeneral } from '../../utils/itemUtils';
+import { useAuth } from '../../contexts/AuthContext';
+import { notificarNuevoMedicamento, notificarNuevoItem, notificarDonacionRecibida } from '../../lib/notify';
 
 export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const [medicinas, setMedicinas] = useState([]);
@@ -30,6 +32,7 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const [showScanner, setShowScanner] = useState(false);
   const [actaData, setActaData] = useState(null); // Success state
   const { isOnline, queueOfflineAction } = useOfflineCache();
+  const { user, profile, role } = useAuth();
 
   useEffect(() => {
     if (isOpen) { fetchMedicinas(); fetchDonantes(); }
@@ -183,6 +186,38 @@ export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
 
       // Prepare success data for Acta
       const donante = donantes.find(d => d.id === donanteId);
+
+      // Notificaciones a Discord (fire-and-forget; solo para ingresos online).
+      if (isOnline && supabase) {
+        const actor = { nombre: profile?.nombre || user?.email, rol: role, email: user?.email };
+        const donanteNombre = donante?.nombre || null;
+        for (const item of cart) {
+          if (item.esGeneral) {
+            notificarNuevoItem({
+              producto: item.medNameDisplay, cantidad: item.cantidad,
+              numeroLote: item.numeroLote, ubicacion: item.ubicacion,
+              donante: donanteNombre, actor,
+            });
+          } else {
+            notificarNuevoMedicamento({
+              producto: item.medNameDisplay, cantidad: item.cantidad,
+              numeroLote: item.numeroLote,
+              fechaVencimiento: item.fechaVencimiento === FECHA_NO_VENCE ? null : item.fechaVencimiento,
+              ubicacion: item.ubicacion, donante: donanteNombre, actor,
+            });
+          }
+        }
+        // Si hubo donante, un acta consolidada de donación recibida.
+        if (donante) {
+          notificarDonacionRecibida({
+            donante,
+            items: cart.map(i => ({ nombre: i.medNameDisplay, cantidad: i.cantidad })),
+            total: cart.reduce((s, i) => s + i.cantidad, 0),
+            actor,
+          });
+        }
+      }
+
       setActaData({ donante, items: [...cart] });
       
       setCart([]); // Clear cart but don't reset donante yet
