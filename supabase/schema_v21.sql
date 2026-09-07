@@ -171,6 +171,7 @@ CREATE POLICY "entregas_delete" ON public.entregas
 -- El catálogo NO es dato personal. Lectura para cualquier autenticado (varias
 -- pantallas lo necesitan); escritura solo para super_admin, brigadista.
 DROP POLICY IF EXISTS "medicinas_authenticated" ON public.medicinas;
+DROP POLICY IF EXISTS "Permitir acceso total a medicinas" ON public.medicinas; -- permisiva vieja (public/ALL)
 DROP POLICY IF EXISTS "medicinas_select" ON public.medicinas;
 DROP POLICY IF EXISTS "medicinas_write"  ON public.medicinas;
 CREATE POLICY "medicinas_select" ON public.medicinas
@@ -181,6 +182,7 @@ CREATE POLICY "medicinas_write" ON public.medicinas
   WITH CHECK (public.rol_actual() IN ('super_admin', 'brigadista'));
 
 DROP POLICY IF EXISTS "categorias_authenticated" ON public.categorias;
+DROP POLICY IF EXISTS "Permitir acceso total a categorias" ON public.categorias; -- permisiva vieja (public/ALL)
 DROP POLICY IF EXISTS "categorias_select" ON public.categorias;
 DROP POLICY IF EXISTS "categorias_write"  ON public.categorias;
 CREATE POLICY "categorias_select" ON public.categorias
@@ -192,6 +194,7 @@ CREATE POLICY "categorias_write" ON public.categorias
 
 -- --- MOVIMIENTOS (trazabilidad) → super_admin, brigadista ---
 DROP POLICY IF EXISTS "movimientos_authenticated" ON public.movimientos;
+DROP POLICY IF EXISTS "Permitir acceso total a movimientos" ON public.movimientos; -- permisiva vieja (public/ALL)
 DROP POLICY IF EXISTS "movimientos_select" ON public.movimientos;
 DROP POLICY IF EXISTS "movimientos_write"  ON public.movimientos;
 CREATE POLICY "movimientos_select" ON public.movimientos
