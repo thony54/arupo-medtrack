@@ -5,6 +5,8 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { CATEGORIAS_GENERALES, esCategoriaMediaca, generarLoteGeneral, FECHA_NO_VENCE, nombreLimpio, nombreComercialMostrar } from '../utils/itemUtils';
 import { usePersistentState } from '../hooks/usePersistentState';
+import { useAuth } from '../contexts/AuthContext';
+import { notificarNuevoMedicamento, notificarNuevoItem } from '../lib/notify';
 import * as XLSX from 'xlsx';
 import './pages.css';
 
@@ -130,6 +132,7 @@ export const Catalog = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isInitializingEdit = React.useRef(false);
+  const { user, profile, role } = useAuth();
 
   // Filtro visual (médicos / generales / todos)
   const [filtroTipo, setFiltroTipo] = useState('todos');
@@ -794,6 +797,33 @@ export const Catalog = () => {
               origen_destino: `Registro inicial - Lote: ${loteData.numero_lote}`
             });
             if (movError) throw movError;
+          }
+        }
+
+        // Notificar a Discord SOLO al crear un ítem nuevo (no al editar).
+        // Mismo criterio de los demás flujos: médico → nuevo-medicamento,
+        // general → nuevo-item. Fire-and-forget (nunca bloquea el guardado).
+        if (!editingId) {
+          const actor = { nombre: profile?.nombre || user?.email, rol: role, email: user?.email };
+          const cantidadNotif = cantidadTotal && Number(cantidadTotal) > 0 ? Number(cantidadTotal) : null;
+          if (tipoRegistro === 'medico') {
+            notificarNuevoMedicamento({
+              producto: concentracion.trim() ? `${finalNombre} (${concentracion.trim()})` : finalNombre,
+              cantidad: cantidadNotif,
+              numeroLote: numeroLote.trim() || null,
+              fechaVencimiento: fechaVencimiento || null,
+              donante: null,
+              actor,
+            });
+          } else {
+            notificarNuevoItem({
+              producto: finalNombre,
+              categoria: finalCategoriaNombre,
+              cantidad: cantidadNotif,
+              numeroLote: numeroLote.trim() || null,
+              donante: null,
+              actor,
+            });
           }
         }
 
