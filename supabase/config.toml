@@ -1,0 +1,10 @@
+# Configuración del CLI de Supabase para este proyecto.
+# Solo se declara lo necesario para desplegar la Edge Function `crear-personal`.
+# El resto del proyecto (tablas, RLS) se gestiona a mano en el SQL Editor con
+# los scripts supabase/schema_v*.sql, según la convención del repo.
+
+[functions.crear-personal]
+# verify_jwt = true (por defecto): el gateway de Supabase exige un JWT válido
+# antes de ejecutar la función. Además, la función comprueba internamente que
+# quien llama sea super_admin. Defensa en profundidad.
+verify_jwt = true

@@ -105,6 +105,53 @@ export const Usuarios = () => {
     setSuccess('');
   };
 
+  // Método de COMPATIBILIDAD: se usa solo si la Edge Function `crear-personal`
+  // todavía no está desplegada. Crea la cuenta con signUp() público (el trigger
+  // la deja como 'voluntario') y luego, con la sesión del super_admin, promueve
+  // al rol elegido vía UPDATE sobre perfiles (política perfiles_upd). Cuando se
+  // despliegue la función y se cierre el alta pública, este camino deja de
+  // ejecutarse. Ver supabase/functions/crear-personal/README.md.
+  const crearPersonalLegacy = async () => {
+    // Cliente temporal para no cerrar tu propia sesión.
+    const { createClient } = await import('@supabase/supabase-js');
+    const authClient = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY,
+      { auth: { persistSession: false } }
+    );
+
+    const { data, error: signUpError } = await authClient.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password: password,
+      options: { data: { nombre: nombre.trim() } }
+    });
+    if (signUpError) throw signUpError;
+
+    const nuevoUserId = data?.user?.id;
+
+    // Espera breve para que el trigger cree el perfil (voluntario) en DB.
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // Promover al rol pedido. Se relee el rol para detectar un UPDATE bloqueado
+    // por RLS (devolvería 0 filas sin lanzar error).
+    if (nuevoUserId && rol !== 'voluntario') {
+      const { data: perfilActualizado, error: rolError } = await supabase
+        .from('perfiles')
+        .update({ rol })
+        .eq('id', nuevoUserId)
+        .select('rol')
+        .maybeSingle();
+
+      if (rolError || perfilActualizado?.rol !== rol) {
+        console.error('Error al asignar rol:', rolError);
+        throw new Error(
+          `La cuenta se creó, pero no se pudo asignar el rol "${rol}". ` +
+          'Quedó como voluntario; promuévela manualmente desde esta pantalla.'
+        );
+      }
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!nombre.trim()) return setError('El nombre es obligatorio.');
@@ -120,30 +167,34 @@ export const Usuarios = () => {
     setSuccess('');
 
     try {
-      // 1. Cliente temporal para no cerrar tu sesión
-      const { createClient } = await import('@supabase/supabase-js');
-      const authClient = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY,
-        { auth: { persistSession: false } }
-      );
-
-      // 2. Registro (El trigger en DB se encarga del perfil)
-      const { data, error: signUpError } = await authClient.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password: password,
-        options: {
-          data: {
-            nombre: nombre.trim(),
-            rol: rol
-          }
+      // Vía SEGURA (preferente): Edge Function `crear-personal`. Corre con la
+      // service_role key en el servidor, valida que quien llama es super_admin
+      // y crea la cuenta con el rol pedido sin depender del alta pública. El
+      // JWT del super_admin lo adjunta functions.invoke automáticamente.
+      const { error: fnError } = await supabase.functions.invoke('crear-personal', {
+        body: {
+          nombre: nombre.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+          rol
         }
       });
 
-      if (signUpError) throw signUpError;
-
-      // 3. Espera breve para sincronización de DB
-      await new Promise(resolve => setTimeout(resolve, 800));
+      if (fnError) {
+        // FunctionsHttpError = la función SÍ existe y devolvió un error de
+        // negocio (403, email duplicado, validación…): se muestra tal cual.
+        if (fnError.name === 'FunctionsHttpError') {
+          let msg = 'No se pudo crear el usuario.';
+          try {
+            const body = await fnError.context.json();
+            if (body?.error) msg = body.error;
+          } catch { /* respuesta sin JSON */ }
+          throw new Error(msg);
+        }
+        // Cualquier otro fallo (red/relay) = la función aún no está desplegada.
+        // Se recurre al método de compatibilidad para no bloquear el alta.
+        await crearPersonalLegacy();
+      }
 
       setSuccess('¡Personal registrado con éxito!');
       setTimeout(() => {
