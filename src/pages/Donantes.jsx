@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { notificarNuevoDonante } from '../lib/notify';
+import { usePersistentState } from '../hooks/usePersistentState';
 import './pages.css';
 
 const TIPOS = ['Hospital', 'Farmacia', 'ONG', 'Gobierno', 'Empresa', 'Particular', 'Centro de Salud', 'Fundación', 'Comunidad'];
@@ -23,18 +24,18 @@ export const Donantes = () => {
   const [selected, setSelected] = useState(null);
   const [historial, setHistorial] = useState([]);
 
-  // Form states
-  const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState('');
-  const [contactoResponsable, setContactoResponsable] = useState('');
-  const [cedula, setCedula] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [email, setEmail] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [condicion, setCondicion] = useState('');
-  const [discapacidad, setDiscapacidad] = useState('');
-  const [tieneCarnet, setTieneCarnet] = useState(false);
-  const [notas, setNotas] = useState('');
+  // Form states (persistentes: sobreviven a cerrar/minimizar la app)
+  const [nombre, setNombre] = usePersistentState('donante.nombre', '');
+  const [tipo, setTipo] = usePersistentState('donante.tipo', '');
+  const [contactoResponsable, setContactoResponsable] = usePersistentState('donante.contactoResponsable', '');
+  const [cedula, setCedula] = usePersistentState('donante.cedula', '');
+  const [telefono, setTelefono] = usePersistentState('donante.telefono', '');
+  const [email, setEmail] = usePersistentState('donante.email', '');
+  const [direccion, setDireccion] = usePersistentState('donante.direccion', '');
+  const [condicion, setCondicion] = usePersistentState('donante.condicion', '');
+  const [discapacidad, setDiscapacidad] = usePersistentState('donante.discapacidad', '');
+  const [tieneCarnet, setTieneCarnet] = usePersistentState('donante.tieneCarnet', false);
+  const [notas, setNotas] = usePersistentState('donante.notas', '');
 
   useEffect(() => { fetchDonantes(); }, []);
 
@@ -152,7 +153,7 @@ export const Donantes = () => {
               {filtered.length} registro{filtered.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
+          <Button variant="primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={18} /> Añadir Donante
           </Button>
         </div>

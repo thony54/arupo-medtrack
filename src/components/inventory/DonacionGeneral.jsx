@@ -24,24 +24,25 @@ import {
 } from '../../utils/itemUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificarNuevoItem, notificarDonacionRecibida } from '../../lib/notify';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const DonacionGeneral = ({ isOpen, onClose, onSuccess }) => {
   const [productos, setProductos] = useState([]);   // ítems del catálogo de categoría general
   const [donantes, setDonantes] = useState([]);
   const [categorias, setCategorias] = useState([]); // solo categorías generales
 
-  // Carrito
-  const [cart, setCart] = useState([]);
+  // Carrito (persistente: sobrevive a cerrar/minimizar la app)
+  const [cart, setCart] = usePersistentState('donaciongeneral.cart', []);
 
-  // Form states — ítem actual
-  const [productoId, setProductoId] = useState('');
-  const [nuevoNombre, setNuevoNombre] = useState('');
-  const [nuevaCategoria, setNuevaCategoria] = useState('');
-  const [cantidad, setCantidad] = useState('');
-  const [ubicacion, setUbicacion] = useState('');
+  // Form states — ítem actual (persistentes)
+  const [productoId, setProductoId] = usePersistentState('donaciongeneral.productoId', '');
+  const [nuevoNombre, setNuevoNombre] = usePersistentState('donaciongeneral.nuevoNombre', '');
+  const [nuevaCategoria, setNuevaCategoria] = usePersistentState('donaciongeneral.nuevaCategoria', '');
+  const [cantidad, setCantidad] = usePersistentState('donaciongeneral.cantidad', '');
+  const [ubicacion, setUbicacion] = usePersistentState('donaciongeneral.ubicacion', '');
 
-  // Form global
-  const [donanteId, setDonanteId] = useState('');
+  // Form global (persistente)
+  const [donanteId, setDonanteId] = usePersistentState('donaciongeneral.donanteId', '');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

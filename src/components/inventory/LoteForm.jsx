@@ -9,23 +9,24 @@ import { ActaIngreso } from './ActaIngreso';
 import { esProductoMedico, FECHA_NO_VENCE, generarLoteGeneral } from '../../utils/itemUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificarNuevoMedicamento, notificarNuevoItem, notificarDonacionRecibida } from '../../lib/notify';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const LoteForm = ({ isOpen, onClose, onSuccess }) => {
   const [medicinas, setMedicinas] = useState([]);
   const [donantes, setDonantes] = useState([]);
   
-  // Cart state
-  const [cart, setCart] = useState([]);
+  // Cart state (persistente: sobrevive a cerrar/minimizar la app)
+  const [cart, setCart] = usePersistentState('loteform.cart', []);
 
-  // Form states
-  const [productoId, setProductoId] = useState('');
-  const [newMedNombre, setNewMedNombre] = useState('');
-  const [newMedConcentracion, setNewMedConcentracion] = useState('');
-  const [donanteId, setDonanteId] = useState('');
-  const [numeroLote, setNumeroLote] = useState('');
-  const [cantidad, setCantidad] = useState('');
-  const [fechaVencimiento, setFechaVencimiento] = useState('');
-  const [ubicacion, setUbicacion] = useState('');
+  // Form states (persistentes)
+  const [productoId, setProductoId] = usePersistentState('loteform.productoId', '');
+  const [newMedNombre, setNewMedNombre] = usePersistentState('loteform.newMedNombre', '');
+  const [newMedConcentracion, setNewMedConcentracion] = usePersistentState('loteform.newMedConcentracion', '');
+  const [donanteId, setDonanteId] = usePersistentState('loteform.donanteId', '');
+  const [numeroLote, setNumeroLote] = usePersistentState('loteform.numeroLote', '');
+  const [cantidad, setCantidad] = usePersistentState('loteform.cantidad', '');
+  const [fechaVencimiento, setFechaVencimiento] = usePersistentState('loteform.fechaVencimiento', '');
+  const [ubicacion, setUbicacion] = usePersistentState('loteform.ubicacion', '');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

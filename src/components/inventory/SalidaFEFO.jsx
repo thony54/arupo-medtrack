@@ -6,23 +6,24 @@ import { Button } from '../ui/Button';
 import { Comprobante } from './Comprobante';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificarDonacionEntregada } from '../../lib/notify';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const SalidaFEFO = ({ isOpen, onClose, onSuccess }) => {
   const { user, profile, role } = useAuth();
   const [medicinas, setMedicinas] = useState([]);
   const [beneficiarios, setBeneficiarios] = useState([]);
-  
-  // Cart state
-  const [cart, setCart] = useState([]);
-  
-  // Global form states
-  const [beneficiarioId, setBeneficiarioId] = useState('');
-  const [destinoLibre, setDestinoLibre] = useState('');
 
-  // Current item states
-  const [productoId, setProductoId] = useState('');
-  const [cantidad, setCantidad] = useState('');
-  const [busquedaMed, setBusquedaMed] = useState(''); // buscador en tiempo real del selector
+  // Cart state (persistente: sobrevive a cerrar/minimizar la app)
+  const [cart, setCart] = usePersistentState('salidafefo.cart', []);
+
+  // Global form states (persistentes)
+  const [beneficiarioId, setBeneficiarioId] = usePersistentState('salidafefo.beneficiarioId', '');
+  const [destinoLibre, setDestinoLibre] = usePersistentState('salidafefo.destinoLibre', '');
+
+  // Current item states (persistentes)
+  const [productoId, setProductoId] = usePersistentState('salidafefo.productoId', '');
+  const [cantidad, setCantidad] = usePersistentState('salidafefo.cantidad', '');
+  const [busquedaMed, setBusquedaMed] = usePersistentState('salidafefo.busquedaMed', ''); // buscador en tiempo real del selector
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

@@ -3,6 +3,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { 
   User, 
   Calendar, 
@@ -21,33 +22,37 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+const initialFormData = () => ({
+  fecha: new Date().toISOString().split('T')[0],
+  hora_atencion: new Date().toTimeString().split(' ')[0].substring(0, 5),
+  lugar_atencion: 'Fundación Arupo - Sede Principal',
+  paciente_ci: '',
+  paciente_nombre: '',
+  paciente_direccion: '',
+  paciente_telefono: '',
+  paciente_email: '',
+  acompanante_nombre: '',
+  acompanante_telefono: '',
+  talla: '',
+  peso: '',
+  imc: '',
+  glucosa: '',
+  presion_sistolica: '',
+  presion_diastolica: '',
+  notas: ''
+});
+
 export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
   const { profile } = useAuth();
-  const [step, setStep] = useState(1);
+  // Estado persistente: si se cierra/minimiza la app, la evaluación a medias
+  // reaparece al reabrir. Se limpia al guardar con éxito.
+  const [step, setStep] = usePersistentState('salud.step', 1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [beneficiarioId, setBeneficiarioId] = useState(null);
+  const [beneficiarioId, setBeneficiarioId] = usePersistentState('salud.beneficiarioId', null);
 
   // Form Data
-  const [formData, setFormData] = useState({
-    fecha: new Date().toISOString().split('T')[0],
-    hora_atencion: new Date().toTimeString().split(' ')[0].substring(0, 5),
-    lugar_atencion: 'Fundación Arupo - Sede Principal',
-    paciente_ci: '',
-    paciente_nombre: '',
-    paciente_direccion: '',
-    paciente_telefono: '',
-    paciente_email: '',
-    acompanante_nombre: '',
-    acompanante_telefono: '',
-    talla: '',
-    peso: '',
-    imc: '',
-    glucosa: '',
-    presion_sistolica: '',
-    presion_diastolica: '',
-    notas: ''
-  });
+  const [formData, setFormData] = usePersistentState('salud.formData', initialFormData());
 
   // Calculate IMC when talla or peso changes
   useEffect(() => {
@@ -61,7 +66,7 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
         setFormData(prev => ({ ...prev, imc: imcValue }));
       }
     }
-  }, [formData.talla, formData.peso]);
+  }, [formData.talla, formData.peso, setFormData]);
 
   // Lookup CI
   const handleCILookup = async () => {
@@ -145,6 +150,10 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
       });
 
       if (err) throw err;
+      // Evaluación guardada: limpiar el borrador para no reabrir con datos viejos.
+      setStep(1);
+      setBeneficiarioId(null);
+      setFormData(initialFormData());
       onSuccess?.();
       onClose();
     } catch (err) {

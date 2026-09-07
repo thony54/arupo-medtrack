@@ -7,6 +7,7 @@ import { Modal } from '../components/ui/Modal';
 import { Comprobante } from '../components/inventory/Comprobante';
 import { useAuth } from '../contexts/AuthContext';
 import { notificarBeneficiario, notificarBeneficiariosImportados } from '../lib/notify';
+import { usePersistentState } from '../hooks/usePersistentState';
 import * as XLSX from 'xlsx';
 import './pages.css';
 
@@ -124,18 +125,18 @@ export const Beneficiarios = () => {
   const [entregas, setEntregas] = useState([]); // saved actas for the selected beneficiary
   const [actaView, setActaView] = useState(null); // acta being viewed/printed
 
-  // Form states
-  const [nombre, setNombre] = useState('');
-  const [tipo, setTipo] = useState('Particular');
-  const [contactoResponsable, setContactoResponsable] = useState('');
-  const [cedula, setCedula] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [email, setEmail] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [condicion, setCondicion] = useState('');
-  const [discapacidad, setDiscapacidad] = useState('');
-  const [tieneCarnet, setTieneCarnet] = useState(false);
-  const [notas, setNotas] = useState('');
+  // Form states (persistentes: sobreviven a cerrar/minimizar la app)
+  const [nombre, setNombre] = usePersistentState('beneficiario.nombre', '');
+  const [tipo, setTipo] = usePersistentState('beneficiario.tipo', 'Particular');
+  const [contactoResponsable, setContactoResponsable] = usePersistentState('beneficiario.contactoResponsable', '');
+  const [cedula, setCedula] = usePersistentState('beneficiario.cedula', '');
+  const [telefono, setTelefono] = usePersistentState('beneficiario.telefono', '');
+  const [email, setEmail] = usePersistentState('beneficiario.email', '');
+  const [direccion, setDireccion] = usePersistentState('beneficiario.direccion', '');
+  const [condicion, setCondicion] = usePersistentState('beneficiario.condicion', '');
+  const [discapacidad, setDiscapacidad] = usePersistentState('beneficiario.discapacidad', '');
+  const [tieneCarnet, setTieneCarnet] = usePersistentState('beneficiario.tieneCarnet', false);
+  const [notas, setNotas] = usePersistentState('beneficiario.notas', '');
 
   // ─── Estado de la importación desde Excel ───
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -460,7 +461,7 @@ export const Beneficiarios = () => {
               >
                 <Upload size={16} /> Importar Excel
               </Button>
-              <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
+              <Button variant="primary" onClick={() => setIsModalOpen(true)}>
                 <UserPlus size={18} /> Añadir Beneficiario
               </Button>
             </div>

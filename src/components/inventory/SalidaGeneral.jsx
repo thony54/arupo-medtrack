@@ -19,6 +19,7 @@ import { Button } from '../ui/Button';
 import { CATEGORIAS_GENERALES, FECHA_NO_VENCE, formatFechaVenc } from '../../utils/itemUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { notificarDonacionEntregada } from '../../lib/notify';
+import { usePersistentState } from '../../hooks/usePersistentState';
 // Logo oficial de los documentos (actas, comprobantes, PDFs).
 import logoArupo from '../../assets/logo.png';
 
@@ -27,16 +28,16 @@ export const SalidaGeneral = ({ isOpen, onClose, onSuccess }) => {
   const [productos, setProductos] = useState([]);
   const [beneficiarios, setBeneficiarios] = useState([]);
 
-  // Carrito
-  const [cart, setCart] = useState([]);
+  // Carrito (persistente: sobrevive a cerrar/minimizar la app)
+  const [cart, setCart] = usePersistentState('salidageneral.cart', []);
 
-  // Form global
-  const [beneficiarioId, setBeneficiarioId] = useState('');
-  const [destinoLibre, setDestinoLibre] = useState('');
+  // Form global (persistentes)
+  const [beneficiarioId, setBeneficiarioId] = usePersistentState('salidageneral.beneficiarioId', '');
+  const [destinoLibre, setDestinoLibre] = usePersistentState('salidageneral.destinoLibre', '');
 
-  // Form ítem actual
-  const [productoId, setProductoId] = useState('');
-  const [cantidad, setCantidad] = useState('');
+  // Form ítem actual (persistentes)
+  const [productoId, setProductoId] = usePersistentState('salidageneral.productoId', '');
+  const [cantidad, setCantidad] = usePersistentState('salidageneral.cantidad', '');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
