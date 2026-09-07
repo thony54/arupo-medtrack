@@ -79,6 +79,82 @@ const rolActual = () => {
   }
 };
 
+// ── Filtro de ruido: errores benignos que NO deben llegar al canal ────────────
+// No son bugs accionables, solo generan spam en #errores-medtrack:
+//   - Token de refresco de Supabase caducado/ausente → la sesión expiró y la app
+//     manda al login sola. Es lo esperado, no un fallo.
+//   - "Auth session missing" → no hay sesión (usuario deslogueado). Benigno.
+//   - "ResizeObserver loop…" → ruido clásico del navegador, sin efecto real.
+//   - Fetch fallido mientras se está SIN conexión → esperado (lo gestiona el offline).
+// La lista es fácil de ampliar si aparece otro ruido recurrente.
+const PATRONES_RUIDO = [
+  /invalid refresh token/i,
+  /refresh token not found/i,
+  /auth session missing/i,
+  /resizeobserver loop (?:limit exceeded|completed)/i,
+];
+
+const esRuido = (message, stack, online) => {
+  const texto = `${message}\n${stack}`;
+  if (PATRONES_RUIDO.some((re) => re.test(texto))) return true;
+  // Sin conexión, un fetch fallido es lo esperado (la cola offline se encarga).
+  if (!online && /failed to fetch|networkerror|network request failed|load failed/i.test(texto)) {
+    return true;
+  }
+  return false;
+};
+
+// ── Presentación legible ──────────────────────────────────────────────────────
+// Tipo de error (TypeError, AuthApiError, PostgrestError…) para el título.
+const tipoError = (name, stack) => {
+  if (name && name !== 'Error') return name;
+  const primera = String(stack || '').split('\n')[0] || '';
+  const m = primera.match(/^\s*([A-Z][A-Za-z0-9_]*(?:Error|Exception))\b/);
+  return m ? m[1] : '';
+};
+
+// Stack minificado y ruidoso → primeras líneas útiles, sin repetir el mensaje.
+const limpiarStack = (stack, message) => {
+  if (!stack) return '';
+  let lineas = String(stack).split('\n');
+  // La 1ª línea suele ser "TipoError: <mensaje>", que ya va en el título.
+  if (lineas[0] && message && lineas[0].includes(String(message).slice(0, 60))) {
+    lineas = lineas.slice(1);
+  }
+  const utiles = lineas.map((l) => l.trim()).filter(Boolean).slice(0, 8);
+  return clip(utiles.join('\n'), 1200);
+};
+
+// Pista en español para quien lee el canal (solo patrones de alta confianza).
+const pistaHumana = (name, message, stack) => {
+  const t = `${name} ${message} ${stack}`.toLowerCase();
+  if (/postgrest|pgrst|violates|duplicate key|constraint|does not exist|row-level security|\brls\b|jwt expired/.test(t))
+    return 'Fallo al leer o guardar en la base de datos (Supabase).';
+  if (/failed to fetch|networkerror|network request failed|load failed|err_internet|err_network/.test(t))
+    return 'Problema de conexión al contactar el servidor.';
+  if (/is not a function|cannot read propert|undefined is not|null is not an object|is not defined|cannot access/.test(t))
+    return 'Error de programación en la app (revisar la pantalla de la ruta indicada).';
+  if (/chunk|dynamically imported module|importing a module script failed/.test(t))
+    return 'La app quedó desactualizada tras un despliegue; recargar la página suele resolverlo.';
+  return '';
+};
+
+// Navegador + SO en corto, en vez del User-Agent completo (ilegible).
+const navegadorCorto = (ua) => {
+  if (!ua) return '?';
+  const nav = /Edg\//.test(ua) ? 'Edge'
+    : /OPR\/|Opera/.test(ua) ? 'Opera'
+    : /Chrome\//.test(ua) ? 'Chrome'
+    : /Firefox\//.test(ua) ? 'Firefox'
+    : /Safari\//.test(ua) ? 'Safari' : 'Otro';
+  const so = /Windows/.test(ua) ? 'Windows'
+    : /Android/.test(ua) ? 'Android'
+    : /iPhone|iPad|iPod|iOS/.test(ua) ? 'iOS'
+    : /Mac OS X|Macintosh/.test(ua) ? 'macOS'
+    : /Linux/.test(ua) ? 'Linux' : '';
+  return so ? `${nav} · ${so}` : nav;
+};
+
 // ── Cola offline ─────────────────────────────────────────────────────────────
 const leerCola = () => {
   try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); } catch { return []; }
@@ -98,16 +174,31 @@ const campos = (info) => [
   { name: 'Rol', value: info.role || 'anon', inline: true },
   { name: 'Fuente', value: info.source || '?', inline: true },
   { name: 'Entorno', value: info.appVersion || '?', inline: true },
-  { name: 'Online', value: info.online ? 'sí' : 'no', inline: true },
-  { name: 'Navegador', value: clip(info.userAgent, 90), inline: false },
+  { name: 'Conexión', value: info.online ? '🟢 online' : '🔴 offline', inline: true },
+  { name: 'Navegador', value: navegadorCorto(info.userAgent), inline: true },
 ];
+
+// Título: emoji + tipo de error + mensaje (sin duplicar lo que va en el stack).
+const construirTitulo = (info) => {
+  const emoji = EMOJI[info.level] || EMOJI.error;
+  const tipo = info.tipo ? `${info.tipo} · ` : '';
+  return clip(`${emoji} ${tipo}${info.message}`, 240);
+};
+
+// Descripción: pista en lenguaje llano (si la hay) + stack ya recortado.
+const construirDescripcion = (info) => {
+  const partes = [];
+  if (info.pista) partes.push(`💡 ${info.pista}`);
+  if (info.stack) partes.push('```\n' + info.stack + '\n```');
+  return partes.length ? partes.join('\n\n') : undefined;
+};
 
 // Payload para el proxy unificado (/api/notify, evento: 'error').
 const aPayloadNotify = (info) => ({
   evento: 'error',
   username: 'MedTrack · Errores',
-  titulo: `${EMOJI[info.level] || EMOJI.error} ${clip(info.message, 240)}`,
-  descripcion: info.stack ? '```\n' + clip(info.stack, 1800) + '\n```' : undefined,
+  titulo: construirTitulo(info),
+  descripcion: construirDescripcion(info),
   campos: campos(info),
   color: COLORES[info.level] ?? COLORES.error,
   timestamp: info.ts,
@@ -115,9 +206,9 @@ const aPayloadNotify = (info) => ({
 
 // Embed Discord para modo directo (solo pruebas locales).
 const aEmbedDirecto = (info) => ({
-  title: `${EMOJI[info.level] || EMOJI.error} ${clip(info.message, 240)}`,
+  title: construirTitulo(info),
   color: COLORES[info.level] ?? COLORES.error,
-  description: info.stack ? '```\n' + clip(info.stack, 1800) + '\n```' : undefined,
+  description: construirDescripcion(info),
   fields: campos(info),
   timestamp: info.ts,
 });
@@ -174,6 +265,11 @@ export const reportError = (error, context = {}) => {
       'Error desconocido';
     const stack =
       (error && (error.stack || error.reason?.stack)) || context.stack || '';
+    const name = (error && (error.name || error.reason?.name)) || '';
+    const online = navigator ? navigator.onLine : true;
+
+    // Ruido benigno (token caducado, sesión ausente, red offline…): ni se envía.
+    if (esRuido(message, stack, online)) return;
 
     const firma = level + '|' + String(message).slice(0, 120) + '|' + (context.source || '');
     const ahora = Date.now();
@@ -192,14 +288,16 @@ export const reportError = (error, context = {}) => {
 
     const info = {
       level,
+      tipo: tipoError(name, stack),
       message: clip(message, 240),
-      stack: stack ? clip(stack, 1800) : '',
+      stack: limpiarStack(stack, message),
+      pista: pistaHumana(name, message, stack),
       source: context.source || 'manual',
       route: rutaSegura(),
       role: rolActual(),
       appVersion: APP_VERSION,
       userAgent: (navigator && navigator.userAgent) || '?',
-      online: navigator ? navigator.onLine : true,
+      online,
       ts: new Date().toISOString(),
     };
 
