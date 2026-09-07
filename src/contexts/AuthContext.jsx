@@ -104,6 +104,14 @@ export const AuthProvider = ({ children }) => {
     return () => subscription && subscription.unsubscribe();
   }, []);
 
+  // Expone SOLO el rol (no correo ni id) para que el reporter de errores lo
+  // adjunte a cada reporte a Discord. Es contexto útil sin datos personales.
+  useEffect(() => {
+    try {
+      window.__MEDTRACK_ROLE__ = profile?.rol || 'anon';
+    } catch { /* SSR/entornos sin window */ }
+  }, [profile]);
+
 
   // Renderizador de pantalla elegante de error en caso de que el SDK de Supabase no inicie
   if (!supabase) {

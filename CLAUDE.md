@@ -118,6 +118,29 @@ Además, Workbox cachea las respuestas de `supabase.co/rest/v1` durante 30 días
 (`vite.config.js`). Ten en cuenta las implicaciones de privacidad descritas en
 `SECURITY.md` antes de ampliar lo que se cachea.
 
+### Reporte de errores a Discord
+
+Los errores en runtime se envían a un canal de Discord vía webhook. Piezas:
+
+- `src/lib/errorReporter.js` — instala captadores globales (`window.onerror`,
+  `unhandledrejection`) e **intercepta `console.error`** (todo el código ya
+  reporta errores así), redacta PII, deduplica y limita el ritmo, y encola en
+  `localStorage` si no hay red.
+- `src/components/ErrorBoundary.jsx` — captura crashes de render de React (que
+  `window.onerror` no ve). Envuelve `<App/>` en `main.jsx`.
+- `api/report-error.js` — **proxy serverless en Vercel**. El navegador publica
+  aquí, no directo a Discord, para que el webhook (`DISCORD_WEBHOOK_URL`, env
+  **sin** prefijo `VITE_`) no viaje en el bundle público. El proxy compone el
+  embed y vuelve a redactar por defensa en profundidad.
+- `AuthContext` expone `window.__MEDTRACK_ROLE__` (solo el rol, sin correo ni id)
+  para dar contexto a los reportes.
+
+**Privacidad:** correos, cédulas/teléfonos (7+ dígitos), JWT y claves `sb_...` se
+enmascaran antes de salir. Nunca sumes datos clínicos ni personales al payload.
+Si añades un `console.error`, ten en cuenta que se reenviará a Discord.
+
+Conexión del webhook: ver `ERRORES-DISCORD.local.md` (local, gitignoreado).
+
 ## Convenciones
 
 - **Idioma:** el dominio, los nombres de tabla/columna, los comentarios y la UI están
@@ -140,6 +163,12 @@ VITE_SUPABASE_ANON_KEY
 En local viven en `.env.local`; en producción, en Vercel → Settings → Environment
 Variables. Nota: cualquier variable con prefijo `VITE_` **se incrusta en el bundle del
 navegador** y es pública por definición. Nunca pongas ahí una clave `service_role`.
+
+Variable adicional, **solo en el servidor** (Vercel, sin prefijo `VITE_`):
+
+```
+DISCORD_WEBHOOK_URL    # webhook del canal de errores (lo usa api/report-error.js)
+```
 
 ## Scripts de utilidad en la raíz
 
