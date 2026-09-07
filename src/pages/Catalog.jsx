@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { CATEGORIAS_GENERALES, esCategoriaMediaca, generarLoteGeneral, FECHA_NO_VENCE, nombreLimpio, nombreComercialMostrar } from '../utils/itemUtils';
+import { usePersistentState } from '../hooks/usePersistentState';
 import * as XLSX from 'xlsx';
 import './pages.css';
 
@@ -135,26 +136,29 @@ export const Catalog = () => {
   // Buscador en tiempo real del catálogo
   const [search, setSearch] = useState('');
 
-  // Form states
-  const [nombre, setNombre] = useState('');
-  const [nombreComercial, setNombreComercial] = useState('');
-  const [concentracion, setConcentracion] = useState('');
-  const [viaAdministracion, setViaAdministracion] = useState('');
-  const [viaAdministracionCustom, setViaAdministracionCustom] = useState('');
-  const [cantidadUnidades, setCantidadUnidades] = useState('');
-  const [numeroCajas, setNumeroCajas] = useState('');
-  const [categoriaId, setCategoriaId] = useState('');
-  const [newCategoriaNombre, setNewCategoriaNombre] = useState('');
-  const [tipoRegistro, setTipoRegistro] = useState('medico'); // 'medico' | 'general'
-  const [presentacion, setPresentacion] = useState('');
-  const [laboratorio, setLaboratorio] = useState('');
-  const [cantidadPorPresentacion, setCantidadPorPresentacion] = useState('');
-  const [cantidadTotal, setCantidadTotal] = useState('');
-  const [numeroLote, setNumeroLote] = useState('');
-  const [fechaVencimiento, setFechaVencimiento] = useState('');
-  const [observaciones, setObservaciones] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editingLoteId, setEditingLoteId] = useState(null);
+  // Form states (persistentes: sobreviven a cerrar/minimizar la app).
+  // Se persiste también editingId/editingLoteId para que la restauración sea
+  // coherente: si se estaba editando un registro, guardar lo ACTUALIZA (no crea
+  // un duplicado). resetForm() limpia todo al guardar o cancelar.
+  const [nombre, setNombre] = usePersistentState('catalog.nombre', '');
+  const [nombreComercial, setNombreComercial] = usePersistentState('catalog.nombreComercial', '');
+  const [concentracion, setConcentracion] = usePersistentState('catalog.concentracion', '');
+  const [viaAdministracion, setViaAdministracion] = usePersistentState('catalog.viaAdministracion', '');
+  const [viaAdministracionCustom, setViaAdministracionCustom] = usePersistentState('catalog.viaAdministracionCustom', '');
+  const [cantidadUnidades, setCantidadUnidades] = usePersistentState('catalog.cantidadUnidades', '');
+  const [numeroCajas, setNumeroCajas] = usePersistentState('catalog.numeroCajas', '');
+  const [categoriaId, setCategoriaId] = usePersistentState('catalog.categoriaId', '');
+  const [newCategoriaNombre, setNewCategoriaNombre] = usePersistentState('catalog.newCategoriaNombre', '');
+  const [tipoRegistro, setTipoRegistro] = usePersistentState('catalog.tipoRegistro', 'medico'); // 'medico' | 'general'
+  const [presentacion, setPresentacion] = usePersistentState('catalog.presentacion', '');
+  const [laboratorio, setLaboratorio] = usePersistentState('catalog.laboratorio', '');
+  const [cantidadPorPresentacion, setCantidadPorPresentacion] = usePersistentState('catalog.cantidadPorPresentacion', '');
+  const [cantidadTotal, setCantidadTotal] = usePersistentState('catalog.cantidadTotal', '');
+  const [numeroLote, setNumeroLote] = usePersistentState('catalog.numeroLote', '');
+  const [fechaVencimiento, setFechaVencimiento] = usePersistentState('catalog.fechaVencimiento', '');
+  const [observaciones, setObservaciones] = usePersistentState('catalog.observaciones', '');
+  const [editingId, setEditingId] = usePersistentState('catalog.editingId', null);
+  const [editingLoteId, setEditingLoteId] = usePersistentState('catalog.editingLoteId', null);
 
   // Excel Import states
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -181,7 +185,7 @@ export const Catalog = () => {
         setCantidadTotal(unidades * cajas > 0 ? String(unidades * cajas) : '');
       }
     }
-  }, [cantidadUnidades, numeroCajas, tipoRegistro]);
+  }, [cantidadUnidades, numeroCajas, tipoRegistro, setCantidadTotal]);
 
   const fetchData = async () => {
     if (!supabase) return;
@@ -884,14 +888,14 @@ export const Catalog = () => {
           {/* Botón Registrar Donación General — acceso rápido */}
           <Button
             variant="outline"
-            onClick={() => { resetForm(); setTipoRegistro('general'); setIsModalOpen(true); }}
+            onClick={() => { setTipoRegistro('general'); setIsModalOpen(true); }}
             style={{ color: '#7c3aed', borderColor: '#7c3aed', gap: '0.4rem' }}
             aria-label="Añadir ítem general al catálogo"
           >
             <ShoppingBag size={16} />
             Ítem General
           </Button>
-          <Button variant="primary" onClick={() => { resetForm(); setTipoRegistro('medico'); setIsModalOpen(true); }}>
+          <Button variant="primary" onClick={() => { setTipoRegistro('medico'); setIsModalOpen(true); }}>
             <Plus size={18} />
             Añadir Medicina
           </Button>

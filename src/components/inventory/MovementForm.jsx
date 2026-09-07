@@ -4,12 +4,14 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const MovementForm = ({ isOpen, onClose, onSuccess }) => {
-  const [tipo, setTipo] = useState('Entrada');
-  const [cantidad, setCantidad] = useState('');
-  const [medicinaId, setMedicinaId] = useState('');
-  const [origenDestino, setOrigenDestino] = useState('');
+  // Campos persistentes: sobreviven a cerrar/minimizar la app.
+  const [tipo, setTipo] = usePersistentState('movement.tipo', 'Entrada');
+  const [cantidad, setCantidad] = usePersistentState('movement.cantidad', '');
+  const [medicinaId, setMedicinaId] = usePersistentState('movement.medicinaId', '');
+  const [origenDestino, setOrigenDestino] = usePersistentState('movement.origenDestino', '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
