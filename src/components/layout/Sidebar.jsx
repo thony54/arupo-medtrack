@@ -18,7 +18,7 @@ export const Sidebar = () => {
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const [showSaludStepper, setShowSaludStepper] = useState(false);
-  const { signOut, isSuperAdmin, isBrigadista, isVoluntario, profile } = useAuth();
+  const { signOut, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario, profile } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
 
@@ -227,7 +227,7 @@ export const Sidebar = () => {
                 {profile?.nombre || 'Cargando...'}
               </p>
               <p style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', margin: 0 }}>
-                {getRolLabel(profile?.rol)}
+                {getRolLabel(profile?.rol)}{isCoordinador && ' · Coordinador'}
               </p>
             </div>
           </div>

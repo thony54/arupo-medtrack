@@ -54,13 +54,15 @@ supabase/                  Scripts SQL versionados (schema_v2 … v22, schema_sa
 
 ### Roles y rutas
 
-Cuatro roles en `perfiles.rol`: `super_admin`, `coordinador`, `brigadista`, `voluntario`.
-`coordinador` = Coordinador de Voluntariado (nivel intermedio, por debajo del
-super_admin). Se otorga **solo desde `/usuarios` con la sesión del super admin
-principal** (`thony.karter@gmail.com`, botón "Cambiar rol"), nunca por registro.
-Hoy solo ve Dashboard y Perfil; sus módulos (bitácoras, reportes Excel) se añaden
-por partes según `MedTrack Modulo por anadir.docx`. Requiere `schema_v22.sql` y
-redesplegar la Edge Function `crear-personal`.
+Tres roles principales en `perfiles.rol`: `super_admin`, `brigadista`, `voluntario`.
+Además hay un **rol adicional** que se suma al principal: `perfiles.es_coordinador`
+(Coordinador de Voluntariado). No es un valor de `rol` porque un mismo usuario
+puede ser `super_admin` y coordinador a la vez (caso de e_milton@fundacionarupo.org).
+Se otorga **solo desde `/usuarios` con la sesión del super admin principal**
+(`thony.karter@gmail.com`, botón "Gestionar roles"), nunca por registro. En código:
+`useAuth().isCoordinador`. Sus módulos (bitácoras, reportes Excel) se añaden por
+partes según `MedTrack Modulo por anadir.docx`; hoy solo suma un KPI al Dashboard y
+una insignia en Perfil/Sidebar. Requiere aplicar `schema_v22.sql` (columna).
 El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles={[...]}>`:
 
 | Ruta | Roles |

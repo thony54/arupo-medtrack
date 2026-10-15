@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { ROL_CONFIG, ROLES_ORDEN, getRolColor, getRolBg } from '../utils/roles';
+import { ROL_CONFIG, ROLES_ORDEN, SECCIONES_ROL, tieneRol, getRolColor, getRolBg } from '../utils/roles';
 import './pages.css';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -24,8 +24,8 @@ export const Usuarios = () => {
   
   const isDeveloper = user?.email?.toLowerCase() === 'thony.karter@gmail.com';
   
-  // Solo el super admin principal otorga los roles de nivel alto (super_admin y
-  // coordinador). Es control de interfaz: la escritura real la limita la RLS de
+  // Solo el super admin principal otorga super_admin y el rol adicional de
+  // coordinador. Es control de interfaz: la escritura real la limita la RLS de
   // `perfiles` (solo super_admin), igual que antes con super_admin.
   const rolesDisponibles = ROLES_ORDEN.filter(r => isDeveloper || !ROL_CONFIG[r].asignablePorDeveloper);
   const [usuarios, setUsuarios] = useState([]);
@@ -43,7 +43,7 @@ export const Usuarios = () => {
   const [rol, setRol] = useState('brigadista');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Cambio de rol de un usuario existente: { usuario, nuevoRol } o null.
+  // Gestión de roles de un usuario existente: { usuario, nuevoRol, esCoordinador } o null.
   const [cambioRol, setCambioRol] = useState(null);
   const [cambiandoRol, setCambiandoRol] = useState(false);
   const [errorCambioRol, setErrorCambioRol] = useState('');
@@ -51,7 +51,7 @@ export const Usuarios = () => {
 
   // Estados para colapsables de Roles
   const [expandedRoles, setExpandedRoles] = useState(
-    Object.fromEntries(ROLES_ORDEN.map(r => [r, true]))
+    Object.fromEntries(SECCIONES_ROL.map(r => [r, true]))
   );
 
   const toggleRole = (roleKey) => {
@@ -223,44 +223,62 @@ export const Usuarios = () => {
     }
   };
 
-  // Cambia el rol de un usuario ya existente. Solo lo ofrece la interfaz al
+  // Gestiona los roles de un usuario ya existente: el principal (`rol`) y el
+  // adicional de coordinador (`es_coordinador`). Solo lo ofrece la interfaz al
   // super admin principal; la RLS de `perfiles` exige super_admin en la base.
   const abrirCambioRol = (u) => {
     setErrorCambioRol('');
-    setCambioRol({ usuario: u, nuevoRol: u.rol });
+    setCambioRol({ usuario: u, nuevoRol: u.rol, esCoordinador: u.es_coordinador === true });
+  };
+
+  // Campos que realmente cambian respecto al perfil actual.
+  const cambiosPendientes = (c) => {
+    const cambios = {};
+    if (c.nuevoRol !== c.usuario.rol) cambios.rol = c.nuevoRol;
+    if (c.esCoordinador !== (c.usuario.es_coordinador === true)) cambios.es_coordinador = c.esCoordinador;
+    return cambios;
   };
 
   const handleCambiarRol = async () => {
     if (!cambioRol || !supabase) return;
-    const { usuario, nuevoRol } = cambioRol;
-    if (nuevoRol === usuario.rol || usuario.id === user?.id) return;
+    const { usuario, nuevoRol, esCoordinador } = cambioRol;
+    const cambios = cambiosPendientes(cambioRol);
+    if (Object.keys(cambios).length === 0 || usuario.id === user?.id) return;
 
     setCambiandoRol(true);
     setErrorCambioRol('');
     try {
-      // Se relee el rol devuelto para detectar un UPDATE bloqueado por RLS
+      // Se relee lo devuelto para detectar un UPDATE bloqueado por RLS
       // (devolvería 0 filas sin lanzar error).
       const { data, error: updError } = await supabase
         .from('perfiles')
-        .update({ rol: nuevoRol })
+        .update(cambios)
         .eq('id', usuario.id)
-        .select('rol')
+        .select('rol, es_coordinador')
         .maybeSingle();
 
       if (updError) {
-        console.error('Error al cambiar el rol:', updError);
+        console.error('Error al cambiar los roles:', updError);
+        // 42703 / PGRST204: la columna es_coordinador aún no existe (falta schema_v22).
+        const faltaColumna = 'es_coordinador' in cambios && ['42703', 'PGRST204'].includes(updError.code);
         throw new Error(
-          updError.code === '23514'
-            ? 'La base de datos aún no admite este rol. Ejecuta schema_v22.sql en el SQL Editor de Supabase.'
+          faltaColumna
+            ? 'La base de datos aún no admite el rol de Coordinador. Ejecuta schema_v22.sql en el SQL Editor de Supabase.'
             : 'No se pudo cambiar el rol.'
         );
       }
-      if (data?.rol !== nuevoRol) {
+      if (!data || Object.entries(cambios).some(([campo, valor]) => data[campo] !== valor)) {
         throw new Error('No se pudo cambiar el rol: la base de datos rechazó el cambio.');
       }
 
+      const partes = [];
+      if ('rol' in cambios) partes.push(`ahora es ${ROL_CONFIG[nuevoRol].label}`);
+      if ('es_coordinador' in cambios) {
+        partes.push(esCoordinador ? 'ahora también es Coordinador de Voluntariado' : 'ya no es Coordinador de Voluntariado');
+      }
+
       setCambioRol(null);
-      setAviso(`${usuario.nombre} ahora es ${ROL_CONFIG[nuevoRol].label}.`);
+      setAviso(`${usuario.nombre} ${partes.join(' y ')}.`);
       setTimeout(() => setAviso(''), 5000);
       fetchUsuarios();
     } catch (err) {
@@ -321,7 +339,8 @@ export const Usuarios = () => {
   const filtered = usuarios.filter(u =>
     (u.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
-    u.rol.toLowerCase().includes(search.toLowerCase())
+    u.rol.toLowerCase().includes(search.toLowerCase()) ||
+    (u.es_coordinador === true && 'coordinador'.includes(search.toLowerCase()))
   );
 
   const renderUserTable = (usersList, roleKey) => {
@@ -380,7 +399,12 @@ export const Usuarios = () => {
                         {u.email}
                       </div>
                     </td>
-                    <td style={{ padding: '0.85rem 1.25rem' }}>{getRoleBadge(u.rol)}</td>
+                    <td style={{ padding: '0.85rem 1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        {getRoleBadge(u.rol)}
+                        {u.es_coordinador === true && getRoleBadge('coordinador')}
+                      </div>
+                    </td>
                     <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
                       {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </td>
@@ -398,8 +422,8 @@ export const Usuarios = () => {
                                 size="sm"
                                 onClick={() => abrirCambioRol(u)}
                                 style={{ color: 'var(--primary-color)', padding: '0.4rem', height: 'auto' }}
-                                title="Cambiar rol"
-                                aria-label={`Cambiar rol de ${u.nombre}`}
+                                title="Gestionar roles"
+                                aria-label={`Gestionar roles de ${u.nombre}`}
                               >
                                 <UserCog size={16} />
                               </Button>
@@ -468,7 +492,7 @@ export const Usuarios = () => {
         gap: '1rem',
         marginBottom: '1.75rem'
       }}>
-        {ROLES_ORDEN.map(r => {
+        {SECCIONES_ROL.map(r => {
           const cfg = ROL_CONFIG[r];
           const Icon = ROL_ICONOS[r];
           const abierto = expandedRoles[r];
@@ -508,7 +532,7 @@ export const Usuarios = () => {
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                 <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>{cfg.plural}</span>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '0.15rem' }}>
-                  {usuarios.filter(u => u.rol === r).length} registrados
+                  {usuarios.filter(u => tieneRol(u, r)).length} registrados
                 </span>
               </div>
               <div style={{ color: abierto ? cfg.color : 'var(--text-tertiary)' }}>
@@ -535,9 +559,9 @@ export const Usuarios = () => {
         </div>
       ) : (
         <div className="collapsible-sections-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {ROLES_ORDEN.map(r => (
+          {SECCIONES_ROL.map(r => (
             <React.Fragment key={r}>
-              {renderUserTable(filtered.filter(u => u.rol === r), r)}
+              {renderUserTable(filtered.filter(u => tieneRol(u, r)), r)}
             </React.Fragment>
           ))}
         </div>
@@ -645,18 +669,18 @@ export const Usuarios = () => {
         </form>
       </Modal>
 
-      {/* Modal para Cambiar el Rol de un usuario existente */}
+      {/* Modal para gestionar los roles de un usuario existente */}
       <Modal
         isOpen={!!cambioRol}
         onClose={() => { if (!cambiandoRol) setCambioRol(null); }}
-        title="Cambiar Rol"
+        title="Gestionar Roles"
         footer={
           <>
             <Button type="button" variant="ghost" onClick={() => setCambioRol(null)} disabled={cambiandoRol}>Cancelar</Button>
             <Button
               type="button"
               variant="primary"
-              disabled={cambiandoRol || !cambioRol || cambioRol.nuevoRol === cambioRol.usuario.rol}
+              disabled={cambiandoRol || !cambioRol || Object.keys(cambiosPendientes(cambioRol)).length === 0}
               onClick={handleCambiarRol}
             >
               {cambiandoRol ? 'Guardando...' : 'Confirmar Cambio'}
@@ -680,10 +704,49 @@ export const Usuarios = () => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                 Rol actual {getRoleBadge(cambioRol.usuario.rol)}
+                {cambioRol.usuario.es_coordinador === true && getRoleBadge('coordinador')}
               </div>
             </div>
 
-            {renderOpcionesRol(cambioRol.nuevoRol, (nuevoRol) => setCambioRol(prev => ({ ...prev, nuevoRol })), cambiandoRol)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol principal</span>
+              {renderOpcionesRol(cambioRol.nuevoRol, (nuevoRol) => setCambioRol(prev => ({ ...prev, nuevoRol })), cambiandoRol)}
+            </div>
+
+            {/* Rol adicional: se suma al principal, no lo reemplaza */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol adicional</span>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-lg)',
+                  border: `2px solid ${cambioRol.esCoordinador ? ROL_CONFIG.coordinador.color : 'var(--border-color)'}`,
+                  background: cambioRol.esCoordinador ? ROL_CONFIG.coordinador.bg : 'var(--bg-surface)',
+                  cursor: cambiandoRol ? 'default' : 'pointer',
+                  transition: 'all var(--transition-fast)'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={cambioRol.esCoordinador}
+                  disabled={cambiandoRol}
+                  onChange={e => setCambioRol(prev => ({ ...prev, esCoordinador: e.target.checked }))}
+                  style={{ marginTop: '3px', accentColor: ROL_CONFIG.coordinador.color }}
+                />
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '0.9rem', color: cambioRol.esCoordinador ? ROL_CONFIG.coordinador.color : 'var(--text-secondary)' }}>
+                    <ClipboardCheck size={18} />
+                    Coordinador de Voluntariado
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '0.35rem 0 0', lineHeight: '1.4' }}>
+                    {ROL_CONFIG.coordinador.descripcion}
+                  </p>
+                </div>
+              </label>
+            </div>
 
             {cambioRol.usuario.rol === 'super_admin' && cambioRol.nuevoRol !== 'super_admin' && (
               <div style={{ padding: '0.75rem', background: 'var(--warning-bg)', color: 'var(--warning-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>

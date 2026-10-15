@@ -1,9 +1,15 @@
 // Fuente de verdad de los roles de MedTrack: etiquetas, colores y textos.
 // El mapeo ruta → roles NO vive aquí: sigue en src/App.jsx (allowedRoles).
 //
+// Hay dos tipos de rol:
+//   · Rol PRINCIPAL: un solo valor en `perfiles.rol` (ROLES_ORDEN).
+//   · Rol ADICIONAL "coordinador": marca `perfiles.es_coordinador`. Se SUMA al
+//     principal (un super_admin puede ser además Coordinador de Voluntariado),
+//     por eso no es un valor más de `perfiles.rol`.
+//
 // `rgb` permite derivar sombras y bordes translúcidos del mismo color base.
-// `badge` es la variante de <Badge>. `asignablePorDeveloper` marca los roles que
-// solo puede otorgar el super admin principal (ver Usuarios.jsx).
+// `badge` es la variante de <Badge>. `asignablePorDeveloper` marca los roles
+// principales que solo puede otorgar el super admin principal (Usuarios.jsx).
 
 export const ROL_CONFIG = {
   super_admin: {
@@ -16,18 +22,6 @@ export const ROL_CONFIG = {
     badge: 'danger',
     permisos: 'Acceso total e irrestricto en todos los módulos.',
     descripcion: 'Acceso total e irrestricto en todos los módulos y gestión de personal.',
-    asignablePorDeveloper: true
-  },
-  coordinador: {
-    label: 'Coordinador',
-    plural: 'Coordinadores',
-    titulo: 'Coordinador de Voluntariado',
-    color: '#d97706',
-    bg: 'var(--warning-bg)',
-    rgb: '217, 119, 6',
-    badge: 'warning',
-    permisos: 'Coordinación y supervisión del voluntariado.',
-    descripcion: 'Gestión integral de voluntarios, supervisión de brigadas y auditoría de actividades.',
     asignablePorDeveloper: true
   },
   brigadista: {
@@ -53,11 +47,30 @@ export const ROL_CONFIG = {
     permisos: 'Gestión del CRM, Donantes y Beneficiarios.',
     descripcion: 'Acceso a CRM, gestión de donantes y registro de beneficiarios.',
     asignablePorDeveloper: false
+  },
+  // Rol adicional (ver cabecera). Solo lo otorga el super admin principal.
+  coordinador: {
+    label: 'Coordinador',
+    plural: 'Coordinadores',
+    titulo: 'Coordinador de Voluntariado',
+    color: '#d97706',
+    bg: 'var(--warning-bg)',
+    rgb: '217, 119, 6',
+    badge: 'warning',
+    permisos: 'Coordinación y supervisión del voluntariado.',
+    descripcion: 'Rol adicional: gestión integral de voluntarios, supervisión de brigadas y auditoría de actividades. Se suma al rol principal.'
   }
 };
 
-// Orden jerárquico: de mayor a menor nivel.
-export const ROLES_ORDEN = ['super_admin', 'coordinador', 'brigadista', 'voluntario'];
+// Roles principales (valores de `perfiles.rol`), de mayor a menor nivel.
+export const ROLES_ORDEN = ['super_admin', 'brigadista', 'voluntario'];
+
+// Secciones de la pantalla de personal: los principales + el adicional.
+export const SECCIONES_ROL = [...ROLES_ORDEN, 'coordinador'];
+
+// ¿El perfil tiene este rol? Cubre el principal y el adicional.
+export const tieneRol = (perfil, rol) =>
+  rol === 'coordinador' ? perfil?.es_coordinador === true : perfil?.rol === rol;
 
 export const getRolLabel = (rol, porDefecto = 'Usuario') => ROL_CONFIG[rol]?.label ?? porDefecto;
 export const getRolColor = (rol) => ROL_CONFIG[rol]?.color ?? 'var(--text-secondary)';

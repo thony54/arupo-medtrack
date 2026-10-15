@@ -11,7 +11,6 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { ProfileDropdown } from '../components/layout/ProfileDropdown';
 import { Modal } from '../components/ui/Modal';
-import { ROL_CONFIG, getRolLabel, getRolColor } from '../utils/roles';
 import './pages.css';
 
 export const Perfil = () => {
@@ -211,13 +210,6 @@ export const Perfil = () => {
           .select('*', { count: 'exact', head: true })
           .eq('estado', 'Activo');
         setMetrics(prev => ({ ...prev, totalRecords: count || 0 }));
-      } else if (isCoordinador) {
-        // Conteo de voluntarios registrados
-        const { count } = await supabase
-          .from('perfiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('rol', 'voluntario');
-        setMetrics(prev => ({ ...prev, totalRecords: count || 0 }));
       }
     } catch (err) {
       console.error('Error cargando métricas de perfil:', err);
@@ -371,9 +363,27 @@ export const Perfil = () => {
     }
   };
 
-  const getRoleTitle = () => ROL_CONFIG[role]?.titulo ?? 'Usuario Operativo';
-  const getRoleLabel = () => getRolLabel(role, 'General');
-  const getRoleColor = () => getRolColor(role);
+  const getRoleTitle = () => {
+    if (isSuperAdmin) return 'Administrador del Sistema';
+    if (isBrigadista) return 'Especialista Médico / Brigadista';
+    // No usar "Coordinador" aquí: es el rol adicional de Coordinador de Voluntariado.
+    if (isVoluntario) return 'Voluntario / Gestión de Donaciones';
+    return 'Usuario Operativo';
+  };
+
+  const getRoleLabel = () => {
+    if (isSuperAdmin) return 'Super Admin';
+    if (isBrigadista) return 'Brigadista';
+    if (isVoluntario) return 'Voluntario';
+    return 'General';
+  };
+
+  const getRoleColor = (rol) => {
+    if (isSuperAdmin) return 'var(--danger-color)';
+    if (isBrigadista) return 'var(--success-color)';
+    if (isVoluntario) return '#7c3aed';
+    return 'var(--text-secondary)';
+  };
   return (
     <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto', paddingBottom: '3rem', width: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
@@ -410,13 +420,11 @@ export const Perfil = () => {
                   <div className="arupo-avatar" style={{ 
                     background: profile?.avatar 
                       ? 'none' 
-                      : isBrigadista
+                      : isBrigadista 
                         ? 'linear-gradient(135deg, var(--success-color), var(--primary-color))'
-                        : isVoluntario
+                        : isVoluntario 
                           ? 'linear-gradient(135deg, #7c3aed, #a855f7)'
-                          : isCoordinador
-                            ? 'linear-gradient(135deg, #d97706, #f59e0b)'
-                            : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
+                          : 'linear-gradient(135deg, var(--danger-color), #f43f5e)'
                   }}>
                     {profile?.avatar ? (
                       <img 
@@ -482,9 +490,12 @@ export const Perfil = () => {
 
             {/* Role title and elegant badge */}
             <div className="arupo-profile-role-section">
-              <span className={`arupo-profile-bio-badge ${isBrigadista ? 'brigadista' : isVoluntario ? 'voluntario' : isCoordinador ? 'coordinador' : 'admin'}`}>
+              <span className={`arupo-profile-bio-badge ${isBrigadista ? 'brigadista' : isVoluntario ? 'voluntario' : 'admin'}`}>
                 {getRoleLabel(profile?.rol)}
               </span>
+              {isCoordinador && (
+                <span className="arupo-profile-bio-badge coordinador">Coordinador de Voluntariado</span>
+              )}
               <span className="arupo-role-subtitle">{getRoleTitle()}</span>
             </div>
 
@@ -648,14 +659,14 @@ export const Perfil = () => {
             {/* Tarjeta de Registros Realizados */}
             <div className="premium-metric-card card glass">
               <div className="premium-metric-icon" style={{ 
-                background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : isCoordinador ? 'var(--warning-bg)' : 'var(--danger-bg)',
-                color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : isCoordinador ? '#d97706' : 'var(--danger-color)'
+                background: isBrigadista ? 'var(--success-bg)' : isVoluntario ? '#ede9fe' : 'var(--danger-bg)', 
+                color: isBrigadista ? 'var(--success-color)' : isVoluntario ? '#7c3aed' : 'var(--danger-color)'
               }}>
-                {isBrigadista ? <Database size={20} /> : (isVoluntario || isCoordinador) ? <Users size={20} /> : <TrendingUp size={20} />}
+                {isBrigadista ? <Database size={20} /> : isVoluntario ? <Users size={20} /> : <TrendingUp size={20} />}
               </div>
               <div className="metric-details">
                 <span className="metric-label-text">
-                  {isBrigadista ? 'Medicinas Activas' : isVoluntario ? 'Beneficiarios Activos' : isCoordinador ? 'Voluntarios Registrados' : 'Registros en Sistema'}
+                  {isBrigadista ? 'Medicinas Activas' : isVoluntario ? 'Beneficiarios Activos' : 'Registros en Sistema'}
                 </span>
                 <span className="metric-val-num">{metrics.totalRecords}</span>
               </div>
@@ -687,10 +698,8 @@ export const Perfil = () => {
               background: isBrigadista 
                 ? 'radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 70%)' 
                 : isVoluntario 
-                  ? 'radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%)'
-                  : isCoordinador
-                    ? 'radial-gradient(circle, rgba(217, 119, 6, 0.08) 0%, transparent 70%)'
-                    : 'radial-gradient(circle, rgba(225, 29, 72, 0.08) 0%, transparent 70%)',
+                  ? 'radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%)' 
+                  : 'radial-gradient(circle, rgba(225, 29, 72, 0.08) 0%, transparent 70%)',
               pointerEvents: 'none',
               zIndex: 0
             }} />
@@ -946,7 +955,7 @@ export const Perfil = () => {
                       {isCoordinador && (
                         <div className="privilege-item">
                           <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                          <span>Coordinación y supervisión del voluntariado de la fundación.</span>
+                          <span>Coordinación y supervisión del voluntariado de la fundación (rol adicional).</span>
                         </div>
                       )}
                     </div>

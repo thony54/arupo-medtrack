@@ -1,6 +1,6 @@
 # Edge Function: `crear-personal`
 
-Crea cuentas de personal (super_admin / coordinador / brigadista / voluntario) de forma
+Crea cuentas de personal (super_admin / brigadista / voluntario) de forma
 **segura**, cerrando el hallazgo §2.1 de `SECURITY.md`: el rol deja de decidirse
 en el cliente y el alta ya no depende del registro público.
 
