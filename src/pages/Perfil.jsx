@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, 
   FileText, Award, LogOut, Edit2, Check, X, Settings,
@@ -11,12 +11,16 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { ProfileDropdown } from '../components/layout/ProfileDropdown';
 import { Modal } from '../components/ui/Modal';
+import {
+  estanciaDisponible, opcionesEstancia, formatEstancia, fechaFinEstancia, formatFecha
+} from '../utils/estancia';
 import './pages.css';
 
 export const Perfil = () => {
   const { profile, user, role, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
-  
+  const location = useLocation();
+
   // Exclusividad de desarrollador para thony.karter
   const isDeveloper = user?.email?.toLowerCase()?.includes('thony.karter');
 
@@ -37,7 +41,8 @@ export const Perfil = () => {
   const [success, setSuccess] = useState('');
   
   // Estados para edición de perfil y control de pestañas
-  const [activeTab, setActiveTab] = useState('informacion'); // 'informacion', 'editar', 'privilegios'
+  // Se puede abrir directo en una pestaña desde otra pantalla (navigate('/perfil', { state: { tab } })).
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'informacion'); // 'informacion', 'editar', 'privilegios'
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempNombre, setTempNombre] = useState(profile?.nombre || '');
   const [showEmail, setShowEmail] = useState(false);
@@ -50,7 +55,8 @@ export const Perfil = () => {
   const [tempInstitucion, setTempInstitucion] = useState('');
   const [tempAreaApoyo, setTempAreaApoyo] = useState('');
   const [tempDisponibilidad, setTempDisponibilidad] = useState('');
-  
+  const [tempEstancia, setTempEstancia] = useState(''); // meses, como texto del <select>
+
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -71,6 +77,7 @@ export const Perfil = () => {
       setTempInstitucion(profile.institucion || '');
       setTempAreaApoyo(profile.area_apoyo || '');
       setTempDisponibilidad(profile.disponibilidad || '');
+      setTempEstancia(profile.tiempo_estancia_meses ? String(profile.tiempo_estancia_meses) : '');
     }
   }, [role, profile]);
 
@@ -154,6 +161,31 @@ export const Perfil = () => {
     setSuccess('');
 
     try {
+      // Tiempo de estancia del voluntario: obligatorio (3 a 24 meses). Se guarda
+      // con una función de la base que solo toca las columnas de estancia de la
+      // fila propia, porque `perfiles` no admite auto-edición general.
+      if (isVoluntario && estanciaDisponible(profile)) {
+        if (!tempEstancia) {
+          throw new Error('Selecciona tu tiempo de permanencia en la Fundación: es obligatorio.');
+        }
+        const meses = Number(tempEstancia);
+        if (meses !== profile.tiempo_estancia_meses) {
+          const { data: estancia, error: estanciaError } = await supabase
+            .rpc('guardar_tiempo_estancia', { p_meses: meses });
+          if (estanciaError) {
+            console.error('Error al guardar la estancia:', estanciaError);
+            throw new Error(
+              estanciaError.code === '22023'
+                ? 'El tiempo de permanencia debe estar entre 3 meses y 2 años.'
+                : 'No se pudo guardar tu tiempo de permanencia. Si el problema continúa, avisa al administrador.'
+            );
+          }
+          if (estancia?.[0]?.meses !== meses) {
+            throw new Error('No se pudo confirmar tu tiempo de permanencia. Inténtalo de nuevo.');
+          }
+        }
+      }
+
       const updates = {
         telefono: tempTelefono.trim(),
         direccion: tempDireccion.trim(),
@@ -539,6 +571,16 @@ export const Perfil = () => {
                   <span>Área: {profile.area_apoyo}</span>
                 </div>
               )}
+
+              {isVoluntario && profile?.tiempo_estancia_meses && (
+                <div className="contact-pill" title="Tiempo de permanencia">
+                  <Calendar size={14} style={{ color: '#7c3aed' }} />
+                  <span>
+                    Estancia: {formatEstancia(profile.tiempo_estancia_meses)}
+                    {profile.fecha_inicio_estancia && ` · hasta ${formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, profile.tiempo_estancia_meses))}`}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Premium quick tab switches */}
@@ -853,6 +895,36 @@ export const Perfil = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Tiempo de permanencia: obligatorio. Solo aparece si la base ya tiene schema_v23. */}
+                  {estanciaDisponible(profile) && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      <label htmlFor="p-estancia" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Calendar size={14} style={{ color: '#7c3aed' }} />
+                        Tiempo de permanencia en la Fundación <span style={{ color: 'var(--danger-color)' }}>*</span>
+                      </label>
+                      <select
+                        id="p-estancia"
+                        className="input-field"
+                        style={{ marginBottom: 0 }}
+                        value={tempEstancia}
+                        onChange={e => setTempEstancia(e.target.value)}
+                        disabled={updating}
+                        required
+                      >
+                        <option value="" disabled>Selecciona entre 3 meses y 2 años</option>
+                        {opcionesEstancia().map(o => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                        {tempEstancia && profile.fecha_inicio_estancia
+                          ? `Tu voluntariado terminaría el ${formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, Number(tempEstancia)))}. `
+                          : ''}
+                        Con este dato se ajusta tu plan formativo y la fecha de tu certificado.
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
 

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Badge } from '../components/ui/Badge';
 import { filtrarAlertasMedicas, CATEGORIAS_GENERALES } from '../utils/itemUtils';
+import { estanciaPendiente } from '../utils/estancia';
 import { useAuth } from '../contexts/AuthContext';
 import './pages.css';
 
 export const Dashboard = () => {
-  const { role, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
+  const { role, profile, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
+  const navigate = useNavigate();
   const [voluntariosRegistrados, setVoluntariosRegistrados] = useState(0);
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
   const [alertas, setAlertas] = useState([]);
@@ -107,6 +110,23 @@ export const Dashboard = () => {
           </p>
         </div>
       </div>
+
+      {/* El voluntario debe indicar cuánto tiempo permanecerá en la Fundación */}
+      {isVoluntario && estanciaPendiente(profile) && (
+        <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Calendar size={18} style={{ flexShrink: 0 }} />
+            <span><strong>Falta un dato en tu perfil:</strong> indica cuánto tiempo permanecerás en la Fundación (entre 3 meses y 2 años).</span>
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/perfil', { state: { tab: 'editar' } })}
+          >
+            Completar ahora
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="animate-fade-in stagger-1" style={{ backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>

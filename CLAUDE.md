@@ -49,7 +49,8 @@ src/
   hooks/useOfflineCache.js Caché en localStorage + cola de acciones offline
   utils/itemUtils.js       Fuente de verdad para "¿es ítem médico o general?"
   utils/roles.js           Fuente de verdad de roles: etiquetas, colores, orden jerárquico
-supabase/                  Scripts SQL versionados (schema_v2 … v22, schema_salud)
+  utils/estancia.js        Tiempo de estancia del voluntario (3–24 meses): rango, formato, fecha de fin
+supabase/                  Scripts SQL versionados (schema_v2 … v23, schema_salud)
 ```
 
 ### Roles y rutas
@@ -63,6 +64,13 @@ Se otorga **solo desde `/usuarios` con la sesión del super admin principal**
 `useAuth().isCoordinador`. Sus módulos (bitácoras, reportes Excel) se añaden por
 partes según `MedTrack Modulo por anadir.docx`; hoy solo suma un KPI al Dashboard y
 una insignia en Perfil/Sidebar. Requiere aplicar `schema_v22.sql` (columna).
+
+**Estancia del voluntario:** `perfiles.tiempo_estancia_meses` (3–24) y
+`fecha_inicio_estancia`, obligatorios en la edición de perfil del `voluntario`. Se
+guardan con el RPC `guardar_tiempo_estancia` (`schema_v23.sql`), no con UPDATE directo,
+porque `perfiles` no admite auto-edición general. La app oculta el campo y el aviso
+mientras la columna no exista (`estanciaDisponible`), así que el orden de despliegue
+da igual.
 El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles={[...]}>`:
 
 | Ruta | Roles |
