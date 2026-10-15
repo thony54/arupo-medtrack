@@ -7,7 +7,8 @@ import { useAuth } from '../contexts/AuthContext';
 import './pages.css';
 
 export const Dashboard = () => {
-  const { role, isSuperAdmin, isBrigadista, isVoluntario } = useAuth();
+  const { role, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
+  const [voluntariosRegistrados, setVoluntariosRegistrados] = useState(0);
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
   const [alertas, setAlertas] = useState([]);
   const [ultimasDonaciones, setUltimasDonaciones] = useState([]);
@@ -15,6 +16,16 @@ export const Dashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => { fetchData(); }, []);
+
+  // KPI propio del coordinador de voluntariado.
+  useEffect(() => {
+    if (!isCoordinador || !supabase) return;
+    supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('rol', 'voluntario')
+      .then(({ count, error: err }) => {
+        if (err) console.error('No se pudo contar los voluntarios:', err.message);
+        else setVoluntariosRegistrados(count || 0);
+      });
+  }, [isCoordinador]);
 
   const fetchData = async () => {
     try {
@@ -79,6 +90,7 @@ export const Dashboard = () => {
     { title: 'Donaciones Entregadas', value: stats.donacionesMes, subtitle: 'Despachos este mes', icon: <HandHeart size={24} />, color: 'var(--success-color)', bg: 'var(--success-bg)', roles: ['super_admin', 'voluntario'] },
     { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb', roles: ['super_admin', 'voluntario'] },
     { title: 'Ítems Generales', value: stats.itemsGenerales, subtitle: 'Ropa, higiene, alimentos...', icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff', roles: ['super_admin', 'voluntario'] },
+    { title: 'Voluntarios Registrados', value: voluntariosRegistrados, subtitle: 'Cuentas con rol de voluntario', icon: <Users size={24} />, color: '#d97706', bg: 'var(--warning-bg)', roles: ['coordinador'] },
   ];
 
   // Filtrar KPIs de acuerdo al rol del usuario

@@ -1,7 +1,7 @@
 // ============================================================================
 // Edge Function: crear-personal
 // ----------------------------------------------------------------------------
-// Crea una cuenta de personal (super_admin / brigadista / voluntario) de forma
+// Crea una cuenta de personal (super_admin / coordinador / brigadista / voluntario) de forma
 // SEGURA, resolviendo el hallazgo §2.1 de SECURITY.md:
 //
 //   - El rol NUNCA lo decide el cliente. Se valida en el servidor que QUIEN
@@ -23,7 +23,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const ROLES_VALIDOS = ['super_admin', 'brigadista', 'voluntario'];
+const ROLES_VALIDOS = ['super_admin', 'coordinador', 'brigadista', 'voluntario'];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut, User, Shield, ChevronRight, Edit2, Check, X, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { getRolColor } from '../../utils/roles';
 import './layout.css';
 
 export const ProfileDropdown = () => {
@@ -52,15 +53,6 @@ export const ProfileDropdown = () => {
     }
   };
 
-  const getRoleColor = (rol) => {
-    switch (rol) {
-      case 'super_admin': return 'var(--danger-color)';
-      case 'brigadista': return 'var(--success-color)';
-      case 'voluntario': return '#7c3aed';
-      default: return 'var(--text-secondary)';
-    }
-  };
-
   return (
     <div className="profile-dropdown-container" ref={dropdownRef}>
       <button 
@@ -75,7 +67,7 @@ export const ProfileDropdown = () => {
         <div className="profile-popover glass animate-scale-in">
           <div className="popover-header">
             <div className="user-avatar" style={{ 
-              backgroundColor: profile?.avatar ? 'transparent' : getRoleColor(profile?.rol),
+              backgroundColor: profile?.avatar ? 'transparent' : getRolColor(profile?.rol),
               overflow: 'hidden',
               border: profile?.avatar ? '1px solid var(--border-color)' : 'none',
               padding: 0

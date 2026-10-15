@@ -53,9 +53,10 @@ export const Login = () => {
           return;
         }
 
-        // 3. Validación de Portal vs Rol
-        const isCorrectPortal = (portal === 'brigadista' && userRole === 'brigadista') || 
-                               (portal === 'voluntario' && userRole === 'voluntario');
+        // 3. Validación de Portal vs Rol. El coordinador de voluntariado entra
+        //    por el portal de Voluntarios, a quienes coordina.
+        const isCorrectPortal = (portal === 'brigadista' && userRole === 'brigadista') ||
+                               (portal === 'voluntario' && (userRole === 'voluntario' || userRole === 'coordinador'));
 
         if (isCorrectPortal) {
           navigate('/', { replace: true });

@@ -9,6 +9,7 @@ import { DonacionGeneral } from '../inventory/DonacionGeneral';
 import { SalidaGeneral } from '../inventory/SalidaGeneral';
 // import { SaludStepper } from '../salud/SaludStepper';
 import { useAuth } from '../../contexts/AuthContext';
+import { getRolLabel, getRolColor } from '../../utils/roles';
 import './layout.css';
 
 export const Sidebar = () => {
@@ -43,24 +44,6 @@ export const Sidebar = () => {
       <span>{label}</span>
     </NavLink>
   );
-
-  const getRoleLabel = (rol) => {
-    switch (rol) {
-      case 'super_admin': return 'Super Admin';
-      case 'brigadista': return 'Brigadista';
-      case 'voluntario': return 'Voluntario';
-      default: return 'Usuario';
-    }
-  };
-
-  const getRoleColor = (rol) => {
-    switch (rol) {
-      case 'super_admin': return 'var(--danger-color)';
-      case 'brigadista': return 'var(--success-color)';
-      case 'voluntario': return '#7c3aed';
-      default: return 'var(--text-secondary)';
-    }
-  };
 
   return (
     <aside className="sidebar">
@@ -218,7 +201,7 @@ export const Sidebar = () => {
               width: '34px', 
               height: '34px', 
               borderRadius: '50%', 
-              backgroundColor: profile?.avatar ? 'transparent' : getRoleColor(profile?.rol), 
+              backgroundColor: profile?.avatar ? 'transparent' : getRolColor(profile?.rol),
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -244,7 +227,7 @@ export const Sidebar = () => {
                 {profile?.nombre || 'Cargando...'}
               </p>
               <p style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', margin: 0 }}>
-                {getRoleLabel(profile?.rol)}
+                {getRolLabel(profile?.rol)}
               </p>
             </div>
           </div>

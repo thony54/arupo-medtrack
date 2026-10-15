@@ -1,31 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { 
   UserPlus, Search, Shield, Mail, Trash2, UserCheck, AlertCircle, 
-  Eye, EyeOff, HandHeart, Activity, ChevronDown, ChevronUp 
+  Eye, EyeOff, HandHeart, Activity, ClipboardCheck, UserCog 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
+import { ROL_CONFIG, ROLES_ORDEN, getRolColor, getRolBg } from '../utils/roles';
 import './pages.css';
 
 import { useAuth } from '../contexts/AuthContext';
+
+const ROL_ICONOS = {
+  super_admin: Shield,
+  coordinador: ClipboardCheck,
+  brigadista: Activity,
+  voluntario: HandHeart
+};
 
 export const Usuarios = () => {
   const { user } = useAuth() || {};
   
   const isDeveloper = user?.email?.toLowerCase() === 'thony.karter@gmail.com';
   
-  const rolesDisponibles = isDeveloper 
-    ? [
-        { value: 'super_admin', label: 'Super Admin (Acceso Total)' },
-        { value: 'brigadista', label: 'Brigadista (Manejo Médico e Inventario)' },
-        { value: 'voluntario', label: 'Voluntario (CRM, Donantes y Beneficiarios)' }
-      ]
-    : [
-        { value: 'brigadista', label: 'Brigadista (Manejo Médico e Inventario)' },
-        { value: 'voluntario', label: 'Voluntario (CRM, Donantes y Beneficiarios)' }
-      ];
+  // Solo el super admin principal otorga los roles de nivel alto (super_admin y
+  // coordinador). Es control de interfaz: la escritura real la limita la RLS de
+  // `perfiles` (solo super_admin), igual que antes con super_admin.
+  const rolesDisponibles = ROLES_ORDEN.filter(r => isDeveloper || !ROL_CONFIG[r].asignablePorDeveloper);
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -41,36 +43,22 @@ export const Usuarios = () => {
   const [rol, setRol] = useState('brigadista');
   const [showPassword, setShowPassword] = useState(false);
 
+  // Cambio de rol de un usuario existente: { usuario, nuevoRol } o null.
+  const [cambioRol, setCambioRol] = useState(null);
+  const [cambiandoRol, setCambiandoRol] = useState(false);
+  const [errorCambioRol, setErrorCambioRol] = useState('');
+  const [aviso, setAviso] = useState('');
+
   // Estados para colapsables de Roles
-  const [expandedRoles, setExpandedRoles] = useState({
-    super_admin: true,
-    brigadista: true,
-    voluntario: true
-  });
+  const [expandedRoles, setExpandedRoles] = useState(
+    Object.fromEntries(ROLES_ORDEN.map(r => [r, true]))
+  );
 
   const toggleRole = (roleKey) => {
     setExpandedRoles(prev => ({
       ...prev,
       [roleKey]: !prev[roleKey]
     }));
-  };
-
-  const getRoleColor = (rol) => {
-    switch (rol) {
-      case 'super_admin': return 'var(--danger-color)';
-      case 'brigadista': return 'var(--success-color)';
-      case 'voluntario': return '#7c3aed';
-      default: return 'var(--text-secondary)';
-    }
-  };
-
-  const getRoleLightColor = (rol) => {
-    switch (rol) {
-      case 'super_admin': return 'var(--danger-bg)';
-      case 'brigadista': return 'var(--success-bg)';
-      case 'voluntario': return '#ede9fe';
-      default: return 'var(--bg-surface-hover)';
-    }
   };
 
   useEffect(() => {
@@ -235,14 +223,100 @@ export const Usuarios = () => {
     }
   };
 
-  const getRoleBadge = (rol) => {
-    switch (rol) {
-      case 'super_admin': return <Badge variant="danger">Super Admin</Badge>;
-      case 'brigadista': return <Badge variant="success">Brigadista</Badge>;
-      case 'voluntario': return <Badge variant="info">Voluntario</Badge>;
-      default: return <Badge variant="warning">{rol}</Badge>;
+  // Cambia el rol de un usuario ya existente. Solo lo ofrece la interfaz al
+  // super admin principal; la RLS de `perfiles` exige super_admin en la base.
+  const abrirCambioRol = (u) => {
+    setErrorCambioRol('');
+    setCambioRol({ usuario: u, nuevoRol: u.rol });
+  };
+
+  const handleCambiarRol = async () => {
+    if (!cambioRol || !supabase) return;
+    const { usuario, nuevoRol } = cambioRol;
+    if (nuevoRol === usuario.rol || usuario.id === user?.id) return;
+
+    setCambiandoRol(true);
+    setErrorCambioRol('');
+    try {
+      // Se relee el rol devuelto para detectar un UPDATE bloqueado por RLS
+      // (devolvería 0 filas sin lanzar error).
+      const { data, error: updError } = await supabase
+        .from('perfiles')
+        .update({ rol: nuevoRol })
+        .eq('id', usuario.id)
+        .select('rol')
+        .maybeSingle();
+
+      if (updError) {
+        console.error('Error al cambiar el rol:', updError);
+        throw new Error(
+          updError.code === '23514'
+            ? 'La base de datos aún no admite este rol. Ejecuta schema_v22.sql en el SQL Editor de Supabase.'
+            : 'No se pudo cambiar el rol.'
+        );
+      }
+      if (data?.rol !== nuevoRol) {
+        throw new Error('No se pudo cambiar el rol: la base de datos rechazó el cambio.');
+      }
+
+      setCambioRol(null);
+      setAviso(`${usuario.nombre} ahora es ${ROL_CONFIG[nuevoRol].label}.`);
+      setTimeout(() => setAviso(''), 5000);
+      fetchUsuarios();
+    } catch (err) {
+      setErrorCambioRol(err.message);
+    } finally {
+      setCambiandoRol(false);
     }
   };
+
+  const getRoleBadge = (rol) => {
+    const cfg = ROL_CONFIG[rol];
+    return cfg
+      ? <Badge variant={cfg.badge}>{cfg.label}</Badge>
+      : <Badge variant="warning">{rol}</Badge>;
+  };
+
+  // Tarjetas de selección de rol, compartidas por el alta y el cambio de rol.
+  const renderOpcionesRol = (valor, onSelect, deshabilitado = false) => (
+    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+      {rolesDisponibles.map(r => {
+        const cfg = ROL_CONFIG[r];
+        const Icon = ROL_ICONOS[r];
+        const isActive = valor === r;
+
+        return (
+          <button
+            key={r}
+            type="button"
+            disabled={deshabilitado}
+            onClick={() => onSelect(r)}
+            style={{
+              flex: '1 1 200px',
+              padding: '1rem',
+              borderRadius: 'var(--radius-lg)',
+              border: `2px solid ${isActive ? cfg.color : 'var(--border-color)'}`,
+              background: isActive ? cfg.bg : 'var(--bg-surface)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              textAlign: 'left',
+              cursor: 'pointer',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isActive ? cfg.color : 'var(--text-secondary)' }}>
+              <Icon size={18} />
+              <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{cfg.label}</span>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>
+              {cfg.descripcion}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   const filtered = usuarios.filter(u =>
     (u.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -250,7 +324,7 @@ export const Usuarios = () => {
     u.rol.toLowerCase().includes(search.toLowerCase())
   );
 
-  const renderUserTable = (usersList, roleName, roleKey) => {
+  const renderUserTable = (usersList, roleKey) => {
     const isExpanded = expandedRoles[roleKey];
     
     if (!isExpanded) return null;
@@ -285,14 +359,14 @@ export const Usuarios = () => {
                           width: '34px',
                           height: '34px',
                           borderRadius: '50%',
-                          backgroundColor: getRoleLightColor(u.rol),
-                          color: getRoleColor(u.rol),
+                          backgroundColor: getRolBg(u.rol),
+                          color: getRolColor(u.rol),
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: '700',
                           fontSize: '0.85rem',
-                          border: `1px solid ${getRoleColor(u.rol)}22`,
+                          border: `1px solid rgba(${ROL_CONFIG[u.rol]?.rgb ?? '100, 116, 139'}, 0.13)`,
                           boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
                         }}>
                           {(u.nombre || 'U').substring(0, 2).toUpperCase()}
@@ -313,21 +387,33 @@ export const Usuarios = () => {
                     <td style={{ padding: '0.85rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>
-                          {u.rol === 'super_admin' && 'Acceso total e irrestricto en todos los módulos.'}
-                          {u.rol === 'brigadista' && 'Gestión de Medicinas, Lotes e Inventario.'}
-                          {u.rol === 'voluntario' && 'Gestión del CRM, Donantes y Beneficiarios.'}
+                          {ROL_CONFIG[u.rol]?.permisos}
                         </span>
-                        
+
                         {u.id !== user?.id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteUser(u.id, u.nombre)}
-                            style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto', flexShrink: 0 }}
-                            title="Eliminar usuario"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
+                          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                            {isDeveloper && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => abrirCambioRol(u)}
+                                style={{ color: 'var(--primary-color)', padding: '0.4rem', height: 'auto' }}
+                                title="Cambiar rol"
+                                aria-label={`Cambiar rol de ${u.nombre}`}
+                              >
+                                <UserCog size={16} />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteUser(u.id, u.nombre)}
+                              style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto' }}
+                              title="Eliminar usuario"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -347,13 +433,20 @@ export const Usuarios = () => {
         <div>
           <h1 className="page-title">Gestión de Personal</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Registra y administra accesos para Administradores, Brigadistas y Voluntarios.
+            Registra y administra accesos para Administradores, Coordinadores, Brigadistas y Voluntarios.
           </p>
         </div>
         <Button variant="primary" onClick={() => { resetForm(); setIsModalOpen(true); }}>
           <UserPlus size={18} /> Registrar Personal
         </Button>
       </div>
+
+      {aviso && (
+        <div role="status" style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', background: 'var(--success-bg)', color: 'var(--success-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <UserCheck size={16} />
+          <span>{aviso}</span>
+        </div>
+      )}
 
       <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ position: 'relative' }}>
@@ -375,161 +468,64 @@ export const Usuarios = () => {
         gap: '1rem',
         marginBottom: '1.75rem'
       }}>
-        {/* Card: Administradores */}
-        <div 
-          onClick={() => toggleRole('super_admin')}
-          className={`card glass role-selector-card ${expandedRoles.super_admin ? 'active-super-admin' : ''}`}
-          style={{
-            padding: '1.15rem 1.25rem',
-            borderRadius: 'var(--radius-lg)',
-            border: `1px solid ${expandedRoles.super_admin ? 'var(--danger-color)' : 'var(--border-color)'}`,
-            boxShadow: expandedRoles.super_admin ? '0 4px 15px rgba(225, 29, 72, 0.12)' : 'none',
-            background: expandedRoles.super_admin ? 'var(--danger-bg)' : 'var(--bg-glass)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.85rem',
-            cursor: 'pointer',
-            transition: 'all var(--transition-fast)',
-            opacity: expandedRoles.super_admin ? 1 : 0.75
-          }}
-        >
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--danger-bg)',
-            color: 'var(--danger-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            border: '1px solid rgba(225, 29, 72, 0.15)'
-          }}>
-            <Shield size={20} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>Admins</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '0.15rem' }}>
-              {usuarios.filter(u => u.rol === 'super_admin').length} registrados
-            </span>
-          </div>
-          <div style={{ color: expandedRoles.super_admin ? 'var(--danger-color)' : 'var(--text-tertiary)' }}>
-            <span style={{ 
-              fontSize: '0.65rem', 
-              fontWeight: '700', 
-              textTransform: 'uppercase',
-              background: expandedRoles.super_admin ? 'rgba(225, 29, 72, 0.12)' : 'var(--bg-surface-hover)',
-              padding: '0.15rem 0.45rem',
-              borderRadius: 'var(--radius-sm)'
-            }}>
-              {expandedRoles.super_admin ? 'Abierto' : 'Cerrado'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card: Brigadistas */}
-        <div 
-          onClick={() => toggleRole('brigadista')}
-          className={`card glass role-selector-card ${expandedRoles.brigadista ? 'active-brigadista' : ''}`}
-          style={{
-            padding: '1.15rem 1.25rem',
-            borderRadius: 'var(--radius-lg)',
-            border: `1px solid ${expandedRoles.brigadista ? 'var(--success-color)' : 'var(--border-color)'}`,
-            boxShadow: expandedRoles.brigadista ? '0 4px 15px rgba(16, 185, 129, 0.12)' : 'none',
-            background: expandedRoles.brigadista ? 'var(--success-bg)' : 'var(--bg-glass)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.85rem',
-            cursor: 'pointer',
-            transition: 'all var(--transition-fast)',
-            opacity: expandedRoles.brigadista ? 1 : 0.75
-          }}
-        >
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--success-bg)',
-            color: 'var(--success-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            border: '1px solid rgba(16, 185, 129, 0.15)'
-          }}>
-            <Activity size={20} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>Brigadistas</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '0.15rem' }}>
-              {usuarios.filter(u => u.rol === 'brigadista').length} registrados
-            </span>
-          </div>
-          <div style={{ color: expandedRoles.brigadista ? 'var(--success-color)' : 'var(--text-tertiary)' }}>
-            <span style={{ 
-              fontSize: '0.65rem', 
-              fontWeight: '700', 
-              textTransform: 'uppercase',
-              background: expandedRoles.brigadista ? 'rgba(16, 185, 129, 0.12)' : 'var(--bg-surface-hover)',
-              padding: '0.15rem 0.45rem',
-              borderRadius: 'var(--radius-sm)'
-            }}>
-              {expandedRoles.brigadista ? 'Abierto' : 'Cerrado'}
-            </span>
-          </div>
-        </div>
-
-        {/* Card: Voluntarios */}
-        <div 
-          onClick={() => toggleRole('voluntario')}
-          className={`card glass role-selector-card ${expandedRoles.voluntario ? 'active-voluntario' : ''}`}
-          style={{
-            padding: '1.15rem 1.25rem',
-            borderRadius: 'var(--radius-lg)',
-            border: `1px solid ${expandedRoles.voluntario ? '#7c3aed' : 'var(--border-color)'}`,
-            boxShadow: expandedRoles.voluntario ? '0 4px 15px rgba(124, 58, 237, 0.12)' : 'none',
-            background: expandedRoles.voluntario ? '#ede9fe' : 'var(--bg-glass)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.85rem',
-            cursor: 'pointer',
-            transition: 'all var(--transition-fast)',
-            opacity: expandedRoles.voluntario ? 1 : 0.75
-          }}
-        >
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: 'var(--radius-md)',
-            background: '#ede9fe',
-            color: '#7c3aed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-            border: '1px solid rgba(124, 58, 237, 0.15)'
-          }}>
-            <HandHeart size={20} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>Voluntarios</span>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '0.15rem' }}>
-              {usuarios.filter(u => u.rol === 'voluntario').length} registrados
-            </span>
-          </div>
-          <div style={{ color: expandedRoles.voluntario ? '#7c3aed' : 'var(--text-tertiary)' }}>
-            <span style={{ 
-              fontSize: '0.65rem', 
-              fontWeight: '700', 
-              textTransform: 'uppercase',
-              background: expandedRoles.voluntario ? 'rgba(124, 58, 237, 0.12)' : 'var(--bg-surface-hover)',
-              padding: '0.15rem 0.45rem',
-              borderRadius: 'var(--radius-sm)'
-            }}>
-              {expandedRoles.voluntario ? 'Abierto' : 'Cerrado'}
-            </span>
-          </div>
-        </div>
+        {ROLES_ORDEN.map(r => {
+          const cfg = ROL_CONFIG[r];
+          const Icon = ROL_ICONOS[r];
+          const abierto = expandedRoles[r];
+          return (
+            <div
+              key={r}
+              onClick={() => toggleRole(r)}
+              className={`card glass role-selector-card ${abierto ? `active-${r.replace('_', '-')}` : ''}`}
+              style={{
+                padding: '1.15rem 1.25rem',
+                borderRadius: 'var(--radius-lg)',
+                border: `1px solid ${abierto ? cfg.color : 'var(--border-color)'}`,
+                boxShadow: abierto ? `0 4px 15px rgba(${cfg.rgb}, 0.12)` : 'none',
+                background: abierto ? cfg.bg : 'var(--bg-glass)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.85rem',
+                cursor: 'pointer',
+                transition: 'all var(--transition-fast)',
+                opacity: abierto ? 1 : 0.75
+              }}
+            >
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: 'var(--radius-md)',
+                background: cfg.bg,
+                color: cfg.color,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: `1px solid rgba(${cfg.rgb}, 0.15)`
+              }}>
+                <Icon size={20} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>{cfg.plural}</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '0.15rem' }}>
+                  {usuarios.filter(u => u.rol === r).length} registrados
+                </span>
+              </div>
+              <div style={{ color: abierto ? cfg.color : 'var(--text-tertiary)' }}>
+                <span style={{ 
+                  fontSize: '0.65rem', 
+                  fontWeight: '700', 
+                  textTransform: 'uppercase',
+                  background: abierto ? `rgba(${cfg.rgb}, 0.12)` : 'var(--bg-surface-hover)',
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: 'var(--radius-sm)'
+                }}>
+                  {abierto ? 'Abierto' : 'Cerrado'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Secciones de Tablas Colapsables por Rol */}
@@ -539,21 +535,11 @@ export const Usuarios = () => {
         </div>
       ) : (
         <div className="collapsible-sections-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {renderUserTable(
-            filtered.filter(u => u.rol === 'super_admin'),
-            'Administradores del Sistema',
-            'super_admin'
-          )}
-          {renderUserTable(
-            filtered.filter(u => u.rol === 'brigadista'),
-            'Especialistas Médicos / Brigadistas',
-            'brigadista'
-          )}
-          {renderUserTable(
-            filtered.filter(u => u.rol === 'voluntario'),
-            'Coordinadores de Donaciones / Voluntarios',
-            'voluntario'
-          )}
+          {ROLES_ORDEN.map(r => (
+            <React.Fragment key={r}>
+              {renderUserTable(filtered.filter(u => u.rol === r), r)}
+            </React.Fragment>
+          ))}
         </div>
       )}
 
@@ -652,69 +638,68 @@ export const Usuarios = () => {
           {/* Selector de Rol Premium */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol y Nivel de Acceso <span style={{ color: 'var(--danger-color)' }}>*</span></label>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              {rolesDisponibles.map(r => {
-                const isActive = rol === r.value;
-                let Icon = Shield;
-                if (r.value === 'voluntario') Icon = HandHeart;
-                if (r.value === 'super_admin') Icon = Shield;
-
-                let label = '';
-                let desc = '';
-                let activeColor = 'var(--primary-color)';
-                let activeBg = 'var(--primary-light)';
-
-                if (r.value === 'super_admin') {
-                  label = 'Super Admin';
-                  desc = 'Acceso total e irrestricto en todos los módulos y gestión de personal.';
-                  activeColor = 'var(--danger-color)';
-                  activeBg = 'var(--danger-bg)';
-                } else if (r.value === 'brigadista') {
-                  label = 'Brigadista';
-                  desc = 'Acceso a inventario médico, registro de lotes y entregas de medicinas.';
-                  activeColor = 'var(--primary-color)';
-                  activeBg = 'var(--primary-light)';
-                } else {
-                  label = 'Voluntario';
-                  desc = 'Acceso a CRM, gestión de donantes y registro de beneficiarios.';
-                  activeColor = '#7c3aed';
-                  activeBg = '#ede9fe';
-                }
-
-                return (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRol(r.value)}
-                    style={{
-                      flex: '1 1 200px',
-                      padding: '1rem',
-                      borderRadius: 'var(--radius-lg)',
-                      border: `2px solid ${isActive ? activeColor : 'var(--border-color)'}`,
-                      background: isActive ? activeBg : 'var(--bg-surface)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isActive ? activeColor : 'var(--text-secondary)' }}>
-                      <Icon size={18} />
-                      <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{label}</span>
-                    </div>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>
-                      {desc}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
+            {renderOpcionesRol(rol, setRol, saving)}
           </div>
 
           <button type="submit" id="user-submit-btn" style={{ display: 'none' }} />
         </form>
+      </Modal>
+
+      {/* Modal para Cambiar el Rol de un usuario existente */}
+      <Modal
+        isOpen={!!cambioRol}
+        onClose={() => { if (!cambiandoRol) setCambioRol(null); }}
+        title="Cambiar Rol"
+        footer={
+          <>
+            <Button type="button" variant="ghost" onClick={() => setCambioRol(null)} disabled={cambiandoRol}>Cancelar</Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={cambiandoRol || !cambioRol || cambioRol.nuevoRol === cambioRol.usuario.rol}
+              onClick={handleCambiarRol}
+            >
+              {cambiandoRol ? 'Guardando...' : 'Confirmar Cambio'}
+            </Button>
+          </>
+        }
+      >
+        {cambioRol && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {errorCambioRol && (
+              <div style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>{errorCambioRol}</span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontWeight: '700', color: 'var(--text-primary)' }}>{cambioRol.usuario.nombre}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{cambioRol.usuario.email}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                Rol actual {getRoleBadge(cambioRol.usuario.rol)}
+              </div>
+            </div>
+
+            {renderOpcionesRol(cambioRol.nuevoRol, (nuevoRol) => setCambioRol(prev => ({ ...prev, nuevoRol })), cambiandoRol)}
+
+            {cambioRol.usuario.rol === 'super_admin' && cambioRol.nuevoRol !== 'super_admin' && (
+              <div style={{ padding: '0.75rem', background: 'var(--warning-bg)', color: 'var(--warning-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>
+                  {cambioRol.usuario.nombre} dejará de ser Super Admin: perderá el acceso a Gestión de Personal
+                  y a todo módulo que su nuevo rol no incluya.
+                </span>
+              </div>
+            )}
+
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+              El cambio se aplica la próxima vez que {cambioRol.usuario.nombre} inicie sesión o recargue la app.
+            </span>
+          </div>
+        )}
       </Modal>
     </div>
   );

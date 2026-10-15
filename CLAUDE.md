@@ -48,12 +48,19 @@ src/
   pages/                   Una página por ruta
   hooks/useOfflineCache.js Caché en localStorage + cola de acciones offline
   utils/itemUtils.js       Fuente de verdad para "¿es ítem médico o general?"
-supabase/                  Scripts SQL versionados (schema_v2 … v16, schema_salud)
+  utils/roles.js           Fuente de verdad de roles: etiquetas, colores, orden jerárquico
+supabase/                  Scripts SQL versionados (schema_v2 … v22, schema_salud)
 ```
 
 ### Roles y rutas
 
-Tres roles en `perfiles.rol`: `super_admin`, `brigadista`, `voluntario`.
+Cuatro roles en `perfiles.rol`: `super_admin`, `coordinador`, `brigadista`, `voluntario`.
+`coordinador` = Coordinador de Voluntariado (nivel intermedio, por debajo del
+super_admin). Se otorga **solo desde `/usuarios` con la sesión del super admin
+principal** (`thony.karter@gmail.com`, botón "Cambiar rol"), nunca por registro.
+Hoy solo ve Dashboard y Perfil; sus módulos (bitácoras, reportes Excel) se añaden
+por partes según `MedTrack Modulo por anadir.docx`. Requiere `schema_v22.sql` y
+redesplegar la Edge Function `crear-personal`.
 El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles={[...]}>`:
 
 | Ruta | Roles |

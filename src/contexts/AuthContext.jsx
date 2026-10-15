@@ -182,6 +182,7 @@ export const AuthProvider = ({ children }) => {
     // Sin perfil no hay rol. Nunca se asume un privilegio que no se ha leído.
     role: profile?.rol || null,
     isSuperAdmin: profile?.rol === 'super_admin',
+    isCoordinador: profile?.rol === 'coordinador',
     isBrigadista: profile?.rol === 'brigadista',
     isVoluntario: profile?.rol === 'voluntario',
     signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
