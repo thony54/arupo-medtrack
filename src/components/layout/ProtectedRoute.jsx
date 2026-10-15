@@ -2,8 +2,10 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-export const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { session, role, profileStatus, signOut } = useAuth();
+// `permitirCoordinador`: además de allowedRoles, deja pasar a quien tenga el rol
+// adicional de coordinador (perfiles.es_coordinador), que no es un valor de `rol`.
+export const ProtectedRoute = ({ children, allowedRoles, permitirCoordinador = false }) => {
+  const { session, role, isCoordinador, profileStatus, signOut } = useAuth();
 
   if (!session) {
     return <Navigate to="/login" replace />;
@@ -40,7 +42,7 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
       );
     }
 
-    if (!allowedRoles.includes(role)) {
+    if (!allowedRoles.includes(role) && !(permitirCoordinador && isCoordinador)) {
       console.warn(`Acceso denegado a la ruta. Rol '${role}' no está en la lista permitida:`, allowedRoles);
       return <Navigate to="/" replace />;
     }

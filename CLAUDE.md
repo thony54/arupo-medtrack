@@ -52,7 +52,8 @@ src/
   utils/estancia.js        Tiempo de estancia del voluntario (3–24 meses): rango, formato, fecha de fin
   utils/bitacora.js        Bitácora de jornada: validación de actividades, horas am/pm, compresión de foto
   components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
-supabase/                  Scripts SQL versionados (schema_v2 … v24, schema_salud)
+  utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
+supabase/                  Scripts SQL versionados (schema_v2 … v25, schema_salud)
 ```
 
 ### Roles y rutas
@@ -82,7 +83,14 @@ reloj de la base: es el timestamp inmutable); la API no tiene INSERT/UPDATE/DELE
 foto "Momento feliz" va al bucket **privado** `momentos-felices` (`<uid>/<ts>.jpg`) y se
 muestra con URL firmada; puede contener a beneficiarios, así que nunca hacerla pública.
 Ven todas las bitácoras super_admin y coordinadores (`puede_revisar_bitacoras()`).
-Pendiente (Parte 4): aprobación por el coordinador y reporte Excel.
+
+**Revisión de bitácoras** (`schema_v25.sql`): pantalla `/bitacoras` (`pages/Bitacoras.jsx`,
+menú "Coordinación") para super_admin y coordinadores, con filtros por voluntario,
+estado y fechas, aprobación y descarga a Excel (`utils/reporteBitacoras.js`: hojas
+"Actividades" y "Resumen"). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
+el coordinador no es un valor de `rol`. Aprobar solo se hace con el RPC
+`aprobar_bitacora` (nadie aprueba la suya). El Inicio muestra el KPI "Bitácoras por
+Revisar". Pendiente: asignación de líderes de grupo y avisos a Discord.
 El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles={[...]}>`:
 
 | Ruta | Roles |

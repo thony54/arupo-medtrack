@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ClipboardList, Plus, MapPin, UserCheck, GraduationCap, AlertCircle } from 'lucide-react';
+import { ClipboardList, Plus, MapPin, UserCheck, GraduationCap, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { CierreJornada } from './CierreJornada';
-import { BUCKET_FOTOS, describirActividad, etiquetaEstado } from '../../utils/bitacora';
+import { firmarFotos } from '../../lib/bitacoras';
+import { describirActividad, etiquetaEstado } from '../../utils/bitacora';
 
 const POR_PAGINA = 20;
 
@@ -43,19 +44,7 @@ export const MisActividades = () => {
     if (err) throw err;
 
     const nuevas = data || [];
-    // Fotos privadas: URLs firmadas de una hora para las miniaturas.
-    const rutas = nuevas.map(b => b.foto_path).filter(Boolean);
-    let urls = {};
-    if (rutas.length) {
-      const { data: firmadas, error: firmaError } = await supabase.storage
-        .from(BUCKET_FOTOS)
-        .createSignedUrls(rutas, 3600);
-      if (firmaError) {
-        console.error('No se pudieron firmar las fotos:', firmaError.message);
-      } else {
-        urls = Object.fromEntries((firmadas || []).filter(f => f.signedUrl).map(f => [f.path, f.signedUrl]));
-      }
-    }
+    const urls = await firmarFotos(nuevas.map(b => b.foto_path));
     return { nuevas, urls };
   }, [userId]);
 
@@ -173,6 +162,11 @@ export const MisActividades = () => {
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                             <UserCheck size={14} /> Líder: {b.lider_nombre}
                           </span>
+                          {b.estado === 'aprobada' && b.revisado_por_nombre && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <CheckCircle size={14} /> Aprobada por {b.revisado_por_nombre}
+                            </span>
+                          )}
                           {b.formacion_continua && (
                             <span style={{ display: 'flex', alignItems: 'flex-start', gap: '0.35rem' }}>
                               <GraduationCap size={14} style={{ flexShrink: 0, marginTop: '2px' }} /> {b.formacion_continua}

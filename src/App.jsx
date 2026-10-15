@@ -13,6 +13,7 @@ import { Donantes } from './pages/Donantes';
 import { Usuarios } from './pages/Usuarios';
 import { Perfil } from './pages/Perfil';
 import { Evaluaciones } from './pages/Evaluaciones';
+import { Bitacoras } from './pages/Bitacoras';
 
 function App() {
   return (
@@ -70,6 +71,12 @@ function App() {
             <Route path="usuarios" element={
               <ProtectedRoute allowedRoles={['super_admin']}>
                 <Usuarios />
+              </ProtectedRoute>
+            } />
+            {/* Bitácoras de voluntariado: Super Admin y Coordinadores (rol adicional) */}
+            <Route path="bitacoras" element={
+              <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
+                <Bitacoras />
               </ProtectedRoute>
             } />
             {/* Perfil del Usuario: Accesible para todos los autenticados */}

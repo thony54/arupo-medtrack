@@ -12,6 +12,7 @@ export const Dashboard = () => {
   const { role, profile, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
   const navigate = useNavigate();
   const [voluntariosRegistrados, setVoluntariosRegistrados] = useState(0);
+  const [bitacorasPendientes, setBitacorasPendientes] = useState(null); // null = módulo no disponible
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
   const [alertas, setAlertas] = useState([]);
   const [ultimasDonaciones, setUltimasDonaciones] = useState([]);
@@ -19,6 +20,21 @@ export const Dashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => { fetchData(); }, []);
+
+  // KPI de quienes revisan bitácoras (super_admin y coordinadores): jornadas por aprobar.
+  const puedeRevisar = isSuperAdmin || isCoordinador;
+  useEffect(() => {
+    if (!puedeRevisar || !supabase) return;
+    supabase.from('bitacoras').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')
+      .then(({ count, error: err }) => {
+        // 42P01 / PGRST205: aún no existe la tabla; el KPI simplemente no se muestra.
+        if (err) {
+          if (err.code !== '42P01' && err.code !== 'PGRST205') console.error('No se pudo contar las bitácoras:', err.message);
+        } else {
+          setBitacorasPendientes(count || 0);
+        }
+      });
+  }, [puedeRevisar]);
 
   // KPI propio del coordinador de voluntariado.
   useEffect(() => {
@@ -94,11 +110,17 @@ export const Dashboard = () => {
     { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb', roles: ['super_admin', 'voluntario'] },
     { title: 'Ítems Generales', value: stats.itemsGenerales, subtitle: 'Ropa, higiene, alimentos...', icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff', roles: ['super_admin', 'voluntario'] },
     { title: 'Voluntarios Registrados', value: voluntariosRegistrados, subtitle: 'Cuentas con rol de voluntario', icon: <Users size={24} />, color: '#d97706', bg: 'var(--warning-bg)', soloCoordinador: true },
+    { title: 'Bitácoras por Revisar', value: bitacorasPendientes, subtitle: 'Jornadas pendientes de aprobación', icon: <ClipboardList size={24} />, color: '#d97706', bg: 'var(--warning-bg)', revisor: true },
   ];
 
-  // Filtrar KPIs de acuerdo al rol del usuario. Los marcados `soloCoordinador`
-  // dependen del rol adicional, no del principal.
-  const visibleKpis = allKpis.filter(kpi => kpi.soloCoordinador ? isCoordinador : kpi.roles.includes(role));
+  // Filtrar KPIs de acuerdo al rol del usuario. `soloCoordinador` depende del rol
+  // adicional, no del principal; `revisor` es para super_admin o coordinador y solo
+  // aparece cuando el módulo de bitácoras responde.
+  const visibleKpis = allKpis.filter(kpi => {
+    if (kpi.soloCoordinador) return isCoordinador;
+    if (kpi.revisor) return puedeRevisar && kpi.value !== null;
+    return kpi.roles.includes(role);
+  });
 
   return (
     <div className="animate-blur-in">

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity, ClipboardCheck } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
@@ -168,6 +168,16 @@ export const Sidebar = () => {
             </div>
             {navItem('/beneficiarios', Users, 'Beneficiarios')}
             {navItem('/donantes', HandHeart, 'Donantes')}
+          </>
+        )}
+
+        {/* Sección Coordinación: Super Admin y Coordinadores (rol adicional) */}
+        {(isSuperAdmin || isCoordinador) && (
+          <>
+            <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
+              Coordinación
+            </div>
+            {navItem('/bitacoras', ClipboardCheck, 'Bitácoras')}
           </>
         )}
 
