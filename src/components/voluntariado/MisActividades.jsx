@@ -5,10 +5,20 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { CierreJornada } from './CierreJornada';
-import { firmarFotos } from '../../lib/bitacoras';
+import { firmarFotos, notificarBitacora } from '../../lib/bitacoras';
 import { describirActividad, etiquetaEstado } from '../../utils/bitacora';
 
 const POR_PAGINA = 20;
+const VENTANA_AVISO_MS = 3 * 24 * 60 * 60 * 1000; // igual que obtener_bitacora_a_notificar
+
+// Reintenta el aviso a Discord de jornadas recientes que aún no se avisaron (por ejemplo,
+// si se cerró la jornada sin señal). El servidor lo hace valer una sola vez por bitácora.
+// Solo actúa si la columna existe (schema_v26 aplicado).
+const reintentarAvisos = async (bitacoras) => {
+  const pendientes = bitacoras.filter(b =>
+    'notificada_en' in b && !b.notificada_en && Date.now() - new Date(b.created_at).getTime() < VENTANA_AVISO_MS);
+  for (const b of pendientes) await notificarBitacora(b.id);
+};
 
 const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
@@ -44,7 +54,7 @@ export const MisActividades = () => {
     if (err) throw err;
 
     const nuevas = data || [];
-    const urls = await firmarFotos(nuevas.map(b => b.foto_path));
+    const urls = await firmarFotos(nuevas.flatMap(b => b.fotos || []));
     return { nuevas, urls };
   }, [userId]);
 
@@ -69,7 +79,11 @@ export const MisActividades = () => {
     if (!supabase || !userId) return;
     let cancelado = false;
     obtenerPagina(0)
-      .then(res => { if (!cancelado) aplicarPagina(0, res); })
+      .then(res => {
+        if (cancelado) return;
+        aplicarPagina(0, res);
+        void reintentarAvisos(res.nuevas);
+      })
       .catch(err => { if (!cancelado) manejarFallo(err); })
       .finally(() => { if (!cancelado) setCargando(false); });
     return () => { cancelado = true; };
@@ -174,11 +188,15 @@ export const MisActividades = () => {
                           )}
                         </div>
 
-                        {b.foto_path && fotos[b.foto_path] && (
-                          <a href={fotos[b.foto_path]} target="_blank" rel="noopener noreferrer" style={{ alignSelf: 'flex-start' }} title="Ver foto completa">
-                            <img src={fotos[b.foto_path]} alt="Momento feliz de la jornada" loading="lazy"
-                              style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
-                          </a>
+                        {(b.fotos || []).some(r => fotos[r]) && (
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {b.fotos.filter(r => fotos[r]).map((r, i) => (
+                              <a key={r} href={fotos[r]} target="_blank" rel="noopener noreferrer" title="Ver foto completa">
+                                <img src={fotos[r]} alt={`Momento feliz de la jornada (${i + 1})`} loading="lazy"
+                                  style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
+                              </a>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </li>

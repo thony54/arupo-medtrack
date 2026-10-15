@@ -1,9 +1,11 @@
 // Bitácora de cierre de jornada del voluntario: constantes y utilidades puras.
 // Los límites deben coincidir con los de la función registrar_bitacora
-// (supabase/schema_v24.sql), que es quien las hace valer en el servidor.
+// (supabase/schema_v24.sql y v26), que es quien las hace valer en el servidor.
 
 export const BUCKET_FOTOS = 'momentos-felices';
 export const MAX_ACTIVIDADES = 20;
+export const MIN_FOTOS = 1;
+export const MAX_FOTOS = 3;
 
 export const MENSAJE_CIERRE =
   '¡Muchas gracias por compartir tu experiencia y dedicar tu corazón a transformar vidas en la Fundación Arupo!';

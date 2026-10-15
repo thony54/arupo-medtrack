@@ -53,7 +53,7 @@ src/
   utils/bitacora.js        Bitácora de jornada: validación de actividades, horas am/pm, compresión de foto
   components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
   utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
-supabase/                  Scripts SQL versionados (schema_v2 … v25, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v26, schema_salud)
 ```
 
 ### Roles y rutas
@@ -77,11 +77,12 @@ da igual.
 
 **Bitácora de cierre de jornada** (`schema_v24.sql`): el voluntario la registra desde
 Perfil → "Mis Actividades" (o el aviso del Inicio). Tabla `bitacoras` (actividades en
-JSONB, líder, foto opcional, formación continua, `estado` pendiente/aprobada). **Solo se
-escribe con el RPC `registrar_bitacora`** (valida en servidor y fija `created_at` con el
-reloj de la base: es el timestamp inmutable); la API no tiene INSERT/UPDATE/DELETE. La
-foto "Momento feliz" va al bucket **privado** `momentos-felices` (`<uid>/<ts>.jpg`) y se
-muestra con URL firmada; puede contener a beneficiarios, así que nunca hacerla pública.
+JSONB, líder, **1 a 3 fotos** (`fotos TEXT[]`, mínimo 1 en las nuevas), formación continua,
+`estado` pendiente/aprobada). **Solo se escribe con el RPC `registrar_bitacora`** (valida en
+servidor y fija `created_at` con el reloj de la base: es el timestamp inmutable); la API no
+tiene INSERT/UPDATE/DELETE. Las fotos "Momento feliz" van al bucket **privado**
+`momentos-felices` (`<uid>/<id>.jpg`) y se muestran con URL firmada; pueden contener a
+beneficiarios, así que el bucket nunca debe ser público (`schema_v26.sql` pasó de 1 a 3 fotos).
 Ven todas las bitácoras super_admin y coordinadores (`puede_revisar_bitacoras()`).
 
 **Revisión de bitácoras** (`schema_v25.sql`): pantalla `/bitacoras` (`pages/Bitacoras.jsx`,
@@ -90,7 +91,15 @@ estado y fechas, aprobación y descarga a Excel (`utils/reporteBitacoras.js`: ho
 "Actividades" y "Resumen"). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
 el coordinador no es un valor de `rol`. Aprobar solo se hace con el RPC
 `aprobar_bitacora` (nadie aprueba la suya). El Inicio muestra el KPI "Bitácoras por
-Revisar". Pendiente: asignación de líderes de grupo y avisos a Discord.
+Revisar". Pendiente: asignación de líderes de grupo.
+
+**Aviso a Discord de cada bitácora** (`api/notify-bitacora.js`, variable
+`DISCORD_WEBHOOK_BITACORAS`): tras registrar, el navegador llama al endpoint con la sesión del
+voluntario; el servidor lee SU bitácora (RPC `obtener_bitacora_a_notificar`), descarga las
+fotos del bucket privado con esa misma sesión, las adjunta al embed y marca `notificada_en`
+(RPC `marcar_bitacora_notificada`) solo si Discord aceptó. No usa `service_role` ni confía en
+lo que envíe el cliente. `MisActividades` reintenta los avisos pendientes de los últimos 3 días.
+**Las fotos salen del bucket privado hacia Discord**: el canal debe ser privado y reducido.
 El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles={[...]}>`:
 
 | Ruta | Roles |
@@ -155,7 +164,7 @@ Además, Workbox cachea las respuestas de `supabase.co/rest/v1` durante 30 días
 (`vite.config.js`). Ten en cuenta las implicaciones de privacidad descritas en
 `SECURITY.md` antes de ampliar lo que se cachea.
 
-### Notificaciones a Discord (7 canales)
+### Notificaciones a Discord (7 canales + bitácoras)
 
 Eventos de runtime y de negocio se envían a Discord, un canal por tipo de evento.
 Todo pasa por un **único proxy serverless** para que los webhooks no viajen en el
@@ -222,6 +231,7 @@ DISCORD_WEBHOOK_NUEVO_BENEFICIARIO
 DISCORD_WEBHOOK_DONACION_ENTREGADA
 DISCORD_WEBHOOK_NUEVO_DONANTE
 DISCORD_WEBHOOK_DONACION_RECIBIDA
+DISCORD_WEBHOOK_BITACORAS            # lo usa api/notify-bitacora.js (8.º canal, con fotos)
 ```
 
 ## Scripts de utilidad en la raíz

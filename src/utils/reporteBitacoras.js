@@ -52,7 +52,7 @@ export const construirHojas = (bitacoras, voluntarios) => {
         'Lugar': a.lugar || '',
         'Líder responsable': b.lider_nombre,
         'Formación continua': b.formacion_continua || '',
-        'Foto': b.foto_path ? 'Sí' : 'No',
+        'Fotos': Array.isArray(b.fotos) ? b.fotos.length : 0,
         'Estado': etiquetaEstado(b.estado),
         'Revisado por': b.revisado_por_nombre || '',
         'Fecha de revisión': fecha(b.revisado_en)

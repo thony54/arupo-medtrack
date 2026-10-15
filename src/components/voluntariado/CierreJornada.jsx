@@ -6,8 +6,9 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { getRolLabel } from '../../utils/roles';
+import { notificarBitacora } from '../../lib/bitacoras';
 import {
-  BUCKET_FOTOS, MAX_ACTIVIDADES, MENSAJE_CIERRE,
+  BUCKET_FOTOS, MAX_ACTIVIDADES, MIN_FOTOS, MAX_FOTOS, MENSAJE_CIERRE,
   nuevaActividad, validarActividades, comprimirImagen
 } from '../../utils/bitacora';
 
@@ -27,7 +28,8 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const [formacion, setFormacion] = usePersistentState('cierrejornada.formacion', '');
 
   const [lideres, setLideres] = useState(null); // null = cargando
-  const [foto, setFoto] = useState(null); // { blob, url, path? }
+  const [fotos, setFotos] = useState([]); // [{ id, blob, url, path? }] (de 1 a 3)
+  const fotosRef = useRef([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [enviado, setEnviado] = useState(null); // { creadaEn } tras registrar
@@ -61,8 +63,9 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
     return () => { cancelado = true; };
   }, []);
 
-  // Libera la vista previa de la foto al cambiarla o al desmontar.
-  useEffect(() => () => { if (foto?.url) URL.revokeObjectURL(foto.url); }, [foto]);
+  // Libera las vistas previas al cerrar el modal.
+  useEffect(() => { fotosRef.current = fotos; }, [fotos]);
+  useEffect(() => () => { fotosRef.current.forEach(f => URL.revokeObjectURL(f.url)); }, []);
 
   const actualizarActividad = (id, campo, valor) =>
     setActividades(lista => lista.map(a => (a.id === id ? { ...a, [campo]: valor } : a)));
@@ -70,29 +73,45 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const quitarActividad = (id) =>
     setActividades(lista => (lista.length > 1 ? lista.filter(a => a.id !== id) : lista));
 
-  const handleFoto = async (e) => {
-    const archivo = e.target.files?.[0];
+  const handleFotos = async (e) => {
+    const archivos = Array.from(e.target.files || []);
     e.target.value = ''; // permite volver a elegir el mismo archivo
-    if (!archivo) return;
-    if (!archivo.type.startsWith('image/')) {
-      setError('Selecciona un archivo de imagen.');
-      return;
-    }
-    setError('');
+    if (archivos.length === 0) return;
+
+    const libres = MAX_FOTOS - fotos.length;
+    const validos = archivos.filter(a => a.type.startsWith('image/'));
+    if (validos.length === 0) return setError('Selecciona archivos de imagen.');
+    if (libres <= 0) return setError(`Máximo ${MAX_FOTOS} fotos. Quita una para agregar otra.`);
+
+    setError(validos.length > libres ? `Máximo ${MAX_FOTOS} fotos: solo se agregaron ${libres}.` : '');
     try {
-      const blob = await comprimirImagen(archivo);
-      setFoto({ blob, url: URL.createObjectURL(blob) });
+      const comprimidas = await Promise.all(validos.slice(0, libres).map(a => comprimirImagen(a)));
+      setFotos(prev => [
+        ...prev,
+        ...comprimidas.slice(0, MAX_FOTOS - prev.length).map(blob => ({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          blob,
+          url: URL.createObjectURL(blob)
+        }))
+      ]);
     } catch (err) {
       console.error('Error al procesar la foto:', err);
-      setError('No se pudo procesar la foto. Prueba con otra.');
+      setError('No se pudo procesar una de las fotos. Prueba con otra.');
     }
+  };
+
+  const quitarFoto = (id) => {
+    const quitada = fotosRef.current.find(f => f.id === id);
+    if (quitada) URL.revokeObjectURL(quitada.url);
+    setFotos(prev => prev.filter(f => f.id !== id));
   };
 
   const reiniciar = () => {
     setActividades([nuevaActividad()]);
     setLiderId('');
     setFormacion('');
-    setFoto(null);
+    fotosRef.current.forEach(f => URL.revokeObjectURL(f.url));
+    setFotos([]);
     setError('');
   };
 
@@ -105,22 +124,26 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
     const problema = validarActividades(actividades);
     if (problema) return setError(problema);
     if (!liderId) return setError('Selecciona el líder responsable del grupo.');
+    if (fotos.length < MIN_FOTOS) return setError(`Agrega al menos ${MIN_FOTOS} foto (máximo ${MAX_FOTOS}).`);
     if (!supabase || !user) return setError('No hay conexión con la base de datos.');
 
     setSaving(true);
     try {
-      // La foto se sube una sola vez: si el envío falla y se reintenta, se reutiliza su ruta.
-      let fotoPath = foto?.path || null;
-      if (foto && !fotoPath) {
-        fotoPath = `${user.id}/${Date.now()}.jpg`;
+      // Cada foto se sube una sola vez: si el envío falla y se reintenta, se reutilizan
+      // las rutas de las que ya subieron.
+      const subidas = await Promise.all(fotos.map(async (f) => {
+        if (f.path) return { foto: f };
+        const path = `${user.id}/${f.id}.jpg`;
         const { error: upError } = await supabase.storage
           .from(BUCKET_FOTOS)
-          .upload(fotoPath, foto.blob, { contentType: 'image/jpeg', upsert: false });
-        if (upError) {
-          console.error('Error al subir la foto:', upError);
-          throw new Error('No se pudo subir la foto. Revisa tu conexión e inténtalo de nuevo.');
-        }
-        setFoto(prev => (prev ? { ...prev, path: fotoPath } : prev));
+          .upload(path, f.blob, { contentType: 'image/jpeg', upsert: false });
+        return upError ? { foto: f, upError } : { foto: { ...f, path } };
+      }));
+      setFotos(subidas.map(r => r.foto));
+      const fallida = subidas.find(r => r.upError);
+      if (fallida) {
+        console.error('Error al subir una foto:', fallida.upError);
+        throw new Error('No se pudieron subir todas las fotos. Revisa tu conexión e inténtalo de nuevo.');
       }
 
       const { data, error: rpcError } = await supabase.rpc('registrar_bitacora', {
@@ -132,26 +155,28 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
           lugar: a.lugar.trim()
         })),
         p_lider_id: liderId,
-        p_foto_path: fotoPath,
+        p_fotos: subidas.map(r => r.foto.path),
         p_formacion: formacion.trim() || null
       });
 
       if (rpcError) {
         console.error('Error al registrar la bitácora:', rpcError);
         if (rpcError.code === 'PGRST202') {
-          throw new Error('El módulo de bitácoras aún no está activo en la base de datos. Avisa al administrador.');
+          throw new Error('El registro de jornadas necesita una actualización de la base de datos (schema_v26.sql). Avisa al administrador.');
         }
         if (rpcError.code === '42501') {
           throw new Error('Solo los voluntarios pueden registrar una bitácora.');
         }
         throw new Error(
           rpcError.code === '22023'
-            ? 'Revisa los datos: alguna actividad, el líder o la foto no son válidos.'
+            ? 'Revisa los datos: alguna actividad, el líder o las fotos no son válidos.'
             : 'No se pudo registrar la bitácora. Inténtalo de nuevo.'
         );
       }
 
       const registro = Array.isArray(data) ? data[0] : data;
+      // Aviso a Discord con las fotos: en segundo plano, nunca bloquea ni falla el cierre.
+      if (registro?.bitacora_id) void notificarBitacora(registro.bitacora_id);
       reiniciar();
       setEnviado({ creadaEn: registro?.creada_en ? new Date(registro.creada_en) : new Date() });
       if (onSuccess) onSuccess();
@@ -293,18 +318,27 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
             )}
           </div>
 
-          {/* 4. Momento feliz */}
+          {/* 4. Momento feliz: de 1 a 3 fotos */}
           <div style={campoStyle}>
-            <span style={labelStyle}>Momento feliz del día <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(opcional)</span></span>
-            {foto ? (
-              <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
-                <img src={foto.url} alt="Vista previa del momento feliz" style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
-                <button type="button" onClick={() => setFoto(null)} disabled={saving} aria-label="Quitar foto" title="Quitar foto"
-                  style={{ position: 'absolute', top: '6px', right: '6px', width: '28px', height: '28px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <X size={16} />
-                </button>
+            <span style={labelStyle}>
+              Momento feliz del día <span style={{ color: 'var(--danger-color)' }}>*</span>{' '}
+              <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({fotos.length} de {MAX_FOTOS} fotos)</span>
+            </span>
+            {fotos.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                {fotos.map((f, i) => (
+                  <div key={f.id} style={{ position: 'relative' }}>
+                    <img src={f.url} alt={`Vista previa de la foto ${i + 1}`}
+                      style={{ width: '104px', height: '104px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
+                    <button type="button" onClick={() => quitarFoto(f.id)} disabled={saving} aria-label={`Quitar foto ${i + 1}`} title="Quitar foto"
+                      style={{ position: 'absolute', top: '4px', right: '4px', width: '26px', height: '26px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ) : (
+            )}
+            {fotos.length < MAX_FOTOS && (
               <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <Button type="button" variant="outline" onClick={() => inputCamara.current?.click()} disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -316,10 +350,11 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
                 </Button>
               </div>
             )}
-            <input ref={inputCamara} type="file" accept="image/*" capture="environment" onChange={handleFoto} style={{ display: 'none' }} />
-            <input ref={inputGaleria} type="file" accept="image/*" onChange={handleFoto} style={{ display: 'none' }} />
+            <input ref={inputCamara} type="file" accept="image/*" capture="environment" onChange={handleFotos} style={{ display: 'none' }} />
+            <input ref={inputGaleria} type="file" accept="image/*" multiple onChange={handleFotos} style={{ display: 'none' }} />
             <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-              Cuida la privacidad: evita fotos donde se vean documentos o datos de beneficiarios. Solo la verán tú y la coordinación.
+              Sube entre {MIN_FOTOS} y {MAX_FOTOS} fotos. Cuida la privacidad: evita fotos donde se vean documentos o datos de beneficiarios.
+              La coordinación las recibe en su canal de Discord.
             </span>
           </div>
 

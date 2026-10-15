@@ -38,7 +38,7 @@ const obtenerPagina = async (desde, filtros) => {
   const { data, error } = await consultaBase(filtros).range(desde, desde + POR_PAGINA - 1);
   if (error) throw error;
   const nuevas = data || [];
-  const urls = await firmarFotos(nuevas.map(b => b.foto_path));
+  const urls = await firmarFotos(nuevas.flatMap(b => b.fotos || []));
   return { nuevas, urls };
 };
 
@@ -296,11 +296,15 @@ export const Bitacoras = () => {
                       )}
                     </div>
 
-                    {b.foto_path && fotos[b.foto_path] && (
-                      <a href={fotos[b.foto_path]} target="_blank" rel="noopener noreferrer" style={{ alignSelf: 'flex-start' }} title="Ver foto completa">
-                        <img src={fotos[b.foto_path]} alt={`Momento feliz de ${nombre}`} loading="lazy"
-                          style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
-                      </a>
+                    {(b.fotos || []).some(r => fotos[r]) && (
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {b.fotos.filter(r => fotos[r]).map((r, i) => (
+                          <a key={r} href={fotos[r]} target="_blank" rel="noopener noreferrer" title="Ver foto completa">
+                            <img src={fotos[r]} alt={`Momento feliz de ${nombre} (${i + 1})`} loading="lazy"
+                              style={{ width: '110px', height: '110px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
+                          </a>
+                        ))}
+                      </div>
                     )}
 
                     {b.estado === 'aprobada' ? (
