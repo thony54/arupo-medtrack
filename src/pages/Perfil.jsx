@@ -4,7 +4,7 @@ import {
   User, Mail, Shield, Key, Eye, EyeOff, CheckCircle, AlertCircle, 
   FileText, Award, LogOut, Edit2, Check, X, Settings,
   Calendar, TrendingUp, HeartHandshake, Users, Database, Activity,
-  Flame, AlertTriangle, Camera, Phone, MapPin, Briefcase, Clock, Building
+  Flame, AlertTriangle, Camera, Phone, MapPin, Briefcase, Clock, Building, ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -14,6 +14,7 @@ import { Modal } from '../components/ui/Modal';
 import {
   estanciaDisponible, opcionesEstancia, formatEstancia, fechaFinEstancia, formatFecha
 } from '../utils/estancia';
+import { MisActividades } from '../components/voluntariado/MisActividades';
 import './pages.css';
 
 export const Perfil = () => {
@@ -635,8 +636,33 @@ export const Perfil = () => {
               }}
             >
               <Database size={16} />
-              Mi Actividad
+              Resumen
             </button>
+            {/* Solo voluntarios: historial de jornadas cerradas (bitácoras) */}
+            {isVoluntario && (
+              <button
+                className={`tab-pill-btn ${activeTab === 'actividades' ? 'active' : ''}`}
+                onClick={() => setActiveTab('actividades')}
+                style={{
+                  background: activeTab === 'actividades' ? 'var(--primary-color)' : 'transparent',
+                  color: activeTab === 'actividades' ? 'white' : 'var(--text-secondary)',
+                  border: activeTab === 'actividades' ? '1px solid var(--primary-color)' : '1px solid var(--border-color)',
+                  padding: '0.5rem 1.25rem',
+                  borderRadius: '100px',
+                  fontSize: '0.85rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: activeTab === 'actividades' ? '0 4px 10px rgba(16,185,129,0.3)' : 'none'
+                }}
+              >
+                <ClipboardList size={16} />
+                Mis Actividades
+              </button>
+            )}
             <button 
               className={`tab-pill-btn ${activeTab === 'editar' ? 'active' : ''}`}
               onClick={() => setActiveTab('editar')}
@@ -726,6 +752,8 @@ export const Perfil = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'actividades' && isVoluntario && <MisActividades />}
 
         {/* Tarjeta de Información de Contacto e Identidad por Rol */}
         {activeTab === 'editar' && (

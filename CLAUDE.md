@@ -50,7 +50,9 @@ src/
   utils/itemUtils.js       Fuente de verdad para "¿es ítem médico o general?"
   utils/roles.js           Fuente de verdad de roles: etiquetas, colores, orden jerárquico
   utils/estancia.js        Tiempo de estancia del voluntario (3–24 meses): rango, formato, fecha de fin
-supabase/                  Scripts SQL versionados (schema_v2 … v23, schema_salud)
+  utils/bitacora.js        Bitácora de jornada: validación de actividades, horas am/pm, compresión de foto
+  components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
+supabase/                  Scripts SQL versionados (schema_v2 … v24, schema_salud)
 ```
 
 ### Roles y rutas
@@ -71,6 +73,16 @@ guardan con el RPC `guardar_tiempo_estancia` (`schema_v23.sql`), no con UPDATE d
 porque `perfiles` no admite auto-edición general. La app oculta el campo y el aviso
 mientras la columna no exista (`estanciaDisponible`), así que el orden de despliegue
 da igual.
+
+**Bitácora de cierre de jornada** (`schema_v24.sql`): el voluntario la registra desde
+Perfil → "Mis Actividades" (o el aviso del Inicio). Tabla `bitacoras` (actividades en
+JSONB, líder, foto opcional, formación continua, `estado` pendiente/aprobada). **Solo se
+escribe con el RPC `registrar_bitacora`** (valida en servidor y fija `created_at` con el
+reloj de la base: es el timestamp inmutable); la API no tiene INSERT/UPDATE/DELETE. La
+foto "Momento feliz" va al bucket **privado** `momentos-felices` (`<uid>/<ts>.jpg`) y se
+muestra con URL firmada; puede contener a beneficiarios, así que nunca hacerla pública.
+Ven todas las bitácoras super_admin y coordinadores (`puede_revisar_bitacoras()`).
+Pendiente (Parte 4): aprobación por el coordinador y reporte Excel.
 El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles={[...]}>`:
 
 | Ruta | Roles |

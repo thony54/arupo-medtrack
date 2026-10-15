@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag, Calendar } from 'lucide-react';
+import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag, Calendar, ClipboardList } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Badge } from '../components/ui/Badge';
 import { filtrarAlertasMedicas, CATEGORIAS_GENERALES } from '../utils/itemUtils';
@@ -124,6 +124,23 @@ export const Dashboard = () => {
             onClick={() => navigate('/perfil', { state: { tab: 'editar' } })}
           >
             Completar ahora
+          </button>
+        </div>
+      )}
+
+      {/* Acceso rápido del voluntario al cierre de jornada */}
+      {isVoluntario && (
+        <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: '#f5f3ff', color: '#6d28d9', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(124,58,237,0.2)', fontSize: '0.875rem' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ClipboardList size={18} style={{ flexShrink: 0 }} />
+            <span><strong>¿Terminaste tu jornada?</strong> Cuéntanos qué hiciste hoy.</span>
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/perfil', { state: { tab: 'actividades' } })}
+          >
+            Cerrar jornada
           </button>
         </div>
       )}
