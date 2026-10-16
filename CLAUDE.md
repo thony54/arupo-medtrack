@@ -54,7 +54,10 @@ src/
   components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
   utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
   lib/equipos.js           Perfiles con columnas tolerantes (v22/v27), designar líderes, asignar voluntarios
-supabase/                  Scripts SQL versionados (schema_v2 … v27, schema_salud)
+  legal/terminos.js        Texto y VERSION de los términos (BORRADOR a revisar por la Fundación)
+  lib/terminos.js          Verificar/registrar la aceptación de términos
+  components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
+supabase/                  Scripts SQL versionados (schema_v2 … v28, schema_salud)
 ```
 
 ### Roles y rutas
@@ -102,6 +105,26 @@ cierre de jornada lista solo a los `es_lider` y preselecciona el asignado; `regi
 lo valida igual. La migración marca como líderes a super_admin, brigadistas y coordinadores
 para no cambiar nada de golpe. `/equipos` también muestra la actividad de 30 días por
 voluntario y por líder.
+
+## Seguridad: términos y protección de pantalla
+
+**Aceptación de términos** (`schema_v28.sql`): `Layout` muestra `AceptarTerminos` (botón
+"ESTOY DE ACUERDO") en lugar de la app hasta que la persona acepte la versión vigente
+(`VERSION_TERMINOS` en `src/legal/terminos.js`). Se guarda en `aceptaciones_terminos`
+(user_id, fecha del reloj de la base, **IP tomada en el servidor** de los encabezados de
+PostgREST, navegador, versión) solo vía el RPC `aceptar_terminos`; la tabla es append-only y
+sin FK al usuario para que sobreviva si se borra la cuenta. Cambiar el texto de forma
+relevante = subir `VERSION_TERMINOS` (todos vuelven a aceptar). La compuerta **no bloquea**
+si falla la consulta (sin red / sin SQL): es un trámite legal, no autorización. El texto
+actual es un borrador redactado por el asistente: debe revisarlo la Fundación.
+
+**Protección de pantalla** (`components/security/ProteccionPantalla.jsx`): una web NO puede
+impedir capturas del sistema; es un disuasivo que oculta el contenido con una cortina al
+pasar a segundo plano, perder el foco, pulsar PrintScreen / Cmd+Shift+3-4-5 o Ctrl/Cmd+P.
+Solo en producción. `VITE_PROTECCION_PANTALLA=off` la quita y `=suave` no oculta por pérdida
+de foco. No tocar la impresión con CSS (`@media print`): las actas se imprimen desde un
+iframe y en iPad un `print()` dentro de un iframe puede imprimir la página completa.
+Para bloqueo real (Android FLAG_SECURE / iOS) haría falta empaquetar la app (Capacitor).
 
 **Aviso a Discord de cada bitácora** (`api/notify-bitacora.js`, variable
 `DISCORD_WEBHOOK_BITACORAS`): tras registrar, el navegador llama al endpoint con la sesión del

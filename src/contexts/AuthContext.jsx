@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, variablesFaltantes } from '../lib/supabase';
+import { consultarTerminos, registrarAceptacion } from '../lib/terminos';
 
 const AuthContext = createContext();
 
@@ -10,6 +11,9 @@ export const AuthProvider = ({ children }) => {
   // Estado de la carga del perfil: 'idle' | 'loading' | 'ready' | 'error'.
   // ProtectedRoute lo usa para NO decidir permisos mientras el rol se desconoce.
   const [profileStatus, setProfileStatus] = useState('idle');
+  // Aceptación de términos: 'verificando' | 'aceptados' | 'pendientes'. Layout muestra
+  // la pantalla de aceptación mientras esté 'pendientes'.
+  const [terminos, setTerminos] = useState('verificando');
 
   // FAIL CLOSED: si el perfil no se puede leer, el usuario se queda SIN rol.
   // Antes se le asignaba 'super_admin', de forma que un fallo de red o una
@@ -31,6 +35,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setProfile(data);
         setProfileStatus('ready');
+        consultarTerminos(userId).then(setTerminos);
       }
     } catch (err) {
       console.error('Error al leer el perfil:', err);
@@ -98,6 +103,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setProfile(null);
         setProfileStatus('idle');
+        setTerminos('verificando');
       }
     });
 
@@ -187,9 +193,16 @@ export const AuthProvider = ({ children }) => {
     isBrigadista: profile?.rol === 'brigadista',
     isVoluntario: profile?.rol === 'voluntario',
     signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
+    terminos,
+    aceptarTerminos: async () => {
+      const res = await registrarAceptacion(session?.user?.id);
+      if (res.ok) setTerminos('aceptados');
+      return res;
+    },
     signOut: async () => {
       setProfile(null);
       setProfileStatus('idle');
+      setTerminos('verificando');
       await purgarDatosLocales();
       return supabase.auth.signOut();
     },

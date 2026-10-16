@@ -15,10 +15,12 @@ import { Perfil } from './pages/Perfil';
 import { Evaluaciones } from './pages/Evaluaciones';
 import { Bitacoras } from './pages/Bitacoras';
 import { Equipos } from './pages/Equipos';
+import { ProteccionPantalla } from './components/security/ProteccionPantalla';
 
 function App() {
   return (
     <AuthProvider>
+      <ProteccionPantalla />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />

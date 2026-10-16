@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
+import { AceptarTerminos } from '../legal/AceptarTerminos';
+import { useAuth } from '../../contexts/AuthContext';
 import './layout.css';
 
 export const Layout = () => {
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const mainRef = useRef(null);
+  const { terminos, profileStatus } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +33,16 @@ export const Layout = () => {
       if (mainElement) mainElement.removeEventListener('scroll', handleScroll);
     };
   }, [lastScrollY]);
+
+  // Compuerta de términos: sin aceptar la versión vigente no se ve nada de la app.
+  if (profileStatus === 'ready' && terminos === 'pendientes') return <AceptarTerminos />;
+  if (profileStatus === 'ready' && terminos === 'verificando') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+        Cargando...
+      </div>
+    );
+  }
 
   return (
     <div className={`layout-container animate-opacity-in ${showHeader ? 'header-visible' : 'header-hidden'}`}>
