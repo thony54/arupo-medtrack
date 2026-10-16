@@ -4,12 +4,14 @@ import { Settings, LogOut, User, Shield, ChevronRight, Edit2, Check, X, Mail, Ey
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { getRolColor } from '../../utils/roles';
+import { useI18n } from '../../i18n/useI18n';
 import './layout.css';
 
 export const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const { profile, role, user, signOut, refreshProfile } = useAuth();
+  const { t } = useI18n();
   const [tempNombre, setTempNombre] = useState(profile?.nombre || '');
   const [showEmail, setShowEmail] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -58,7 +60,7 @@ export const ProfileDropdown = () => {
       <button 
         className={`profile-trigger-btn ${isOpen ? 'active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
-        title="Opciones de cuenta"
+        title={t('nav.opciones_cuenta')}
       >
         <Settings size={22} className={isOpen ? 'spin-once' : ''} />
       </button>
@@ -117,13 +119,13 @@ export const ProfileDropdown = () => {
           <div className="popover-actions">
             <button className="popover-item" onClick={() => { navigate('/perfil'); setIsOpen(false); }}>
               <div className="item-icon"><User size={18} /></div>
-              <span>Mi Perfil</span>
+              <span>{t('nav.mi_perfil')}</span>
               <ChevronRight size={14} className="chevron" />
             </button>
             
             <button className="popover-item" onClick={handleLogout}>
               <div className="item-icon danger"><LogOut size={18} /></div>
-              <span className="danger">Cerrar Sesión</span>
+              <span className="danger">{t('nav.cerrar_sesion')}</span>
             </button>
           </div>
         </div>

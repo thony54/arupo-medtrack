@@ -9,7 +9,8 @@ import { DonacionGeneral } from '../inventory/DonacionGeneral';
 import { SalidaGeneral } from '../inventory/SalidaGeneral';
 // import { SaludStepper } from '../salud/SaludStepper';
 import { useAuth } from '../../contexts/AuthContext';
-import { getRolLabel, getRolColor } from '../../utils/roles';
+import { getRolColor } from '../../utils/roles';
+import { useI18n } from '../../i18n/useI18n';
 import './layout.css';
 
 export const Sidebar = () => {
@@ -19,6 +20,7 @@ export const Sidebar = () => {
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const [showSaludStepper, setShowSaludStepper] = useState(false);
   const { signOut, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario, profile } = useAuth();
+  const { t } = useI18n();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
 
@@ -70,7 +72,7 @@ export const Sidebar = () => {
                   width: 'fit-content',
                   animation: 'pulse 2s infinite'
                 }}>
-                  Modo Local
+                  {t('nav.modo_local')}
                 </div>
               )}
             </div>
@@ -101,16 +103,16 @@ export const Sidebar = () => {
                   variant="outline"
                   onClick={() => setShowSalidaGeneral(true)}
                   style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#7c3aed', borderColor: '#c4b5fd' }}
-                  aria-label="Entregar Ítems Generales"
-                  title="Entregar Ítems Generales"
+                  aria-label={t('nav.entregar_items')}
+                  title={t('nav.entregar_items')}
                 >
                   <Gift size={15} />
                 </Button>
                 <Button
                   onClick={() => setShowDonacionGeneral(true)}
                   style={{ width: '32px', minWidth: '32px', height: '32px', padding: 0, borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'linear-gradient(135deg,#7c3aed,#a855f7)', border: 'none', color: '#fff', boxShadow: '0 4px 10px rgba(124,58,237,0.3)', cursor: 'pointer' }}
-                  aria-label="Registrar Donación General"
-                  title="Registrar Donación General"
+                  aria-label={t('nav.registrar_donacion')}
+                  title={t('nav.registrar_donacion')}
                 >
                   <ShoppingBag size={15} />
                 </Button>
@@ -121,7 +123,7 @@ export const Sidebar = () => {
             <button 
               onClick={() => navigate('/perfil')} 
               className="icon-btn mobile-only" 
-              title="Mi Perfil" 
+              title={t('nav.mi_perfil')} 
               style={{ 
                 color: 'var(--primary-color)',
                 width: '32px',
@@ -144,9 +146,9 @@ export const Sidebar = () => {
 
       <nav className="sidebar-nav" style={{ flex: 1, overflowY: 'auto' }}>
         <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }}>
-          General
+          {t('nav.general')}
         </div>
-        {navItem('/', LayoutDashboard, 'Inicio', true)}
+        {navItem('/', LayoutDashboard, t('nav.inicio'), true)}
 
         {/* Sección Donaciones / Medicinas: Visible para Super Admin y Brigadistas */}
         {(isSuperAdmin || isBrigadista) && (
@@ -164,10 +166,10 @@ export const Sidebar = () => {
         {(isSuperAdmin || isVoluntario) && (
           <>
             <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
-              Comunidad / CRM
+              {t('nav.comunidad')}
             </div>
-            {navItem('/beneficiarios', Users, 'Beneficiarios')}
-            {navItem('/donantes', HandHeart, 'Donantes')}
+            {navItem('/beneficiarios', Users, t('nav.beneficiarios'))}
+            {navItem('/donantes', HandHeart, t('nav.donantes'))}
           </>
         )}
 
@@ -235,10 +237,10 @@ export const Sidebar = () => {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: '0.8rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {profile?.nombre || 'Cargando...'}
+                {profile?.nombre || t('comun.cargando')}
               </p>
               <p style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', margin: 0 }}>
-                {getRolLabel(profile?.rol)}{isCoordinador && ' · Coordinador'}
+                {t(`roles.${profile?.rol}`) === `roles.${profile?.rol}` ? t('roles.usuario') : t(`roles.${profile?.rol}`)}{isCoordinador && ` · ${t('roles.coordinador')}`}
               </p>
             </div>
           </div>
@@ -247,7 +249,7 @@ export const Sidebar = () => {
             onClick={() => navigate('/perfil')}
             className="icon-btn"
             style={{ color: 'var(--primary-color)' }}
-            title="Ver Perfil"
+            title={t('nav.ver_perfil')}
           >
             <ChevronRight size={18} />
           </button>

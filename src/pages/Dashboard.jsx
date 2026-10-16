@@ -6,11 +6,13 @@ import { Badge } from '../components/ui/Badge';
 import { filtrarAlertasMedicas, CATEGORIAS_GENERALES } from '../utils/itemUtils';
 import { estanciaPendiente } from '../utils/estancia';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/useI18n';
 import './pages.css';
 
 export const Dashboard = () => {
   const { role, profile, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
   const navigate = useNavigate();
+  const { t, formatearFecha } = useI18n();
   const [voluntariosRegistrados, setVoluntariosRegistrados] = useState(0);
   const [bitacorasPendientes, setBitacorasPendientes] = useState(null); // null = módulo no disponible
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
@@ -104,11 +106,11 @@ export const Dashboard = () => {
   const allKpis = [
     { title: 'Banco de Medicamentos', value: stats.medicamentos, subtitle: 'Tipos médicos en catálogo', icon: <Package size={24} />, color: 'var(--primary-color)', bg: 'var(--primary-light)', roles: ['super_admin', 'brigadista'] },
     { title: 'Medicamentos Urgentes', value: stats.critico, subtitle: 'Por debajo del mínimo', icon: <AlertTriangle size={24} />, color: 'var(--danger-color)', bg: 'var(--danger-bg)', alert: stats.critico > 0, roles: ['super_admin', 'brigadista'] },
-    { title: 'Donativos Recibidos', value: stats.donativosMes, subtitle: 'Lotes ingresados este mes', icon: <TrendingUp size={24} />, color: '#0ea5e9', bg: '#f0f9ff', roles: ['super_admin', 'brigadista', 'voluntario'] },
-    { title: 'Familias Beneficiadas', value: stats.beneficiariosMes, subtitle: 'Este mes', icon: <Heart size={24} />, color: '#ec4899', bg: '#fdf2f8', roles: ['super_admin', 'voluntario'] },
-    { title: 'Donaciones Entregadas', value: stats.donacionesMes, subtitle: 'Despachos este mes', icon: <HandHeart size={24} />, color: 'var(--success-color)', bg: 'var(--success-bg)', roles: ['super_admin', 'voluntario'] },
-    { title: 'Donantes Activos', value: stats.donantesActivos, subtitle: 'Organizaciones aliadas', icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb', roles: ['super_admin', 'voluntario'] },
-    { title: 'Ítems Generales', value: stats.itemsGenerales, subtitle: 'Ropa, higiene, alimentos...', icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff', roles: ['super_admin', 'voluntario'] },
+    { title: t('dashboard.kpi_donativos'), value: stats.donativosMes, subtitle: t('dashboard.kpi_donativos_sub'), icon: <TrendingUp size={24} />, color: '#0ea5e9', bg: '#f0f9ff', roles: ['super_admin', 'brigadista', 'voluntario'] },
+    { title: t('dashboard.kpi_familias'), value: stats.beneficiariosMes, subtitle: t('dashboard.kpi_familias_sub'), icon: <Heart size={24} />, color: '#ec4899', bg: '#fdf2f8', roles: ['super_admin', 'voluntario'] },
+    { title: t('dashboard.kpi_entregadas'), value: stats.donacionesMes, subtitle: t('dashboard.kpi_entregadas_sub'), icon: <HandHeart size={24} />, color: 'var(--success-color)', bg: 'var(--success-bg)', roles: ['super_admin', 'voluntario'] },
+    { title: t('dashboard.kpi_donantes'), value: stats.donantesActivos, subtitle: t('dashboard.kpi_donantes_sub'), icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb', roles: ['super_admin', 'voluntario'] },
+    { title: t('dashboard.kpi_items'), value: stats.itemsGenerales, subtitle: t('dashboard.kpi_items_sub'), icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff', roles: ['super_admin', 'voluntario'] },
     { title: 'Voluntarios Registrados', value: voluntariosRegistrados, subtitle: 'Cuentas con rol de voluntario', icon: <Users size={24} />, color: '#d97706', bg: 'var(--warning-bg)', soloCoordinador: true },
     { title: 'Bitácoras por Revisar', value: bitacorasPendientes, subtitle: 'Jornadas pendientes de aprobación', icon: <ClipboardList size={24} />, color: '#d97706', bg: 'var(--warning-bg)', revisor: true },
   ];
@@ -126,9 +128,9 @@ export const Dashboard = () => {
     <div className="animate-blur-in">
       <div className="page-header animate-reveal">
         <div>
-          <h1 className="page-title">Centro de Operaciones</h1>
+          <h1 className="page-title">{t('dashboard.titulo')}</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Programa de Donaciones Médicas — Fundación Arupo
+            {t('dashboard.subtitulo')}
           </p>
         </div>
       </div>
@@ -138,14 +140,14 @@ export const Dashboard = () => {
         <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Calendar size={18} style={{ flexShrink: 0 }} />
-            <span><strong>Falta un dato en tu perfil:</strong> indica cuánto tiempo permanecerás en la Fundación (entre 3 meses y 2 años).</span>
+            <span><strong>{t('dashboard.falta_dato')}</strong> {t('dashboard.falta_estancia')}</span>
           </span>
           <button
             type="button"
             className="btn btn-primary"
             onClick={() => navigate('/perfil', { state: { tab: 'editar' } })}
           >
-            Completar ahora
+            {t('dashboard.completar')}
           </button>
         </div>
       )}
@@ -155,14 +157,14 @@ export const Dashboard = () => {
         <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: '#f5f3ff', color: '#6d28d9', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(124,58,237,0.2)', fontSize: '0.875rem' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ClipboardList size={18} style={{ flexShrink: 0 }} />
-            <span><strong>¿Terminaste tu jornada?</strong> Cuéntanos qué hiciste hoy.</span>
+            <span><strong>{t('dashboard.terminaste')}</strong> {t('dashboard.cuentanos')}</span>
           </span>
           <button
             type="button"
             className="btn btn-primary"
             onClick={() => navigate('/perfil', { state: { tab: 'actividades' } })}
           >
-            Cerrar jornada
+            {t('actividades.cerrar_jornada')}
           </button>
         </div>
       )}
@@ -203,10 +205,10 @@ export const Dashboard = () => {
         {(isSuperAdmin || isVoluntario) && (
           <div className="card animate-blur-in stagger-3" style={{ width: '100%' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Heart size={18} color="var(--success-color)" /> Últimas Donaciones
+              <Heart size={18} color="var(--success-color)" /> {t('dashboard.ultimas')}
             </h2>
             {ultimasDonaciones.length === 0 ? (
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>No hay donaciones registradas aún.</p>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>{t('dashboard.sin_donaciones')}</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {ultimasDonaciones.map((d, i) => (
@@ -214,12 +216,12 @@ export const Dashboard = () => {
                     <div style={{ minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
                       <div style={{ fontWeight: '600', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.medicinas?.nombre}</div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {d.beneficiarios?.nombre_completo || d.origen_destino || 'Beneficiario no registrado'}
+                        {d.beneficiarios?.nombre_completo || d.origen_destino || t('dashboard.beneficiario_no_registrado')}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontWeight: '700', color: 'var(--success-color)', fontSize: '0.9rem' }}>{d.cantidad} u.</div>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{new Date(d.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</div>
+                      <div style={{ fontWeight: '700', color: 'var(--success-color)', fontSize: '0.9rem' }}>{d.cantidad} {t('dashboard.unidades')}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{formatearFecha(d.timestamp, { day: '2-digit', month: '2-digit' })}</div>
                     </div>
                   </div>
                 ))}

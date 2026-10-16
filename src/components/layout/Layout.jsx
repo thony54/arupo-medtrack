@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { PWAInstallPrompt } from './PWAInstallPrompt';
 import { AceptarTerminos } from '../legal/AceptarTerminos';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n/useI18n';
 import './layout.css';
 
 export const Layout = () => {
@@ -11,6 +12,7 @@ export const Layout = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const mainRef = useRef(null);
   const { terminos, profileStatus } = useAuth();
+  const { t } = useI18n();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,7 +41,7 @@ export const Layout = () => {
   if (profileStatus === 'ready' && terminos === 'verificando') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-        Cargando...
+        {t('comun.cargando')}
       </div>
     );
   }

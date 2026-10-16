@@ -15,12 +15,15 @@ import {
   estanciaDisponible, opcionesEstancia, formatEstancia, fechaFinEstancia, formatFecha
 } from '../utils/estancia';
 import { MisActividades } from '../components/voluntariado/MisActividades';
+import { useI18n } from '../i18n/useI18n';
+import { SelectorIdioma } from '../i18n/SelectorIdioma';
 import './pages.css';
 
 export const Perfil = () => {
   const { profile, user, role, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, local, formatearFecha } = useI18n();
 
   // Exclusividad de desarrollador para thony.karter
   const isDeveloper = user?.email?.toLowerCase()?.includes('thony.karter');
@@ -87,7 +90,7 @@ export const Perfil = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setError('Por favor, selecciona un archivo de imagen válido.');
+      setError(t('perfil.err_imagen'));
       return;
     }
 
@@ -137,12 +140,12 @@ export const Perfil = () => {
               throw updateError;
             }
 
-            setSuccess('¡Foto de perfil actualizada con éxito!');
+            setSuccess(t('perfil.ok_foto'));
             refreshProfile();
             setTimeout(() => setSuccess(''), 4000);
           } catch (dbErr) {
             console.error('Error de base de datos:', dbErr);
-            setError(dbErr.message || 'Error al guardar la foto de perfil en la base de datos.');
+            setError(dbErr.message || t('perfil.err_foto_guardar'));
           }
         };
         img.src = event.target.result;
@@ -150,7 +153,7 @@ export const Perfil = () => {
       reader.readAsDataURL(file);
     } catch (err) {
       console.error(err);
-      setError('Ocurrió un error al procesar la imagen.');
+      setError(t('perfil.err_procesar_imagen'));
     } finally {
       setAvatarUploading(false);
     }
@@ -167,7 +170,7 @@ export const Perfil = () => {
       // fila propia, porque `perfiles` no admite auto-edición general.
       if (isVoluntario && estanciaDisponible(profile)) {
         if (!tempEstancia) {
-          throw new Error('Selecciona tu tiempo de permanencia en la Fundación: es obligatorio.');
+          throw new Error(t('perfil.err_estancia_obligatoria'));
         }
         const meses = Number(tempEstancia);
         if (meses !== profile.tiempo_estancia_meses) {
@@ -177,12 +180,12 @@ export const Perfil = () => {
             console.error('Error al guardar la estancia:', estanciaError);
             throw new Error(
               estanciaError.code === '22023'
-                ? 'El tiempo de permanencia debe estar entre 3 meses y 2 años.'
-                : 'No se pudo guardar tu tiempo de permanencia. Si el problema continúa, avisa al administrador.'
+                ? t('perfil.err_estancia_rango')
+                : t('perfil.err_estancia_guardar')
             );
           }
           if (estancia?.[0]?.meses !== meses) {
-            throw new Error('No se pudo confirmar tu tiempo de permanencia. Inténtalo de nuevo.');
+            throw new Error(t('perfil.err_estancia_confirmar'));
           }
         }
       }
@@ -215,12 +218,12 @@ export const Perfil = () => {
         throw updateError;
       }
 
-      setSuccess('¡Datos del perfil actualizados correctamente!');
+      setSuccess(t('perfil.ok_datos'));
       refreshProfile();
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Error al guardar los datos del perfil.');
+      setError(err.message || t('perfil.err_datos'));
     } finally {
       setUpdating(false);
     }
@@ -257,11 +260,11 @@ export const Perfil = () => {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (newPassword.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.');
+      setError(t('perfil.err_pass_corta'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden.');
+      setError(t('perfil.err_pass_distinta'));
       return;
     }
 
@@ -276,7 +279,7 @@ export const Perfil = () => {
 
       if (updateError) throw updateError;
 
-      setSuccess('¡Contraseña actualizada correctamente!');
+      setSuccess(t('perfil.ok_pass'));
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => {
@@ -284,7 +287,7 @@ export const Perfil = () => {
         setSuccess('');
       }, 2500);
     } catch (err) {
-      setError(err.message || 'Error al actualizar la contraseña.');
+      setError(err.message || t('perfil.err_pass'));
     } finally {
       setUpdating(false);
     }
@@ -292,7 +295,7 @@ export const Perfil = () => {
 
   const handleUpdateName = async () => {
     if (!tempNombre.trim()) {
-      setError('El nombre no puede estar vacío.');
+      setError(t('perfil.err_nombre_vacio'));
       return;
     }
     
@@ -307,13 +310,13 @@ export const Perfil = () => {
         
       if (updateError) throw updateError;
       
-      setSuccess('Nombre actualizado.');
+      setSuccess(t('perfil.ok_nombre'));
       setIsEditingName(false);
       refreshProfile();
       // El AuthContext debería refrescarse automáticamente si usamos onAuthStateChange, 
       // pero aquí forzamos un refresco si es necesario o dejamos que React maneje el estado local.
     } catch (err) {
-      setError(err.message || 'Error al actualizar el nombre.');
+      setError(err.message || t('perfil.err_nombre'));
     } finally {
       setUpdating(false);
     }
@@ -400,14 +403,14 @@ export const Perfil = () => {
     if (isSuperAdmin) return 'Administrador del Sistema';
     if (isBrigadista) return 'Especialista Médico / Brigadista';
     // No usar "Coordinador" aquí: es el rol adicional de Coordinador de Voluntariado.
-    if (isVoluntario) return 'Voluntario / Gestión de Donaciones';
+    if (isVoluntario) return t('perfil.titulo_voluntario');
     return 'Usuario Operativo';
   };
 
   const getRoleLabel = () => {
     if (isSuperAdmin) return 'Super Admin';
     if (isBrigadista) return 'Brigadista';
-    if (isVoluntario) return 'Voluntario';
+    if (isVoluntario) return t('roles.voluntario');
     return 'General';
   };
 
@@ -448,7 +451,7 @@ export const Perfil = () => {
                 <div 
                   className="arupo-avatar-wrapper"
                   onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                  title="Haz clic para cambiar tu foto de perfil"
+                  title={t('perfil.cambiar_foto_titulo')}
                 >
                   <div className="arupo-avatar" style={{ 
                     background: profile?.avatar 
@@ -473,7 +476,7 @@ export const Perfil = () => {
                   {/* Overlay on hover */}
                   <div className="avatar-upload-overlay" style={{ fontSize: '0.55rem' }}>
                     <Camera size={18} style={{ marginBottom: '2px' }} />
-                    <span>Cambiar</span>
+                    <span>{t('perfil.cambiar')}</span>
                   </div>
                   
                   {/* Visual camera helper button */}
@@ -500,10 +503,10 @@ export const Perfil = () => {
                     autoFocus
                     disabled={updating}
                   />
-                  <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Guardar">
+                  <Button variant="primary" onClick={handleUpdateName} disabled={updating} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title={t('comun.guardar')}>
                     <Check size={14} />
                   </Button>
-                  <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title="Cancelar">
+                  <Button variant="ghost" onClick={() => { setIsEditingName(false); setTempNombre(profile?.nombre || ''); }} style={{ padding: '0.4rem', height: '32px', minWidth: '32px' }} title={t('comun.cancelar')}>
                     <X size={14} />
                   </Button>
                 </div>
@@ -513,7 +516,7 @@ export const Perfil = () => {
                   <button 
                     onClick={() => setIsEditingName(true)}
                     className="edit-name-btn"
-                    title="Editar nombre"
+                    title={t('perfil.editar_nombre')}
                   >
                     <Edit2 size={14} />
                   </button>
@@ -527,33 +530,33 @@ export const Perfil = () => {
                 {getRoleLabel(profile?.rol)}
               </span>
               {isCoordinador && (
-                <span className="arupo-profile-bio-badge coordinador">Coordinador de Voluntariado</span>
+                <span className="arupo-profile-bio-badge coordinador">{t('perfil.coordinador_badge')}</span>
               )}
               <span className="arupo-role-subtitle">{getRoleTitle()}</span>
             </div>
 
             {/* Structured modern contact info pills */}
             <div className="arupo-quick-contact-bar">
-              <div className="contact-pill" title="Correo Electrónico">
+              <div className="contact-pill" title={t('perfil.correo')}>
                 <Mail size={14} />
                 <span>{showEmail ? user?.email : '••••••••@••••.•••'}</span>
                 <button 
                   onClick={() => setShowEmail(!showEmail)}
                   className="view-email-btn"
                 >
-                  {showEmail ? 'ocultar' : 'ver'}
+                  {showEmail ? t('perfil.ocultar') : t('perfil.ver')}
                 </button>
               </div>
 
               {profile?.telefono && (
-                <div className="contact-pill" title="Teléfono">
+                <div className="contact-pill" title={t('perfil.telefono')}>
                   <Phone size={14} />
                   <span>{profile.telefono}</span>
                 </div>
               )}
 
               {profile?.direccion && (
-                <div className="contact-pill" title="Dirección">
+                <div className="contact-pill" title={t('perfil.direccion')}>
                   <MapPin size={14} />
                   <span>{profile.direccion}</span>
                 </div>
@@ -567,18 +570,18 @@ export const Perfil = () => {
               )}
 
               {isVoluntario && profile?.area_apoyo && (
-                <div className="contact-pill" title="Área de Apoyo">
+                <div className="contact-pill" title={t('perfil.area_apoyo_corto')}>
                   <Briefcase size={14} style={{ color: '#7c3aed' }} />
-                  <span>Área: {profile.area_apoyo}</span>
+                  <span>{t('perfil.area_pill', { valor: profile.area_apoyo })}</span>
                 </div>
               )}
 
               {isVoluntario && profile?.tiempo_estancia_meses && (
-                <div className="contact-pill" title="Tiempo de permanencia">
+                <div className="contact-pill" title={t('perfil.estancia_titulo')}>
                   <Calendar size={14} style={{ color: '#7c3aed' }} />
                   <span>
-                    Estancia: {formatEstancia(profile.tiempo_estancia_meses)}
-                    {profile.fecha_inicio_estancia && ` · hasta ${formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, profile.tiempo_estancia_meses))}`}
+                    {t('perfil.estancia_pill', { duracion: formatEstancia(profile.tiempo_estancia_meses, t) })}
+                    {profile.fecha_inicio_estancia && t('perfil.estancia_hasta', { fecha: formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, profile.tiempo_estancia_meses), local) })}
                   </span>
                 </div>
               )}
@@ -591,7 +594,7 @@ export const Perfil = () => {
                 onClick={() => setActiveTab('editar')}
               >
                 <Settings size={15} />
-                <span>Completar Ficha</span>
+                <span>{t('perfil.completar_ficha')}</span>
               </button>
               <button 
                 className={`arupo-btn-premium ${activeTab === 'privilegios' ? 'active' : ''}`}
@@ -601,7 +604,7 @@ export const Perfil = () => {
                 }}
               >
                 <Key size={15} />
-                <span>Seguridad & Acceso</span>
+                <span>{t('perfil.seguridad_acceso')}</span>
               </button>
             </div>
           </div>
@@ -636,7 +639,7 @@ export const Perfil = () => {
               }}
             >
               <Database size={16} />
-              Resumen
+              {t('perfil.tab_resumen')}
             </button>
             {/* Solo voluntarios: historial de jornadas cerradas (bitácoras) */}
             {isVoluntario && (
@@ -660,7 +663,7 @@ export const Perfil = () => {
                 }}
               >
                 <ClipboardList size={16} />
-                Mis Actividades
+                {t('actividades.titulo')}
               </button>
             )}
             <button 
@@ -683,7 +686,7 @@ export const Perfil = () => {
               }}
             >
               <User size={16} />
-              Editar Datos
+              {t('perfil.tab_editar')}
             </button>
             <button 
               className={`tab-pill-btn ${activeTab === 'privilegios' ? 'active' : ''}`}
@@ -705,7 +708,7 @@ export const Perfil = () => {
               }}
             >
               <Shield size={16} />
-              Seguridad & Rol
+              {t('perfil.tab_seguridad')}
             </button>
           </div>
         </div>
@@ -719,8 +722,8 @@ export const Perfil = () => {
                 <Calendar size={20} />
               </div>
               <div className="metric-details">
-                <span className="metric-label-text">Fecha de Actividad</span>
-                <span className="metric-val-num" style={{ fontSize: '1.2rem' }}>{metrics.lastActive}</span>
+                <span className="metric-label-text">{t('perfil.fecha_actividad')}</span>
+                <span className="metric-val-num" style={{ fontSize: '1.2rem' }}>{formatearFecha(new Date(), { day: '2-digit', month: 'long' })}</span>
               </div>
             </div>
 
@@ -734,7 +737,7 @@ export const Perfil = () => {
               </div>
               <div className="metric-details">
                 <span className="metric-label-text">
-                  {isBrigadista ? 'Medicinas Activas' : isVoluntario ? 'Beneficiarios Activos' : 'Registros en Sistema'}
+                  {isBrigadista ? 'Medicinas Activas' : isVoluntario ? t('perfil.beneficiarios_activos') : 'Registros en Sistema'}
                 </span>
                 <span className="metric-val-num">{metrics.totalRecords}</span>
               </div>
@@ -746,8 +749,8 @@ export const Perfil = () => {
                 <Shield size={20} />
               </div>
               <div className="metric-details">
-                <span className="metric-label-text">Acceso Autorizado</span>
-                <span className="metric-val-num" style={{ fontSize: '1.15rem', color: 'var(--warning-color)' }}>Protegido</span>
+                <span className="metric-label-text">{t('perfil.acceso_autorizado')}</span>
+                <span className="metric-val-num" style={{ fontSize: '1.15rem', color: 'var(--warning-color)' }}>{t('perfil.protegido')}</span>
               </div>
             </div>
           </div>
@@ -788,7 +791,7 @@ export const Perfil = () => {
               zIndex: 1
             }}>
               <User size={20} color="var(--primary-color)" /> 
-              Datos de Perfil Avanzado ({getRoleLabel(profile?.rol)})
+              {t('perfil.datos_avanzado', { rol: getRoleLabel(profile?.rol) })}
             </h3>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'relative', zIndex: 1 }}>
@@ -798,7 +801,7 @@ export const Perfil = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <Phone size={14} style={{ color: 'var(--primary-color)' }} />
-                    Teléfono de Contacto
+                    {t('perfil.telefono_contacto')}
                   </label>
                   <input 
                     type="text" 
@@ -806,7 +809,7 @@ export const Perfil = () => {
                     style={{ marginBottom: 0 }}
                     value={tempTelefono}
                     onChange={e => setTempTelefono(e.target.value)}
-                    placeholder="Ej. +593 999 999 999"
+                    placeholder={t('perfil.ph_telefono')}
                     disabled={updating}
                   />
                 </div>
@@ -814,7 +817,7 @@ export const Perfil = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                     <MapPin size={14} style={{ color: 'var(--primary-color)' }} />
-                    Dirección Domiciliaria
+                    {t('perfil.direccion_domiciliaria')}
                   </label>
                   <input 
                     type="text" 
@@ -822,7 +825,7 @@ export const Perfil = () => {
                     style={{ marginBottom: 0 }}
                     value={tempDireccion}
                     onChange={e => setTempDireccion(e.target.value)}
-                    placeholder="Ciudad, Provincia o Dirección Completa"
+                    placeholder={t('perfil.ph_direccion')}
                     disabled={updating}
                   />
                 </div>
@@ -894,7 +897,7 @@ export const Perfil = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                       <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Briefcase size={14} style={{ color: '#7c3aed' }} />
-                        Área de Apoyo Principal
+                        {t('perfil.area_apoyo')}
                       </label>
                       <input 
                         type="text" 
@@ -902,7 +905,7 @@ export const Perfil = () => {
                         style={{ marginBottom: 0 }}
                         value={tempAreaApoyo}
                         onChange={e => setTempAreaApoyo(e.target.value)}
-                        placeholder="Ej. Logística de Entregas, Gestión de Donaciones, CRM"
+                        placeholder={t('perfil.ph_area')}
                         disabled={updating}
                       />
                     </div>
@@ -910,7 +913,7 @@ export const Perfil = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                       <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Clock size={14} style={{ color: '#7c3aed' }} />
-                        Disponibilidad Horaria
+                        {t('perfil.disponibilidad')}
                       </label>
                       <input 
                         type="text" 
@@ -918,10 +921,16 @@ export const Perfil = () => {
                         style={{ marginBottom: 0 }}
                         value={tempDisponibilidad}
                         onChange={e => setTempDisponibilidad(e.target.value)}
-                        placeholder="Ej. Fines de semana, Tardes (Lunes a Viernes)"
+                        placeholder={t('perfil.ph_disponibilidad')}
                         disabled={updating}
                       />
                     </div>
+                  </div>
+
+                  {/* Idioma de las pantallas del voluntario */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{t('perfil.idioma_app')}</span>
+                    <SelectorIdioma style={{ alignSelf: 'flex-start' }} />
                   </div>
 
                   {/* Tiempo de permanencia: obligatorio. Solo aparece si la base ya tiene schema_v23. */}
@@ -929,7 +938,7 @@ export const Perfil = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                       <label htmlFor="p-estancia" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <Calendar size={14} style={{ color: '#7c3aed' }} />
-                        Tiempo de permanencia en la Fundación <span style={{ color: 'var(--danger-color)' }}>*</span>
+                        {t('perfil.estancia_label')} <span style={{ color: 'var(--danger-color)' }}>*</span>
                       </label>
                       <select
                         id="p-estancia"
@@ -940,16 +949,16 @@ export const Perfil = () => {
                         disabled={updating}
                         required
                       >
-                        <option value="" disabled>Selecciona entre 3 meses y 2 años</option>
-                        {opcionesEstancia().map(o => (
+                        <option value="" disabled>{t('perfil.estancia_placeholder')}</option>
+                        {opcionesEstancia(t).map(o => (
                           <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                       </select>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                         {tempEstancia && profile.fecha_inicio_estancia
-                          ? `Tu voluntariado terminaría el ${formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, Number(tempEstancia)))}. `
+                          ? `${t('perfil.estancia_terminaria', { fecha: formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, Number(tempEstancia)), local) })} `
                           : ''}
-                        Con este dato se ajusta tu plan formativo y la fecha de tu certificado.
+                        {t('perfil.estancia_ayuda')}
                       </span>
                     </div>
                   )}
@@ -974,7 +983,7 @@ export const Perfil = () => {
                 }}
               >
                 <CheckCircle size={16} />
-                {updating ? 'Guardando...' : 'Guardar Información de Perfil'}
+                {updating ? t('comun.guardando') : t('perfil.guardar_info')}
               </Button>
 
             </div>
@@ -989,12 +998,12 @@ export const Perfil = () => {
               {/* Tarjeta de Privilegios Autorizados */}
               <div className="card" style={{ padding: '1.75rem' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: '700', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-                  <Award size={20} color="var(--primary-color)" /> Privilegios Autorizados
+                  <Award size={20} color="var(--primary-color)" /> {t('perfil.privilegios')}
                 </h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.35rem' }}>Nivel de Acceso</div>
+                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.35rem' }}>{t('perfil.nivel_acceso')}</div>
                     <div style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: getRoleColor(profile?.rol) }} />
                       {getRoleTitle()}
@@ -1002,7 +1011,7 @@ export const Perfil = () => {
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.65rem' }}>Operaciones Permitidas</div>
+                    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: '700', color: 'var(--text-tertiary)', marginBottom: '0.65rem' }}>{t('perfil.operaciones')}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                       {isSuperAdmin && (
                         <>
@@ -1040,22 +1049,22 @@ export const Perfil = () => {
                         <>
                           <div className="privilege-item">
                             <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                            <span>Registro y seguimiento completo de Fichas de Beneficiarios.</span>
+                            <span>{t('perfil.priv_vol_1')}</span>
                           </div>
                           <div className="privilege-item">
                             <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                            <span>Administración de base de datos de Donantes y Aliados.</span>
+                            <span>{t('perfil.priv_vol_2')}</span>
                           </div>
                           <div className="privilege-item">
                             <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                            <span>Ingreso y salida de donaciones de insumos generales (no médicos).</span>
+                            <span>{t('perfil.priv_vol_3')}</span>
                           </div>
                         </>
                       )}
                       {isCoordinador && (
                         <div className="privilege-item">
                           <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
-                          <span>Coordinación y supervisión del voluntariado de la fundación (rol adicional).</span>
+                          <span>{t('perfil.priv_coord')}</span>
                         </div>
                       )}
                     </div>
@@ -1069,24 +1078,24 @@ export const Perfil = () => {
                   <div className="security-icon-container">
                     <Key size={18} />
                   </div>
-                  <span>Seguridad de la Cuenta</span>
+                  <span>{t('perfil.seg_cuenta')}</span>
                 </div>
                 
                 {!showPasswordForm ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
-                      Te aconsejamos actualizar tu clave de acceso de manera periódica para proteger tu cuenta y la información confidencial de la fundación.
+                      {t('perfil.seg_consejo')}
                     </p>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', background: 'var(--bg-surface-hover)', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--success-color)' }} />
-                      <span>Tu conexión está cifrada de extremo a extremo.</span>
+                      <span>{t('perfil.seg_cifrada')}</span>
                     </div>
                     <Button 
                       variant="outline" 
                       onClick={() => setShowPasswordForm(true)} 
                       style={{ width: '100%', justifyContent: 'center', display: 'flex', gap: '0.5rem', padding: '0.65rem 1rem', borderRadius: 'var(--radius-md)', fontWeight: '600' }}
                     >
-                      <Key size={16} /> Cambiar Contraseña
+                      <Key size={16} /> {t('perfil.cambiar_pass')}
                     </Button>
                   </div>
                 ) : (
@@ -1105,7 +1114,7 @@ export const Perfil = () => {
                     )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Nueva Contraseña</label>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{t('perfil.nueva_pass')}</label>
                       <div className="input-with-icon">
                         <Key size={16} className="input-icon-left" />
                         <input 
@@ -1114,7 +1123,7 @@ export const Perfil = () => {
                           style={{ marginBottom: 0, width: '100%', paddingRight: '2.75rem' }}
                           value={newPassword}
                           onChange={e => setNewPassword(e.target.value)}
-                          placeholder="Mínimo 6 caracteres"
+                          placeholder={t('perfil.ph_pass_min')}
                           required
                           minLength={6}
                           disabled={updating}
@@ -1123,7 +1132,7 @@ export const Perfil = () => {
                           type="button"
                           onClick={() => setShowNewPass(!showNewPass)}
                           className="password-toggle-btn"
-                          title={showNewPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                          title={showNewPass ? t('perfil.ocultar_pass') : t('perfil.mostrar_pass')}
                         >
                           {showNewPass ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
@@ -1131,7 +1140,7 @@ export const Perfil = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Confirmar Nueva Contraseña</label>
+                      <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{t('perfil.confirmar_pass')}</label>
                       <div className="input-with-icon">
                         <Key size={16} className="input-icon-left" />
                         <input 
@@ -1140,7 +1149,7 @@ export const Perfil = () => {
                           style={{ marginBottom: 0, width: '100%' }}
                           value={confirmPassword}
                           onChange={e => setConfirmPassword(e.target.value)}
-                          placeholder="Confirma la misma contraseña"
+                          placeholder={t('perfil.ph_pass_confirmar')}
                           required
                           disabled={updating}
                         />
@@ -1155,7 +1164,7 @@ export const Perfil = () => {
                         disabled={updating} 
                         style={{ flex: 1, justifyContent: 'center' }}
                       >
-                        Cancelar
+                        {t('comun.cancelar')}
                       </Button>
                       <Button 
                         type="submit" 
@@ -1163,7 +1172,7 @@ export const Perfil = () => {
                         disabled={updating} 
                         style={{ flex: 1, justifyContent: 'center' }}
                       >
-                        {updating ? 'Guardando...' : 'Actualizar'}
+                        {updating ? t('comun.guardando') : t('perfil.actualizar')}
                       </Button>
                     </div>
                   </form>

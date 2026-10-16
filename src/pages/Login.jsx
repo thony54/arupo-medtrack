@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { useI18n } from '../i18n/useI18n';
+import { SelectorIdioma } from '../i18n/SelectorIdioma';
 
 export const Login = () => {
   const [portal, setPortal] = useState('brigadista'); // Por defecto a brigadista, Super Admin oculto visualmente
@@ -13,6 +15,7 @@ export const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, signOut } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -25,8 +28,8 @@ export const Login = () => {
       
       if (loginErr) {
         let msg = loginErr.message;
-        if (msg === 'Invalid login credentials') msg = 'Correo o contraseña incorrectos.';
-        if (msg === 'Email not confirmed') msg = 'Debes confirmar tu correo electrónico para ingresar.';
+        if (msg === 'Invalid login credentials') msg = t('login.err_credenciales');
+        if (msg === 'Email not confirmed') msg = t('login.err_confirmar');
         setError(msg);
         setLoading(false);
         return;
@@ -60,22 +63,22 @@ export const Login = () => {
         if (isCorrectPortal) {
           navigate('/', { replace: true });
         } else {
-          const portalLabel = portal === 'brigadista' ? 'Brigadistas' : 'Voluntarios';
-          setError(`Acceso denegado. Tu cuenta tiene rol de "${userRole}" y no pertenece al portal de ${portalLabel}.`);
+          const portalLabel = portal === 'brigadista' ? t('login.portal_brigadistas') : t('login.portal_voluntarios');
+          setError(t('login.err_portal', { rol: userRole, portal: portalLabel }));
           await signOut();
           setLoading(false);
         }
       }
     } catch (err) {
       console.error('Login Failure:', err);
-      setError('Error de conexión con el servidor. Inténtalo de nuevo.');
+      setError(t('login.err_conexion'));
       setLoading(false);
     }
   };
 
   const portalOptions = [
-    { id: 'brigadista', label: 'Brigadista', icon: Stethoscope, color: 'var(--success-color)', bg: 'rgba(16, 185, 129, 0.08)' },
-    { id: 'voluntario', label: 'Voluntario', icon: HandHeart, color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.08)' }
+    { id: 'brigadista', label: t('roles.brigadista'), icon: Stethoscope, color: 'var(--success-color)', bg: 'rgba(16, 185, 129, 0.08)' },
+    { id: 'voluntario', label: t('roles.voluntario'), icon: HandHeart, color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.08)' }
   ];
 
   return (
@@ -109,6 +112,10 @@ export const Login = () => {
         zIndex: 1
       }}>
         
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+          <SelectorIdioma oscuro />
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2.5rem' }}>
           <div style={{ width: '76px', height: '76px', marginBottom: '1.25rem', padding: '10px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 2px 10px rgba(255,255,255,0.02)' }} className="animate-reveal">
             <img 
@@ -121,14 +128,14 @@ export const Login = () => {
             Arupo Med-Track
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.6)', marginTop: '0.35rem', fontSize: '0.95rem', fontWeight: '500' }}>
-            Gestión y Control de Donaciones
+            {t('login.subtitulo')}
           </p>
         </div>
 
         {/* Selector Visual de Portal de Acceso */}
         <div style={{ marginBottom: '2rem' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem', textAlign: 'center' }}>
-            Selecciona tu Portal
+            {t('login.selecciona_portal')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
             {portalOptions.map((opt) => {
@@ -183,7 +190,7 @@ export const Login = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <Input
             id="email"
-            label="Correo Electrónico"
+            label={t('login.correo')}
             type="email"
             required
             value={email}
@@ -194,7 +201,7 @@ export const Login = () => {
           
           <Input
             id="password"
-            label="Contraseña"
+            label={t('login.contrasena')}
             type="password"
             required
             value={password}
@@ -225,13 +232,13 @@ export const Login = () => {
             }}
           >
             <Key size={18} />
-            {loading ? 'Verificando...' : `Entrar como ${portalOptions.find(o => o.id === portal).label}`}
+            {loading ? t('login.verificando') : t('login.entrar_como', { portal: portalOptions.find(o => o.id === portal).label })}
           </Button>
         </form>
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
           <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontWeight: '500', letterSpacing: '0.02em' }}>
-            Acceso seguro • Cifrado de extremo a extremo
+            {t('login.seguro')}
           </p>
         </div>
       </div>

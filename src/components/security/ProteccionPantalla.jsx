@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n/useI18n';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Protección de pantalla (MEJOR ESFUERZO)
@@ -36,6 +37,7 @@ const esAtajoDeImpresion = (e) => (e.ctrlKey || e.metaKey) && String(e.key).toLo
 
 export const ProteccionPantalla = () => {
   const { session } = useAuth() || {};
+  const { t } = useI18n();
   const protegiendo = ACTIVA && !!session;
   const [oculto, setOculto] = useState(false);
 
@@ -94,9 +96,9 @@ export const ProteccionPantalla = () => {
       }}
     >
       <ShieldAlert size={44} />
-      <strong style={{ fontSize: '1.15rem' }}>Contenido protegido</strong>
+      <strong style={{ fontSize: '1.15rem' }}>{t('proteccion.titulo')}</strong>
       <span style={{ fontSize: '0.9rem', opacity: 0.8, maxWidth: '360px' }}>
-        Por confidencialidad, la información se oculta cuando sales de la aplicación. Vuelve a MedTrack o toca la pantalla para continuar.
+        {t('proteccion.texto')}
       </span>
     </div>
   );

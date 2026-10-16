@@ -2,6 +2,8 @@
 // Fuente de verdad para el perfil y, más adelante, para el plan formativo y la
 // fecha del certificado. El rango debe coincidir con el CHECK de schema_v23.sql.
 
+import { tEs } from '../i18n/tEs';
+
 export const ESTANCIA_MIN_MESES = 3;
 export const ESTANCIA_MAX_MESES = 24;
 
@@ -14,21 +16,22 @@ export const estanciaPendiente = (perfil) =>
   estanciaDisponible(perfil) && perfil.tiempo_estancia_meses == null;
 
 // 3 → "3 meses" · 12 → "1 año" · 18 → "1 año y 6 meses" · 24 → "2 años"
-export const formatEstancia = (meses) => {
+// `t` es el traductor del idioma (por defecto español); las claves estancia.* llevan el plural.
+export const formatEstancia = (meses, t = tEs) => {
   const m = Number(meses);
   if (!Number.isInteger(m) || m < 1) return '';
   const anios = Math.floor(m / 12);
   const resto = m % 12;
-  const textoAnios = anios === 1 ? '1 año' : `${anios} años`;
-  const textoMeses = resto === 1 ? '1 mes' : `${resto} meses`;
+  const textoAnios = t(`estancia.anios_${anios === 1 ? 'uno' : 'otros'}`, { n: anios });
+  const textoMeses = t(`estancia.meses_${resto === 1 ? 'uno' : 'otros'}`, { n: resto });
   if (anios === 0) return textoMeses;
-  return resto === 0 ? textoAnios : `${textoAnios} y ${textoMeses}`;
+  return resto === 0 ? textoAnios : `${textoAnios} ${t('estancia.y')} ${textoMeses}`;
 };
 
-export const opcionesEstancia = () =>
+export const opcionesEstancia = (t = tEs) =>
   Array.from({ length: ESTANCIA_MAX_MESES - ESTANCIA_MIN_MESES + 1 }, (_, i) => {
     const meses = ESTANCIA_MIN_MESES + i;
-    return { value: meses, label: formatEstancia(meses) };
+    return { value: meses, label: formatEstancia(meses, t) };
   });
 
 // Fecha de fin = inicio + meses. `inicio` llega como 'YYYY-MM-DD' (columna DATE).
@@ -44,5 +47,6 @@ export const fechaFinEstancia = (inicio, meses) => {
   return fin;
 };
 
-export const formatFecha = (fecha) =>
-  fecha ? fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+// `local`: etiqueta BCP 47 del idioma (es-ES, en-GB, de-DE, ...).
+export const formatFecha = (fecha, local = 'es-ES') =>
+  fecha ? fecha.toLocaleDateString(local, { day: '2-digit', month: 'long', year: 'numeric' }) : '';

@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../i18n/useI18n';
+import { SelectorIdioma } from '../../i18n/SelectorIdioma';
 import { Button } from '../ui/Button';
-import { TERMINOS, TITULO_TERMINOS, VERSION_TERMINOS } from '../../legal/terminos';
+import { SECCIONES_TERMINOS, VERSION_TERMINOS } from '../../legal/terminos';
 
 // Pantalla bloqueante de aceptación de términos. Layout la muestra en lugar de la
 // app mientras la persona no haya aceptado la versión vigente. Al aceptar, el
 // servidor registra usuario, fecha/hora, IP y versión (aceptar_terminos).
 export const AceptarTerminos = () => {
   const { aceptarTerminos, signOut, profile } = useAuth();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
@@ -18,7 +21,7 @@ export const AceptarTerminos = () => {
     setEnviando(true);
     setError('');
     const res = await aceptarTerminos();
-    if (!res.ok) setError(res.mensaje);
+    if (!res.ok) setError(t(`terminos.error_${res.codigo || 'error'}`));
     setEnviando(false);
   };
 
@@ -34,26 +37,25 @@ export const AceptarTerminos = () => {
           <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <ShieldCheck size={24} />
           </div>
-          <div>
-            <h1 style={{ fontSize: '1.3rem', fontWeight: '800', margin: 0 }}>{TITULO_TERMINOS}</h1>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize: '1.3rem', fontWeight: '800', margin: 0 }}>{t('terminos.titulo')}</h1>
             <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
-              {profile?.nombre ? `${profile.nombre} · ` : ''}Versión {VERSION_TERMINOS}
+              {profile?.nombre ? `${profile.nombre} · ` : ''}{t('terminos.version', { version: VERSION_TERMINOS })}
             </p>
           </div>
+          <SelectorIdioma />
         </header>
 
-        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Antes de continuar, lee y acepta estos términos. Es obligatorio la primera vez que ingresas
-          y cada vez que cambien.
-        </p>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{t('terminos.intro')}</p>
 
-        <div tabIndex={0} aria-label="Texto de los términos" style={{ maxHeight: 'min(48vh, 380px)', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem 1.1rem', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-          {TERMINOS.map(t => (
-            <section key={t.titulo}>
-              <h2 style={{ fontSize: '0.95rem', fontWeight: '700', margin: '0 0 0.3rem' }}>{t.titulo}</h2>
-              <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.55, color: 'var(--text-secondary)' }}>{t.cuerpo}</p>
+        <div tabIndex={0} aria-label={t('terminos.aria_texto')} style={{ maxHeight: 'min(48vh, 380px)', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem 1.1rem', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+          {SECCIONES_TERMINOS.map(n => (
+            <section key={n}>
+              <h2 style={{ fontSize: '0.95rem', fontWeight: '700', margin: '0 0 0.3rem' }}>{t(`terminos.s${n}_titulo`)}</h2>
+              <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.55, color: 'var(--text-secondary)' }}>{t(`terminos.s${n}_cuerpo`)}</p>
             </section>
           ))}
+          <p style={{ margin: 0, fontSize: '0.78rem', fontStyle: 'italic', color: 'var(--text-tertiary)' }}>{t('terminos.nota_idioma')}</p>
         </div>
 
         {error && (
@@ -64,10 +66,10 @@ export const AceptarTerminos = () => {
         )}
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <Button type="button" variant="ghost" onClick={salir} disabled={enviando}>No acepto, cerrar sesión</Button>
+          <Button type="button" variant="ghost" onClick={salir} disabled={enviando}>{t('terminos.no_acepto')}</Button>
           <Button type="button" variant="primary" onClick={aceptar} disabled={enviando}
             style={{ fontWeight: '800', letterSpacing: '0.03em' }}>
-            {enviando ? 'Registrando...' : 'ESTOY DE ACUERDO'}
+            {enviando ? t('terminos.registrando') : t('terminos.aceptar')}
           </Button>
         </div>
       </main>

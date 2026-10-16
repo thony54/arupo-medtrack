@@ -44,17 +44,14 @@ export const consultarTerminos = async (userId) => {
 };
 
 // Registra la aceptación (el servidor pone fecha, IP y navegador). Nunca lanza.
+// Devuelve { ok: true } o { ok: false, codigo } con codigo 'sin_conexion' | 'sin_funcion' | 'error'
+// (el componente lo traduce con terminos.error_<codigo>).
 export const registrarAceptacion = async (userId) => {
-  if (!supabase) return { ok: false, mensaje: 'No hay conexión con la base de datos.' };
+  if (!supabase) return { ok: false, codigo: 'sin_conexion' };
   const { error } = await supabase.rpc('aceptar_terminos', { p_version: VERSION_TERMINOS });
   if (error) {
     console.error('Error al registrar la aceptación de términos:', error);
-    return {
-      ok: false,
-      mensaje: error.code === 'PGRST202'
-        ? 'El registro de términos aún no está activo en la base de datos. Avisa al administrador.'
-        : 'No se pudo registrar tu aceptación. Revisa tu conexión e inténtalo de nuevo.'
-    };
+    return { ok: false, codigo: error.code === 'PGRST202' ? 'sin_funcion' : 'error' };
   }
   recordarLocal(userId);
   return { ok: true };

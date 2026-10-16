@@ -29,6 +29,7 @@ npm run dev       # servidor de desarrollo Vite
 npm run build     # build de producción a dist/
 npm run preview   # sirve el build
 npm run lint      # ESLint (flat config en eslint.config.js)
+npm run i18n:check # los 6 diccionarios de idioma tienen las mismas claves y variables
 ```
 
 No hay suite de pruebas. `test.js` en la raíz es un script suelto de conexión a
@@ -50,6 +51,7 @@ src/
   utils/itemUtils.js       Fuente de verdad para "¿es ítem médico o general?"
   utils/roles.js           Fuente de verdad de roles: etiquetas, colores, orden jerárquico
   utils/estancia.js        Tiempo de estancia del voluntario (3–24 meses): rango, formato, fecha de fin
+  i18n/                    Idiomas (es en de pt it fr): I18nProvider, useI18n(), SelectorIdioma, locales/*.js
   utils/bitacora.js        Bitácora de jornada: validación de actividades, horas am/pm, compresión de foto
   components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
   utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
@@ -105,6 +107,21 @@ cierre de jornada lista solo a los `es_lider` y preselecciona el asignado; `regi
 lo valida igual. La migración marca como líderes a super_admin, brigadistas y coordinadores
 para no cambiar nada de golpe. `/equipos` también muestra la actividad de 30 días por
 voluntario y por líder.
+
+## Idiomas (6)
+
+`src/i18n/`: `useI18n()` → `{ t, tn, idioma, formatearFecha, ... }`; `t('clave', { var })` y
+`{var}` en los textos. Idiomas: es (original), en, de, pt (neutro, sesgo brasileño), it, fr.
+**Regla de producto: solo el voluntario ve la app en su idioma y solo sus pantallas**
+(ingreso, términos, inicio, perfil, cierre de jornada, Mis Actividades, curso, menú lateral).
+Inventario, CRM (Beneficiarios/Donantes) y administración siguen en español. Los componentes
+compartidos usan `t()`: como el idioma efectivo de quien NO es voluntario es siempre `es`,
+staff ve lo de siempre y el selector (`SelectorIdioma`) no se muestra. Antes del login (sin
+rol) se usa el idioma elegido, guardado en `localStorage` bajo `arupo_idioma` (sin prefijo
+`medtrack_` para que sobreviva al cerrar sesión). Las utilidades puras reciben `t` (español
+por defecto, vía `i18n/tEs.js`). **Al añadir un texto para voluntarios: ponlo con `t()` en los
+6 `locales/*.js` y corre `npm run i18n:check`.** Las traducciones (sobre todo los términos
+legales) conviene que las revise una persona nativa.
 
 ## Seguridad: términos y protección de pantalla
 

@@ -2,11 +2,14 @@
 // Los límites deben coincidir con los de la función registrar_bitacora
 // (supabase/schema_v24.sql y v26), que es quien las hace valer en el servidor.
 
+import { tEs } from '../i18n/tEs';
+
 export const BUCKET_FOTOS = 'momentos-felices';
 export const MAX_ACTIVIDADES = 20;
 export const MIN_FOTOS = 1;
 export const MAX_FOTOS = 3;
 
+// El mensaje traducido está en la clave cierre.mensaje de cada idioma; este es el original en español.
 export const MENSAJE_CIERRE =
   '¡Muchas gracias por compartir tu experiencia y dedicar tu corazón a transformar vidas en la Fundación Arupo!';
 
@@ -18,30 +21,36 @@ export const nuevaActividad = () => ({
   lugar: ''
 });
 
-// '10:00' → '10:00 am' · '12:00' → '12:00 pm' · '00:30' → '12:30 am' · '15:05' → '3:05 pm'
-export const formatHora = (hhmm) => {
+// reloj12h (es/en): '10:00' → '10:00 am' · '12:00' → '12:00 pm' · '00:30' → '12:30 am' · '15:05' → '3:05 pm'
+// sin reloj12h (de/pt/it/fr): '15:05' → '15:05'
+export const formatHora = (hhmm, reloj12h = true) => {
   const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm || '');
   if (!m) return '';
+  if (!reloj12h) return `${m[1]}:${m[2]}`;
   const h = Number(m[1]);
   const sufijo = h >= 12 ? 'pm' : 'am';
   return `${h % 12 === 0 ? 12 : h % 12}:${m[2]} ${sufijo}`;
 };
 
 // "Capacitación Unidad Educativa de 10:00 am a 12:00 pm - Alpachaca/Ecuador"
-export const describirActividad = (a) => {
-  const base = `${a.descripcion} de ${formatHora(a.hora_inicio)} a ${formatHora(a.hora_fin)}`;
+export const describirActividad = (a, t = tEs, reloj12h = true) => {
+  const base = t('bitacora.actividad_formato', {
+    descripcion: a.descripcion,
+    inicio: formatHora(a.hora_inicio, reloj12h),
+    fin: formatHora(a.hora_fin, reloj12h)
+  });
   return a.lugar ? `${base} - ${a.lugar}` : base;
 };
 
 // Devuelve el mensaje del primer problema, o '' si todo está bien.
-export const validarActividades = (lista) => {
-  if (!lista.length) return 'Registra al menos una actividad.';
+export const validarActividades = (lista, t = tEs) => {
+  if (!lista.length) return t('bitacora.val_minimo');
   for (let i = 0; i < lista.length; i++) {
     const a = lista[i];
-    const n = `Actividad ${i + 1}`;
-    if (!a.descripcion.trim()) return `${n}: describe qué hiciste.`;
-    if (!a.hora_inicio || !a.hora_fin) return `${n}: indica la hora de inicio y la de fin.`;
-    if (a.hora_fin <= a.hora_inicio) return `${n}: la hora de fin debe ser posterior a la de inicio.`;
+    const n = i + 1;
+    if (!a.descripcion.trim()) return t('bitacora.val_descripcion', { n });
+    if (!a.hora_inicio || !a.hora_fin) return t('bitacora.val_horas', { n });
+    if (a.hora_fin <= a.hora_inicio) return t('bitacora.val_fin', { n });
   }
   return '';
 };
@@ -60,10 +69,10 @@ export const horasDeBitacora = (b) =>
   Math.round((Array.isArray(b.actividades) ? b.actividades : []).reduce((t, a) => t + horasDeActividad(a), 0) * 100) / 100;
 
 // Estado de revisión de una bitácora → texto y variante de <Badge>.
-export const etiquetaEstado = (estado) =>
+export const etiquetaEstado = (estado, t = tEs) =>
   estado === 'aprobada'
-    ? { label: 'Aprobada', variant: 'success' }
-    : { label: 'Pendiente de revisión', variant: 'warning' };
+    ? { label: t('bitacora.estado_aprobada'), variant: 'success' }
+    : { label: t('bitacora.estado_pendiente'), variant: 'warning' };
 
 // Reduce la foto antes de subirla: lado mayor ≤ maxLado, JPEG. Una foto de
 // celular ronda los 4–8 MB; así queda en unos 150–400 KB y sube aun con poca señal.

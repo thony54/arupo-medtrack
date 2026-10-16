@@ -16,10 +16,12 @@ import { Evaluaciones } from './pages/Evaluaciones';
 import { Bitacoras } from './pages/Bitacoras';
 import { Equipos } from './pages/Equipos';
 import { ProteccionPantalla } from './components/security/ProteccionPantalla';
+import { I18nProvider } from './i18n/I18nProvider';
 
 function App() {
   return (
     <AuthProvider>
+      <I18nProvider>
       <ProteccionPantalla />
       <BrowserRouter>
         <Routes>
@@ -93,6 +95,7 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </I18nProvider>
     </AuthProvider>
   );
 }

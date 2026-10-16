@@ -7,6 +7,7 @@ import { Badge } from '../ui/Badge';
 import { CierreJornada } from './CierreJornada';
 import { firmarFotos, notificarBitacora } from '../../lib/bitacoras';
 import { describirActividad, etiquetaEstado } from '../../utils/bitacora';
+import { useI18n } from '../../i18n/useI18n';
 
 const POR_PAGINA = 20;
 const VENTANA_AVISO_MS = 3 * 24 * 60 * 60 * 1000; // igual que obtener_bitacora_a_notificar
@@ -22,16 +23,14 @@ const reintentarAvisos = async (bitacoras) => {
 
 const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
-const formatearFechaHora = (iso) =>
-  capitalizar(new Date(iso).toLocaleString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }));
-
-const mesDe = (iso) =>
-  new Date(iso).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-
 // Pestaña "Mis Actividades" del voluntario: línea de tiempo cronológica con las
 // jornadas que ha cerrado y el estado de revisión de cada una.
 export const MisActividades = () => {
   const { user } = useAuth() || {};
+  const { t, reloj12h, formatearFecha, formatearFechaHora } = useI18n();
+  const fechaHoraLarga = (iso) =>
+    capitalizar(formatearFechaHora(iso, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }));
+  const mesDe = (iso) => formatearFecha(iso, { month: 'long', year: 'numeric' });
   // Se depende del id (no del objeto user) para que un refresco de sesión no relance la carga.
   const userId = user?.id;
   const [items, setItems] = useState([]);
@@ -71,7 +70,7 @@ export const MisActividades = () => {
       setModuloInactivo(true);
     } else {
       console.error('Error al cargar las actividades:', err);
-      setError('No se pudieron cargar tus actividades. Inténtalo de nuevo.');
+      setError(t('actividades.err_cargar'));
     }
   };
 
@@ -118,33 +117,33 @@ export const MisActividades = () => {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
         <div>
           <h3 style={{ fontSize: '1.15rem', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ClipboardList size={20} style={{ color: '#7c3aed' }} /> Mis Actividades
+            <ClipboardList size={20} style={{ color: '#7c3aed' }} /> {t('actividades.titulo')}
           </h3>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Tu historial de jornadas, de la más reciente a la más antigua.
+            {t('actividades.subtitulo')}
           </p>
         </div>
         {!moduloInactivo && (
           <Button type="button" variant="primary" onClick={() => setMostrarCierre(true)}
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'linear-gradient(135deg, #7c3aed, #a855f7)', border: 'none' }}>
-            <Plus size={16} /> Cerrar jornada
+            <Plus size={16} /> {t('actividades.cerrar_jornada')}
           </Button>
         )}
       </div>
 
       {moduloInactivo ? (
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>
-          El registro de jornadas aún no está activo. Avisa al administrador.
+          {t('actividades.inactivo')}
         </p>
       ) : cargando ? (
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Cargando tus actividades...</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('actividades.cargando')}</p>
       ) : error ? (
         <div role="alert" style={{ padding: '0.75rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <AlertCircle size={16} /> <span>{error}</span>
         </div>
       ) : items.length === 0 ? (
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
-          Aún no has cerrado ninguna jornada. Cuando termines tu día, toca “Cerrar jornada” para contarnos qué hiciste.
+          {t('actividades.vacio')}
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -155,30 +154,30 @@ export const MisActividades = () => {
               </h4>
               <ol style={{ listStyle: 'none', margin: 0, padding: '0 0 0 1.25rem', borderLeft: '2px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {g.items.map(b => {
-                  const estado = etiquetaEstado(b.estado);
+                  const estado = etiquetaEstado(b.estado, t);
                   const acts = Array.isArray(b.actividades) ? b.actividades : [];
                   return (
                     <li key={b.id} style={{ position: 'relative' }}>
                       <span aria-hidden="true" style={{ position: 'absolute', left: 'calc(-1.25rem - 7px)', top: '0.35rem', width: '12px', height: '12px', borderRadius: '50%', background: '#7c3aed', border: '2px solid var(--bg-surface)' }} />
                       <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.9rem 1rem', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{formatearFechaHora(b.created_at)}</span>
+                          <span style={{ fontWeight: '700', fontSize: '0.9rem' }}>{fechaHoraLarga(b.created_at)}</span>
                           <Badge variant={estado.variant}>{estado.label}</Badge>
                         </div>
 
                         <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.3rem', fontSize: '0.88rem', color: 'var(--text-primary)' }}>
                           {acts.map((a, i) => (
-                            <li key={i}>{describirActividad(a)}</li>
+                            <li key={i}>{describirActividad(a, t, reloj12h)}</li>
                           ))}
                         </ul>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.25rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                            <UserCheck size={14} /> Líder: {b.lider_nombre}
+                            <UserCheck size={14} /> {t('actividades.lider', { nombre: b.lider_nombre })}
                           </span>
                           {b.estado === 'aprobada' && b.revisado_por_nombre && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                              <CheckCircle size={14} /> Aprobada por {b.revisado_por_nombre}
+                              <CheckCircle size={14} /> {t('actividades.aprobada_por', { nombre: b.revisado_por_nombre })}
                             </span>
                           )}
                           {b.formacion_continua && (
@@ -191,8 +190,8 @@ export const MisActividades = () => {
                         {(b.fotos || []).some(r => fotos[r]) && (
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {b.fotos.filter(r => fotos[r]).map((r, i) => (
-                              <a key={r} href={fotos[r]} target="_blank" rel="noopener noreferrer" title="Ver foto completa">
-                                <img src={fotos[r]} alt={`Momento feliz de la jornada (${i + 1})`} loading="lazy"
+                              <a key={r} href={fotos[r]} target="_blank" rel="noopener noreferrer" title={t('actividades.ver_foto')}>
+                                <img src={fotos[r]} alt={t('actividades.foto_alt', { n: i + 1 })} loading="lazy"
                                   style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
                               </a>
                             ))}
@@ -208,7 +207,7 @@ export const MisActividades = () => {
 
           {hayMas && (
             <Button type="button" variant="outline" onClick={cargarMas} style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <MapPin size={16} /> Ver jornadas anteriores
+              <MapPin size={16} /> {t('actividades.ver_anteriores')}
             </Button>
           )}
         </div>

@@ -6,9 +6,10 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { getRolLabel } from '../../utils/roles';
+import { useI18n } from '../../i18n/useI18n';
 import { notificarBitacora } from '../../lib/bitacoras';
 import {
-  BUCKET_FOTOS, MAX_ACTIVIDADES, MIN_FOTOS, MAX_FOTOS, MENSAJE_CIERRE,
+  BUCKET_FOTOS, MAX_ACTIVIDADES, MIN_FOTOS, MAX_FOTOS,
   nuevaActividad, validarActividades, comprimirImagen
 } from '../../utils/bitacora';
 
@@ -21,6 +22,9 @@ const campoStyle = { display: 'flex', flexDirection: 'column', gap: '0.4rem' };
 // así cada apertura arranca con su propia hora de apertura y estado limpio.
 const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const { user, profile } = useAuth() || {};
+  const { t, formatearFechaHora } = useI18n();
+  // Etiqueta del rol traducida; si no hay traducción, la de siempre.
+  const rolEtiqueta = (rol) => { const k = `roles.${rol}`; const v = t(k); return v === k ? getRolLabel(rol) : v; };
 
   // Borradores persistentes: si la señal falla o la app se minimiza, no se pierde lo escrito.
   const [actividades, setActividades] = usePersistentState('cierrejornada.actividades', [nuevaActividad()]);
@@ -94,10 +98,10 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
 
     const libres = MAX_FOTOS - fotos.length;
     const validos = archivos.filter(a => a.type.startsWith('image/'));
-    if (validos.length === 0) return setError('Selecciona archivos de imagen.');
-    if (libres <= 0) return setError(`Máximo ${MAX_FOTOS} fotos. Quita una para agregar otra.`);
+    if (validos.length === 0) return setError(t('cierre.err_imagenes'));
+    if (libres <= 0) return setError(t('cierre.err_max_fotos', { max: MAX_FOTOS }));
 
-    setError(validos.length > libres ? `Máximo ${MAX_FOTOS} fotos: solo se agregaron ${libres}.` : '');
+    setError(validos.length > libres ? t('cierre.err_max_fotos_agregadas', { max: MAX_FOTOS, n: libres }) : '');
     try {
       const comprimidas = await Promise.all(validos.slice(0, libres).map(a => comprimirImagen(a)));
       setFotos(prev => [
@@ -110,7 +114,7 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
       ]);
     } catch (err) {
       console.error('Error al procesar la foto:', err);
-      setError('No se pudo procesar una de las fotos. Prueba con otra.');
+      setError(t('cierre.err_foto_proceso'));
     }
   };
 
@@ -135,11 +139,11 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
 
   const handleEnviar = async () => {
     setError('');
-    const problema = validarActividades(actividades);
+    const problema = validarActividades(actividades, t);
     if (problema) return setError(problema);
-    if (!liderId) return setError('Selecciona el líder responsable del grupo.');
-    if (fotos.length < MIN_FOTOS) return setError(`Agrega al menos ${MIN_FOTOS} foto (máximo ${MAX_FOTOS}).`);
-    if (!supabase || !user) return setError('No hay conexión con la base de datos.');
+    if (!liderId) return setError(t('cierre.err_lider'));
+    if (fotos.length < MIN_FOTOS) return setError(t('cierre.err_fotos_min', { min: MIN_FOTOS, max: MAX_FOTOS }));
+    if (!supabase || !user) return setError(t('cierre.err_sin_conexion'));
 
     setSaving(true);
     try {
@@ -157,7 +161,7 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
       const fallida = subidas.find(r => r.upError);
       if (fallida) {
         console.error('Error al subir una foto:', fallida.upError);
-        throw new Error('No se pudieron subir todas las fotos. Revisa tu conexión e inténtalo de nuevo.');
+        throw new Error(t('cierre.err_subida'));
       }
 
       const { data, error: rpcError } = await supabase.rpc('registrar_bitacora', {
@@ -176,15 +180,15 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
       if (rpcError) {
         console.error('Error al registrar la bitácora:', rpcError);
         if (rpcError.code === 'PGRST202') {
-          throw new Error('El registro de jornadas necesita una actualización de la base de datos (schema_v26.sql). Avisa al administrador.');
+          throw new Error(t('cierre.err_modulo'));
         }
         if (rpcError.code === '42501') {
-          throw new Error('Solo los voluntarios pueden registrar una bitácora.');
+          throw new Error(t('cierre.err_solo_voluntarios'));
         }
         throw new Error(
           rpcError.code === '22023'
-            ? 'Revisa los datos: alguna actividad, el líder o las fotos no son válidos.'
-            : 'No se pudo registrar la bitácora. Inténtalo de nuevo.'
+            ? t('cierre.err_datos')
+            : t('cierre.err_registrar')
         );
       }
 
@@ -195,13 +199,13 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
       setEnviado({ creadaEn: registro?.creada_en ? new Date(registro.creada_en) : new Date() });
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError(err.message || 'No se pudo registrar la bitácora.');
+      setError(err.message || t('cierre.err_registrar'));
     } finally {
       setSaving(false);
     }
   };
 
-  const fechaApertura = capitalizar(abiertaEn.toLocaleString('es-ES', {
+  const fechaApertura = capitalizar(formatearFechaHora(abiertaEn, {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
   }));
 
@@ -209,15 +213,15 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
     <Modal
       isOpen
       onClose={cerrar}
-      title={enviado ? 'Jornada registrada' : 'Cierre de Jornada'}
+      title={enviado ? t('cierre.titulo_listo') : t('cierre.titulo')}
       footer={
         enviado ? (
-          <Button type="button" variant="primary" onClick={cerrar}>Listo</Button>
+          <Button type="button" variant="primary" onClick={cerrar}>{t('cierre.listo')}</Button>
         ) : (
           <>
-            <Button type="button" variant="ghost" onClick={cerrar} disabled={saving}>Cancelar</Button>
+            <Button type="button" variant="ghost" onClick={cerrar} disabled={saving}>{t('comun.cancelar')}</Button>
             <Button type="button" variant="primary" onClick={handleEnviar} disabled={saving}>
-              {saving ? 'Enviando...' : 'Enviar bitácora'}
+              {saving ? t('cierre.enviando') : t('cierre.enviar')}
             </Button>
           </>
         )
@@ -229,11 +233,10 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
             <HeartHandshake size={30} />
           </div>
           <p style={{ fontSize: '1.05rem', fontWeight: '700', lineHeight: 1.5, color: 'var(--text-primary)', margin: 0 }}>
-            {MENSAJE_CIERRE}
+            {t('cierre.mensaje')}
           </p>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 }}>
-            Registrada el {enviado.creadaEn.toLocaleString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.
-            Tu coordinador la revisará.
+            {t('cierre.registrada', { fecha: formatearFechaHora(enviado.creadaEn, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) })}
           </p>
         </div>
       ) : (
@@ -251,21 +254,21 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
             <div>
               <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>{fechaApertura}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.15rem' }}>
-                Fecha y hora automáticas. Al enviar queda el registro oficial y no se puede modificar.
+                {t('cierre.fecha_auto')}
               </div>
             </div>
           </div>
 
           {/* 2. Actividades (1 a N) */}
           <div style={campoStyle}>
-            <span style={labelStyle}>Actividades de la jornada <span style={{ color: 'var(--danger-color)' }}>*</span></span>
+            <span style={labelStyle}>{t('cierre.actividades')} <span style={{ color: 'var(--danger-color)' }}>*</span></span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {actividades.map((a, i) => (
                 <div key={a.id} style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.65rem', background: 'var(--bg-surface)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#7c3aed', textTransform: 'uppercase' }}>Actividad {i + 1}</span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#7c3aed', textTransform: 'uppercase' }}>{t('cierre.actividad_n', { n: i + 1 })}</span>
                     {actividades.length > 1 && (
-                      <button type="button" onClick={() => quitarActividad(a.id)} disabled={saving} aria-label={`Quitar actividad ${i + 1}`} title="Quitar actividad"
+                      <button type="button" onClick={() => quitarActividad(a.id)} disabled={saving} aria-label={t('cierre.quitar_actividad_n', { n: i + 1 })} title={t('cierre.quitar_actividad')}
                         style={{ background: 'none', border: 'none', color: 'var(--danger-color)', cursor: 'pointer', padding: '2px', display: 'flex' }}>
                         <Trash2 size={16} />
                       </button>
@@ -276,19 +279,19 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
                     style={{ marginBottom: 0 }}
                     value={a.descripcion}
                     onChange={e => actualizarActividad(a.id, 'descripcion', e.target.value)}
-                    placeholder="Ej. Capacitación Unidad Educativa"
+                    placeholder={t('cierre.ph_actividad')}
                     maxLength={300}
                     disabled={saving}
-                    aria-label={`Descripción de la actividad ${i + 1}`}
+                    aria-label={t('cierre.descripcion_n', { n: i + 1 })}
                   />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.65rem' }}>
                     <label style={{ ...campoStyle, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                      Hora de inicio
+                      {t('cierre.hora_inicio')}
                       <input type="time" className="input-field" style={{ marginBottom: 0 }} value={a.hora_inicio}
                         onChange={e => actualizarActividad(a.id, 'hora_inicio', e.target.value)} disabled={saving} />
                     </label>
                     <label style={{ ...campoStyle, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                      Hora de fin
+                      {t('cierre.hora_fin')}
                       <input type="time" className="input-field" style={{ marginBottom: 0 }} value={a.hora_fin}
                         onChange={e => actualizarActividad(a.id, 'hora_fin', e.target.value)} disabled={saving} />
                     </label>
@@ -298,10 +301,10 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
                     style={{ marginBottom: 0 }}
                     value={a.lugar}
                     onChange={e => actualizarActividad(a.id, 'lugar', e.target.value)}
-                    placeholder="Lugar. Ej. Alpachaca/Ecuador"
+                    placeholder={t('cierre.ph_lugar')}
                     maxLength={200}
                     disabled={saving}
-                    aria-label={`Lugar de la actividad ${i + 1}`}
+                    aria-label={t('cierre.lugar_n', { n: i + 1 })}
                   />
                 </div>
               ))}
@@ -309,25 +312,25 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
             <Button type="button" variant="outline" onClick={() => setActividades(l => [...l, nuevaActividad()])}
               disabled={saving || actividades.length >= MAX_ACTIVIDADES}
               style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Plus size={16} /> Agregar actividad
+              <Plus size={16} /> {t('cierre.agregar_actividad')}
             </Button>
           </div>
 
           {/* 3. Líder responsable */}
           <div style={campoStyle}>
-            <label htmlFor="cj-lider" style={labelStyle}>Líder responsable del grupo <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+            <label htmlFor="cj-lider" style={labelStyle}>{t('cierre.lider')} <span style={{ color: 'var(--danger-color)' }}>*</span></label>
             <select id="cj-lider" className="input-field" style={{ marginBottom: 0 }} value={liderId}
               onChange={e => setLiderId(e.target.value)} disabled={saving || lideres === null}>
-              <option value="" disabled>{lideres === null ? 'Cargando...' : 'Selecciona a tu superior a cargo'}</option>
+              <option value="" disabled>{lideres === null ? t('comun.cargando') : t('cierre.lider_placeholder')}</option>
               {(lideres || []).map(l => (
                 <option key={l.id} value={l.id}>
-                  {l.nombre || l.email} · {l.es_coordinador ? 'Coordinador' : getRolLabel(l.rol)}
+                  {l.nombre || l.email} · {l.es_coordinador ? t('roles.coordinador') : rolEtiqueta(l.rol)}
                 </option>
               ))}
             </select>
             {lideres !== null && lideres.length === 0 && (
               <span style={{ fontSize: '0.75rem', color: 'var(--danger-color)' }}>
-                No se encontraron líderes disponibles. Avisa al administrador.
+                {t('cierre.sin_lideres')}
               </span>
             )}
           </div>
@@ -335,16 +338,16 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
           {/* 4. Momento feliz: de 1 a 3 fotos */}
           <div style={campoStyle}>
             <span style={labelStyle}>
-              Momento feliz del día <span style={{ color: 'var(--danger-color)' }}>*</span>{' '}
-              <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({fotos.length} de {MAX_FOTOS} fotos)</span>
+              {t('cierre.momento_feliz')} <span style={{ color: 'var(--danger-color)' }}>*</span>{' '}
+              <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({t('cierre.fotos_contador', { n: fotos.length, max: MAX_FOTOS })})</span>
             </span>
             {fotos.length > 0 && (
               <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
                 {fotos.map((f, i) => (
                   <div key={f.id} style={{ position: 'relative' }}>
-                    <img src={f.url} alt={`Vista previa de la foto ${i + 1}`}
+                    <img src={f.url} alt={t('cierre.vista_previa_n', { n: i + 1 })}
                       style={{ width: '104px', height: '104px', objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', display: 'block' }} />
-                    <button type="button" onClick={() => quitarFoto(f.id)} disabled={saving} aria-label={`Quitar foto ${i + 1}`} title="Quitar foto"
+                    <button type="button" onClick={() => quitarFoto(f.id)} disabled={saving} aria-label={t('cierre.quitar_foto_n', { n: i + 1 })} title={t('cierre.quitar_foto')}
                       style={{ position: 'absolute', top: '4px', right: '4px', width: '26px', height: '26px', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={15} />
                     </button>
@@ -356,33 +359,32 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
               <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <Button type="button" variant="outline" onClick={() => inputCamara.current?.click()} disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Camera size={16} /> Tomar foto
+                  <Camera size={16} /> {t('cierre.tomar_foto')}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => inputGaleria.current?.click()} disabled={saving}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <ImageIcon size={16} /> Elegir de la galería
+                  <ImageIcon size={16} /> {t('cierre.elegir_galeria')}
                 </Button>
               </div>
             )}
             <input ref={inputCamara} type="file" accept="image/*" capture="environment" onChange={handleFotos} style={{ display: 'none' }} />
             <input ref={inputGaleria} type="file" accept="image/*" multiple onChange={handleFotos} style={{ display: 'none' }} />
             <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-              Sube entre {MIN_FOTOS} y {MAX_FOTOS} fotos. Cuida la privacidad: evita fotos donde se vean documentos o datos de beneficiarios.
-              La coordinación las recibe en su canal de Discord.
+              {t('cierre.fotos_ayuda', { min: MIN_FOTOS, max: MAX_FOTOS })}
             </span>
           </div>
 
           {/* 5. Formación continua */}
           <div style={campoStyle}>
-            <label htmlFor="cj-formacion" style={labelStyle}>Formación continua <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(opcional)</span></label>
+            <label htmlFor="cj-formacion" style={labelStyle}>{t('cierre.formacion')} <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({t('comun.opcional')})</span></label>
             <textarea id="cj-formacion" className="input-field" style={{ marginBottom: 0, resize: 'vertical' }} rows={3}
               value={formacion} onChange={e => setFormacion(e.target.value)} maxLength={1000} disabled={saving}
-              placeholder="¿Qué aprendiste hoy? Cuéntanos las lecciones o cápsulas de aprendizaje que completaste." />
+              placeholder={t('cierre.ph_formacion')} />
           </div>
 
           {/* 6. Mensaje de cierre */}
           <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.5 }}>
-            {MENSAJE_CIERRE}
+            {t('cierre.mensaje')}
           </p>
         </div>
       )}
