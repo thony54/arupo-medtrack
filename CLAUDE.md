@@ -96,7 +96,11 @@ Ven todas las bitácoras super_admin y coordinadores (`puede_revisar_bitacoras()
 **Revisión de bitácoras** (`schema_v25.sql`): pantalla `/bitacoras` (`pages/Bitacoras.jsx`,
 menú "Coordinación") para super_admin y coordinadores, con filtros por voluntario,
 estado y fechas, aprobación y descarga a Excel (`utils/reporteBitacoras.js`: hojas
-"Actividades" y "Resumen"). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
+"Actividades" y "Resumen"). Los campos siguen la tabla "Estructura del reporte Excel" del
+docx (viene como IMAGEN dentro del documento): ID y voluntario, tiempo de estancia, timestamp
+en UTC, detalle de actividades, líder a cargo, evidencia (enlaces firmados de **7 días** a las
+fotos del bucket privado, como hipervínculo) y avance de español (% y nivel, de `curso_resumen`;
+"N/D" si falta v29). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
 el coordinador no es un valor de `rol`. Aprobar solo se hace con el RPC
 `aprobar_bitacora` (nadie aprueba la suya). El Inicio muestra el KPI "Bitácoras por
 Revisar".

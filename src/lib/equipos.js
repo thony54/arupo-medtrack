@@ -1,9 +1,13 @@
 import { supabase } from './supabase';
 
 // Columnas de perfiles según lo que ya exista en la base: la app debe funcionar
-// aunque falten schema_v22 (es_coordinador) o schema_v27 (es_lider, lider_id).
+// aunque falten schema_v22 (es_coordinador), schema_v23 (estancia) o schema_v27
+// (es_lider, lider_id). Se prueban de la más completa a la mínima.
+const ESTANCIA = 'tiempo_estancia_meses, fecha_inicio_estancia';
 const COLUMNAS = [
+  `id, nombre, email, rol, es_coordinador, es_lider, lider_id, ${ESTANCIA}`,
   'id, nombre, email, rol, es_coordinador, es_lider, lider_id',
+  `id, nombre, email, rol, es_coordinador, ${ESTANCIA}`,
   'id, nombre, email, rol, es_coordinador',
   'id, nombre, email, rol'
 ];
@@ -13,9 +17,9 @@ const COLUMNAS = [
 export const cargarPerfiles = async () => {
   if (!supabase) return { perfiles: [], liderazgo: false };
   let ultimoError = null;
-  for (const [i, columnas] of COLUMNAS.entries()) {
+  for (const columnas of COLUMNAS) {
     const { data, error } = await supabase.from('perfiles').select(columnas);
-    if (!error) return { perfiles: data || [], liderazgo: i === 0 };
+    if (!error) return { perfiles: data || [], liderazgo: columnas.includes('es_lider') };
     ultimoError = error;
   }
   throw ultimoError;

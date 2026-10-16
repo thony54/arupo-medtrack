@@ -1,18 +1,26 @@
 import { supabase } from './supabase';
 import { BUCKET_FOTOS } from '../utils/bitacora';
 
-// URLs firmadas de una hora para las fotos privadas del bucket `momentos-felices`.
-// Devuelve { ruta: urlFirmada }. Si falla, devuelve {} y deja el error en consola:
-// una foto que no carga no debe impedir ver la bitácora.
-export const firmarFotos = async (rutas) => {
+const POR_TANDA_FIRMA = 200;
+
+// URLs firmadas de las fotos privadas del bucket `momentos-felices` (por defecto, una
+// hora). Devuelve { ruta: urlFirmada }. Si una tanda falla, esas fotos quedan fuera y
+// se deja el error en consola: una foto que no carga no debe impedir ver la bitácora.
+export const firmarFotos = async (rutas, segundos = 3600) => {
   const unicas = [...new Set(rutas.filter(Boolean))];
   if (!supabase || unicas.length === 0) return {};
-  const { data, error } = await supabase.storage.from(BUCKET_FOTOS).createSignedUrls(unicas, 3600);
-  if (error) {
-    console.error('No se pudieron firmar las fotos:', error.message);
-    return {};
+  const firmadas = {};
+  for (let i = 0; i < unicas.length; i += POR_TANDA_FIRMA) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET_FOTOS)
+      .createSignedUrls(unicas.slice(i, i + POR_TANDA_FIRMA), segundos);
+    if (error) {
+      console.error('No se pudieron firmar las fotos:', error.message);
+      continue;
+    }
+    for (const f of data || []) if (f.signedUrl) firmadas[f.path] = f.signedUrl;
   }
-  return Object.fromEntries((data || []).filter(f => f.signedUrl).map(f => [f.path, f.signedUrl]));
+  return firmadas;
 };
 
 // Pide al servidor que avise a Discord de una bitácora (con sus fotos). Es

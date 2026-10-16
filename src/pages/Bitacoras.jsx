@@ -3,6 +3,7 @@ import { ClipboardCheck, Download, CheckCircle, UserCheck, GraduationCap, AlertC
 import { supabase } from '../lib/supabase';
 import { firmarFotos } from '../lib/bitacoras';
 import { cargarPerfiles } from '../lib/equipos';
+import { cargarResumenCurso } from '../lib/curso';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -13,6 +14,8 @@ import './pages.css';
 const POR_PAGINA = 30;
 const POR_LOTE_EXCEL = 1000; // tope de filas por petición de PostgREST
 const MAX_LOTES_EXCEL = 20;
+const DIAS_ENLACES_EXCEL = 7; // las fotos pueden mostrar beneficiarios: los enlaces del Excel caducan
+const VIGENCIA_ENLACES_EXCEL = DIAS_ENLACES_EXCEL * 24 * 60 * 60;
 const FILTROS_VACIOS = { voluntarioId: '', liderId: '', estado: '', desde: '', hasta: '' };
 
 const labelStyle = { fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)' };
@@ -74,7 +77,7 @@ export const Bitacoras = () => {
   }, []);
 
   const mapaPerfiles = useMemo(
-    () => Object.fromEntries(perfiles.map(p => [p.id, { nombre: p.nombre || p.email, email: p.email }])),
+    () => Object.fromEntries(perfiles.map(p => [p.id, { nombre: p.nombre || p.email, email: p.email, estanciaMeses: p.tiempo_estancia_meses }])),
     [perfiles]
   );
   const listaLideres = useMemo(
@@ -176,8 +179,16 @@ export const Bitacoras = () => {
         setError('No hay bitácoras con esos filtros para exportar.');
         return;
       }
-      const filas = exportarBitacorasExcel(todas, mapaPerfiles);
-      setAviso(`Excel descargado: ${todas.length} jornadas y ${filas} actividades.`);
+      // Evidencias (enlaces firmados de varios días, por privacidad no son permanentes) y
+      // avance del curso de español (null si falta schema_v29): ninguno bloquea el Excel.
+      const rutas = [...new Set(todas.flatMap(b => b.fotos || []))];
+      const [fotos, curso] = await Promise.all([firmarFotos(rutas, VIGENCIA_ENLACES_EXCEL), cargarResumenCurso()]);
+      const sinEnlace = rutas.filter(r => !fotos[r]).length;
+      const filas = exportarBitacorasExcel(todas, mapaPerfiles, { fotos, curso });
+      setAviso(
+        `Excel descargado: ${todas.length} jornadas y ${filas} actividades. Los enlaces de las fotos caducan en ${DIAS_ENLACES_EXCEL} días.`
+        + (sinEnlace > 0 ? ` ${sinEnlace} foto(s) quedaron sin enlace: vuelve a descargar el Excel.` : '')
+      );
     } catch (err) {
       console.error('Error al exportar las bitácoras:', err);
       setError('No se pudo generar el Excel. Inténtalo de nuevo.');
