@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag, Calendar, ClipboardList } from 'lucide-react';
+import { Heart, Package, TrendingUp, AlertTriangle, Users, HandHeart, ShoppingBag, Calendar, ClipboardList, ListChecks } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { contarPendientes } from '../lib/tareas';
 import { Badge } from '../components/ui/Badge';
 import { filtrarAlertasMedicas, CATEGORIAS_GENERALES } from '../utils/itemUtils';
 import { estanciaPendiente } from '../utils/estancia';
@@ -10,11 +11,12 @@ import { useI18n } from '../i18n/useI18n';
 import './pages.css';
 
 export const Dashboard = () => {
-  const { role, profile, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
+  const { user, role, profile, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
   const navigate = useNavigate();
-  const { t, formatearFecha } = useI18n();
+  const { t, tn, formatearFecha } = useI18n();
   const [voluntariosRegistrados, setVoluntariosRegistrados] = useState(0);
   const [bitacorasPendientes, setBitacorasPendientes] = useState(null); // null = módulo no disponible
+  const [tareasPendientes, setTareasPendientes] = useState(null); // tareas del voluntario; null = módulo no disponible
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
   const [alertas, setAlertas] = useState([]);
   const [ultimasDonaciones, setUltimasDonaciones] = useState([]);
@@ -37,6 +39,15 @@ export const Dashboard = () => {
         }
       });
   }, [puedeRevisar]);
+
+  // Aviso del voluntario: tareas que la coordinación le asignó y siguen pendientes.
+  const perfilId = user?.id;
+  useEffect(() => {
+    if (!isVoluntario || !perfilId) return;
+    let cancelado = false;
+    contarPendientes(perfilId).then(n => { if (!cancelado) setTareasPendientes(n); });
+    return () => { cancelado = true; };
+  }, [isVoluntario, perfilId]);
 
   // KPI propio del coordinador de voluntariado.
   useEffect(() => {
@@ -148,6 +159,23 @@ export const Dashboard = () => {
             onClick={() => navigate('/perfil', { state: { tab: 'editar' } })}
           >
             {t('dashboard.completar')}
+          </button>
+        </div>
+      )}
+
+      {/* Tareas asignadas por la coordinación que siguen pendientes */}
+      {isVoluntario && tareasPendientes > 0 && (
+        <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ListChecks size={18} style={{ flexShrink: 0 }} />
+            <strong>{tn('dashboard.tareas_pendientes', tareasPendientes)}</strong>
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/perfil', { state: { tab: 'actividades' } })}
+          >
+            {t('dashboard.ver_tareas')}
           </button>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Camera, Image as ImageIcon, X, AlertCircle, HeartHandshake, Clock } from 'lucide-react';
+import { Plus, Trash2, Camera, Image as ImageIcon, X, AlertCircle, HeartHandshake, Clock, GraduationCap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../ui/Modal';
@@ -8,9 +8,11 @@ import { usePersistentState } from '../../hooks/usePersistentState';
 import { getRolLabel } from '../../utils/roles';
 import { useI18n } from '../../i18n/useI18n';
 import { notificarBitacora } from '../../lib/bitacoras';
+import { cargarLeccionesDesde } from '../../lib/curso';
+import { leccionPorId, textoLocal } from '../../curso/contenido';
 import {
-  BUCKET_FOTOS, MAX_ACTIVIDADES, MIN_FOTOS, MAX_FOTOS,
-  nuevaActividad, validarActividades, comprimirImagen
+  BUCKET_FOTOS, MAX_ACTIVIDADES, MIN_FOTOS, MAX_FOTOS, MAX_FORMACION, DIAS_LECCIONES_SUGERIDAS,
+  nuevaActividad, validarActividades, comprimirImagen, armarFormacionContinua
 } from '../../utils/bitacora';
 
 const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -22,7 +24,7 @@ const campoStyle = { display: 'flex', flexDirection: 'column', gap: '0.4rem' };
 // así cada apertura arranca con su propia hora de apertura y estado limpio.
 const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const { user, profile } = useAuth() || {};
-  const { t, formatearFechaHora } = useI18n();
+  const { t, idioma, formatearFechaHora } = useI18n();
   // Etiqueta del rol traducida; si no hay traducción, la de siempre.
   const rolEtiqueta = (rol) => { const k = `roles.${rol}`; const v = t(k); return v === k ? getRolLabel(rol) : v; };
 
@@ -30,6 +32,10 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const [actividades, setActividades] = usePersistentState('cierrejornada.actividades', [nuevaActividad()]);
   const [liderId, setLiderId] = usePersistentState('cierrejornada.liderId', '');
   const [formacion, setFormacion] = usePersistentState('cierrejornada.formacion', '');
+
+  // Lecciones del curso trabajadas desde la última jornada, sugeridas como formación continua.
+  const [recientes, setRecientes] = useState([]); // [{ id, unidadId, tituloEs, titulo }]
+  const [elegidas, setElegidas] = useState([]); // ids marcados
 
   const [lideres, setLideres] = useState(null); // null = cargando
   const [fotos, setFotos] = useState([]); // [{ id, blob, url, path? }] (de 1 a 3)
@@ -81,6 +87,36 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Sugiere las lecciones del curso hechas desde la última jornada (con un tope de días),
+  // ya marcadas. Es solo una ayuda: si falla o el curso no está activo, no se muestra nada.
+  useEffect(() => {
+    if (!supabase || !user?.id) return;
+    let cancelado = false;
+    (async () => {
+      const { data } = await supabase
+        .from('bitacoras')
+        .select('created_at')
+        .eq('voluntario_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const tope = Date.now() - DIAS_LECCIONES_SUGERIDAS * 24 * 60 * 60 * 1000;
+      const ultima = data?.[0]?.created_at ? new Date(data[0].created_at).getTime() : 0;
+      const ids = await cargarLeccionesDesde(user.id, new Date(Math.max(tope, ultima)).toISOString());
+      if (cancelado) return;
+      const lista = ids
+        .map(id => {
+          const l = leccionPorId(id);
+          return l && { id, unidadId: l.unidadId, tituloEs: textoLocal(l.titulo, 'es'), titulo: textoLocal(l.titulo, idioma) };
+        })
+        .filter(Boolean);
+      setRecientes(lista);
+      setElegidas(lista.map(l => l.id));
+    })().catch(err => console.warn('No se pudieron sugerir lecciones para la bitácora:', err));
+    return () => { cancelado = true; };
+    // Solo al abrir el modal; cambiar de idioma no debe volver a marcar lo que ya se desmarcó.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   // Libera las vistas previas al cerrar el modal.
   useEffect(() => { fotosRef.current = fotos; }, [fotos]);
   useEffect(() => () => { fotosRef.current.forEach(f => URL.revokeObjectURL(f.url)); }, []);
@@ -128,6 +164,7 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
     setActividades([nuevaActividad()]);
     setLiderId('');
     setFormacion('');
+    setElegidas([]);
     fotosRef.current.forEach(f => URL.revokeObjectURL(f.url));
     setFotos([]);
     setError('');
@@ -144,6 +181,8 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
     if (!liderId) return setError(t('cierre.err_lider'));
     if (fotos.length < MIN_FOTOS) return setError(t('cierre.err_fotos_min', { min: MIN_FOTOS, max: MAX_FOTOS }));
     if (!supabase || !user) return setError(t('cierre.err_sin_conexion'));
+    const formacionFinal = armarFormacionContinua(recientes.filter(l => elegidas.includes(l.id)).map(l => ({ titulo: l.tituloEs, unidadId: l.unidadId })), formacion);
+    if (formacionFinal.length > MAX_FORMACION) return setError(t('cierre.err_formacion_larga', { max: MAX_FORMACION }));
 
     setSaving(true);
     try {
@@ -174,7 +213,7 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
         })),
         p_lider_id: liderId,
         p_fotos: subidas.map(r => r.foto.path),
-        p_formacion: formacion.trim() || null
+        p_formacion: formacionFinal || null
       });
 
       if (rpcError) {
@@ -377,9 +416,28 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
           {/* 5. Formación continua */}
           <div style={campoStyle}>
             <label htmlFor="cj-formacion" style={labelStyle}>{t('cierre.formacion')} <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({t('comun.opcional')})</span></label>
+            {recientes.length > 0 && (
+              <fieldset disabled={saving} style={{ margin: 0, padding: '0.75rem 0.85rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <legend style={{ fontSize: '0.78rem', fontWeight: '700', color: '#7c3aed', textTransform: 'uppercase', padding: '0 0.35rem' }}>
+                  <GraduationCap size={13} style={{ verticalAlign: '-2px' }} /> {t('cierre.formacion_cursos')}
+                </legend>
+                {recientes.map(l => (
+                  <label key={l.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.55rem', fontSize: '0.88rem', cursor: 'pointer' }}>
+                    <input type="checkbox" style={{ marginTop: '3px' }} checked={elegidas.includes(l.id)}
+                      onChange={e => setElegidas(prev => (e.target.checked ? [...prev, l.id] : prev.filter(id => id !== l.id)))} />
+                    <span>
+                      {l.titulo}
+                      <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t('curso.unidad_n', { n: l.unidadId })} · {t(`curso.u${l.unidadId}`)}</span>
+                    </span>
+                  </label>
+                ))}
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t('cierre.formacion_ayuda')}</span>
+              </fieldset>
+            )}
             <textarea id="cj-formacion" className="input-field" style={{ marginBottom: 0, resize: 'vertical' }} rows={3}
-              value={formacion} onChange={e => setFormacion(e.target.value)} maxLength={1000} disabled={saving}
-              placeholder={t('cierre.ph_formacion')} />
+              value={formacion} onChange={e => setFormacion(e.target.value)} maxLength={MAX_FORMACION} disabled={saving}
+              aria-label={recientes.length > 0 ? t('cierre.formacion_otra') : t('cierre.formacion')}
+              placeholder={recientes.length > 0 ? t('cierre.ph_formacion_otra') : t('cierre.ph_formacion')} />
           </div>
 
           {/* 6. Mensaje de cierre */}

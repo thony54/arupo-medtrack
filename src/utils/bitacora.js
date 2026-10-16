@@ -13,6 +13,24 @@ export const MAX_FOTOS = 3;
 export const MENSAJE_CIERRE =
   '¡Muchas gracias por compartir tu experiencia y dedicar tu corazón a transformar vidas en la Fundación Arupo!';
 
+// Máximo del campo "formación continua" (igual que registrar_bitacora).
+export const MAX_FORMACION = 1000;
+// Las lecciones sugeridas son las trabajadas desde la última jornada, hasta este tope de días atrás.
+export const DIAS_LECCIONES_SUGERIDAS = 7;
+
+// Texto de "formación continua" que se guarda en la bitácora. Lo lee la coordinación (y va
+// al Excel), así que las lecciones se escriben siempre en español, con su unidad.
+//   lecciones: [{ titulo, unidadId }]   otra: texto libre del voluntario
+export const armarFormacionContinua = (lecciones, otra = '') => {
+  const partes = [];
+  if (lecciones.length) {
+    partes.push(`Curso de español: ${lecciones.map((l) => `${l.titulo} (U${l.unidadId})`).join('; ')}.`);
+  }
+  const extra = otra.trim();
+  if (extra) partes.push(lecciones.length ? `Otra formación: ${extra}` : extra);
+  return partes.join(' ');
+};
+
 export const nuevaActividad = () => ({
   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   descripcion: '',

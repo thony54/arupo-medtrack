@@ -26,6 +26,15 @@ export const leccionesDe = (unidadId) => CONTENIDO[unidadId]?.lecciones ?? [];
 
 export const todasLasLecciones = () => Object.values(CONTENIDO).flatMap((u) => u.lecciones);
 
+// Busca una lección por su id ('u2-l1') → { unidadId, titulo } o null si ya no existe en el contenido.
+export const leccionPorId = (leccionId) => {
+  for (const unidad of Object.values(CONTENIDO)) {
+    const leccion = unidad.lecciones.find((l) => l.id === leccionId);
+    if (leccion) return { unidadId: unidad.id, titulo: leccion.titulo };
+  }
+  return null;
+};
+
 // Texto que puede ser una cadena o un objeto por idioma.
 export const textoLocal = (valor, idioma) =>
   valor && typeof valor === 'object' ? valor[idioma] ?? valor.es ?? '' : valor ?? '';

@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { CierreJornada } from './CierreJornada';
+import { TareasAsignadas } from './TareasAsignadas';
 import { firmarFotos, notificarBitacora } from '../../lib/bitacoras';
 import { describirActividad, etiquetaEstado } from '../../utils/bitacora';
 import { useI18n } from '../../i18n/useI18n';
@@ -130,6 +131,8 @@ export const MisActividades = () => {
           </Button>
         )}
       </div>
+
+      <TareasAsignadas />
 
       {moduloInactivo ? (
         <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>

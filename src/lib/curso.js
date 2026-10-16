@@ -27,6 +27,24 @@ export const cargarProgreso = async (userId) => {
   };
 };
 
+// Ids de las lecciones que la persona trabajó desde `desdeISO` (la última vez que las
+// hizo, aunque las repitiera). Para sugerirlas como formación continua en la bitácora.
+// Devuelve [] si el curso aún no está activo o falla la consulta: es solo una ayuda.
+export const cargarLeccionesDesde = async (userId, desdeISO) => {
+  if (!supabase || !userId) return [];
+  const { data, error } = await supabase
+    .from('curso_progreso')
+    .select('leccion_id, ultima_en')
+    .eq('user_id', userId)
+    .gte('ultima_en', desdeISO)
+    .order('ultima_en', { ascending: true });
+  if (error) {
+    if (!tablaInexistente(error)) console.warn('No se pudieron leer las lecciones recientes:', error.message);
+    return [];
+  }
+  return (data || []).map((f) => f.leccion_id);
+};
+
 // Guarda el resultado de una lección. Nunca lanza: { ok } o { ok: false }.
 export const guardarLeccion = async (leccionId, puntaje) => {
   if (!supabase) return { ok: false };

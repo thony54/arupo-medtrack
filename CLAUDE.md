@@ -61,7 +61,7 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v29, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v30, schema_salud)
 ```
 
 ### Roles y rutas
@@ -113,6 +113,21 @@ cierre de jornada lista solo a los `es_lider` y preselecciona el asignado; `regi
 lo valida igual. La migración marca como líderes a super_admin, brigadistas y coordinadores
 para no cambiar nada de golpe. `/equipos` también muestra la actividad de 30 días por
 voluntario y por líder.
+
+**Tareas asignadas** (`schema_v30.sql`): la pestaña "Mis Actividades" muestra, encima del
+historial, las tareas que la coordinación le asignó al voluntario (`TareasAsignadas`). Las
+asigna el coordinador (o super_admin) desde `/equipos`, columna "Tareas" → modal
+`GestionarTareas`. Tabla `tareas_voluntario` sin escritura por API: solo los RPC
+`asignar_tarea`, `completar_tarea` (el voluntario dueño o la coordinación) y `retirar_tarea`.
+El voluntario ve solo las suyas; el Inicio le avisa cuántas tiene pendientes. La app oculta
+todo mientras la tabla no exista (`lib/tareas.js`). Textos de voluntario en 6 idiomas
+(`tareas.*`); el modal de la coordinación va en español.
+
+**Formación continua de la bitácora:** el cierre de jornada sugiere (ya marcadas) las lecciones
+del curso de español que el voluntario trabajó desde su última jornada (tope 7 días; lee
+`curso_progreso`, solo si v29 está aplicado). Lo marcado + el texto libre se guardan como un
+único texto en `bitacoras.formacion_continua` (`armarFormacionContinua` en `utils/bitacora.js`,
+siempre en español porque lo lee la coordinación y va al Excel). No hay columna nueva.
 
 ## Idiomas (6)
 
