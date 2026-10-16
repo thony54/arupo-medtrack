@@ -50,7 +50,7 @@ const recorrer = (dir) => {
       recorrer(ruta);
     } else if (/\.(jsx?|mjs)$/.test(nombre)) {
       const codigo = readFileSync(ruta, 'utf8');
-      for (const m of codigo.matchAll(/\bt\(\s*'([a-z_0-9]+\.[a-z_0-9]+)'/g)) {
+      for (const m of codigo.matchAll(/\bt(?:Es)?\(\s*'([a-z_0-9]+\.[a-z_0-9]+)'/g)) {
         if (!usadas.has(m[1])) usadas.set(m[1], relative(RAIZ, ruta));
       }
     }

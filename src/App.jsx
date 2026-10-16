@@ -15,6 +15,7 @@ import { Perfil } from './pages/Perfil';
 import { Evaluaciones } from './pages/Evaluaciones';
 import { Bitacoras } from './pages/Bitacoras';
 import { Equipos } from './pages/Equipos';
+import { Curso } from './pages/Curso';
 import { ProteccionPantalla } from './components/security/ProteccionPantalla';
 import { I18nProvider } from './i18n/I18nProvider';
 
@@ -88,6 +89,12 @@ function App() {
             <Route path="equipos" element={
               <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
                 <Equipos />
+              </ProtectedRoute>
+            } />
+            {/* Curso de español (opcional): Voluntarios; el Super Admin puede revisarlo */}
+            <Route path="curso" element={
+              <ProtectedRoute allowedRoles={['voluntario', 'super_admin']}>
+                <Curso />
               </ProtectedRoute>
             } />
             {/* Perfil del Usuario: Accesible para todos los autenticados */}

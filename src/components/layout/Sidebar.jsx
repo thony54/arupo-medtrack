@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity, ClipboardCheck, Network } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity, ClipboardCheck, Network, GraduationCap } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
@@ -149,6 +149,7 @@ export const Sidebar = () => {
           {t('nav.general')}
         </div>
         {navItem('/', LayoutDashboard, t('nav.inicio'), true)}
+        {(isVoluntario || isSuperAdmin) && navItem('/curso', GraduationCap, t('nav.curso'))}
 
         {/* Sección Donaciones / Medicinas: Visible para Super Admin y Brigadistas */}
         {(isSuperAdmin || isBrigadista) && (

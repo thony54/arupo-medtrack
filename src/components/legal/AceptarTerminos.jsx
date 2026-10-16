@@ -31,7 +31,7 @@ export const AceptarTerminos = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem', background: 'var(--bg-main, #f8fafc)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.25rem', background: 'var(--bg-base)' }}>
       <main className="card glass animate-blur-in" style={{ width: '100%', maxWidth: '680px', padding: '1.75rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
         <header style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
           <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

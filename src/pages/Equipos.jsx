@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Network, Search, Star, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cargarPerfiles, cargarBitacorasRecientes, designarLider, asignarVoluntarioALider } from '../lib/equipos';
+import { cargarResumenCurso } from '../lib/curso';
+import { todasLasLecciones } from '../curso/contenido';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { getRolLabel } from '../utils/roles';
@@ -35,6 +37,8 @@ export const Equipos = () => {
   const [guardando, setGuardando] = useState(null); // id del usuario en proceso
   const [busqueda, setBusqueda] = useState('');
   const [nuevoLiderId, setNuevoLiderId] = useState('');
+  const [cursoPorUsuario, setCursoPorUsuario] = useState(null); // Map o null si no está disponible (schema_v29)
+  const totalLeccionesCurso = todasLasLecciones().length;
   const [ahora] = useState(() => Date.now()); // referencia fija para "hace N días"
 
   useEffect(() => {
@@ -47,6 +51,7 @@ export const Equipos = () => {
     })])
       .then(([resPerfiles, recientes]) => {
         if (cancelado) return;
+        cargarResumenCurso().then((m) => { if (!cancelado) setCursoPorUsuario(m); });
         setPerfiles(resPerfiles.perfiles);
         setLiderazgo(resPerfiles.liderazgo);
         setBitacoras(recientes);
@@ -244,12 +249,13 @@ export const Equipos = () => {
                     <th>Jornadas ({DIAS_VENTANA} d)</th>
                     <th>Horas</th>
                     <th>Última jornada</th>
+                    {cursoPorUsuario && <th>Curso</th>}
                     <th>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {voluntariosFiltrados.length === 0 ? (
-                    <tr><td colSpan="6" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>No hay voluntarios que coincidan.</td></tr>
+                    <tr><td colSpan={cursoPorUsuario ? 7 : 6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>No hay voluntarios que coincidan.</td></tr>
                   ) : voluntariosFiltrados.map(v => {
                     const act = porVoluntario[v.id];
                     const inactivo = !act || (ahora - new Date(act.ultima).getTime()) > DIAS_SIN_ACTIVIDAD * MS_DIA;
@@ -270,6 +276,7 @@ export const Equipos = () => {
                         <td>{act?.jornadas || 0}</td>
                         <td>{act?.horas || 0}</td>
                         <td>{haceCuanto(act?.ultima, ahora)}</td>
+                        {cursoPorUsuario && <td>{cursoPorUsuario.get(v.id) || 0}/{totalLeccionesCurso}</td>}
                         <td>
                           <Badge variant={inactivo ? 'warning' : 'success'}>
                             {inactivo ? `Sin actividad ${DIAS_SIN_ACTIVIDAD}+ días` : 'Activo'}

@@ -59,7 +59,9 @@ src/
   legal/terminos.js        Texto y VERSION de los términos (BORRADOR a revisar por la Fundación)
   lib/terminos.js          Verificar/registrar la aceptación de términos
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
-supabase/                  Scripts SQL versionados (schema_v2 … v28, schema_salud)
+  curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
+  components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
+supabase/                  Scripts SQL versionados (schema_v2 … v29, schema_salud)
 ```
 
 ### Roles y rutas
@@ -122,6 +124,23 @@ rol) se usa el idioma elegido, guardado en `localStorage` bajo `arupo_idioma` (s
 por defecto, vía `i18n/tEs.js`). **Al añadir un texto para voluntarios: ponlo con `t()` en los
 6 `locales/*.js` y corre `npm run i18n:check`.** Las traducciones (sobre todo los términos
 legales) conviene que las revise una persona nativa.
+
+## Curso de español (opcional)
+
+Ruta `/curso` (voluntarios; el super_admin puede entrar a revisarlo), menú "Curso de Español".
+Estructura de `MedTrack Modulo por anadir.docx`: 12 unidades en 4 bloques (`curso/plan.js`).
+**El curso dura exactamente la estancia del voluntario**: `calendario.js` reparte las 12 unidades
+en el intervalo `fecha_inicio_estancia` → fin (pesos del plan de 24 meses: 1/1/1, 5/3 ×3, 4/3 ×3,
+4/4/4), por lo que la última unidad termina el día del fin y esa es la fecha del certificado.
+Las lecciones se desbloquean en orden. El progreso se guarda con el RPC
+`guardar_progreso_leccion` (`schema_v29.sql`, tabla `curso_progreso`); la coordinación ve las
+lecciones completadas por voluntario en `/equipos` (RPC `curso_resumen`). **El certificado**
+(PDF con jsPDF, español + traducción al idioma del voluntario) solo está disponible con TODAS las
+unidades con contenido y completas y habiendo llegado a la fecha de fin del voluntariado.
+**Contenido:** vive en `src/curso/contenido/` (hoy solo ejemplos en las unidades 1 y 2; formato y
+tipos de ejercicio —opcion, escuchar, completar, emparejar— documentados en `contenido/index.js`).
+Las unidades sin lecciones salen como "Próximamente". Las respuestas viajan en la app: el curso es
+formativo y opcional; si el certificado exigiera garantía fuerte, habría que corregir en servidor.
 
 ## Seguridad: términos y protección de pantalla
 
