@@ -46,6 +46,19 @@ export const validarActividades = (lista) => {
   return '';
 };
 
+const minutosDe = (hhmm) => {
+  const [h, m] = String(hhmm || '').split(':').map(Number);
+  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : 0;
+};
+
+// Horas de una actividad con dos decimales (90 min → 1.5).
+export const horasDeActividad = (a) =>
+  Math.round(Math.max(0, minutosDe(a.hora_fin) - minutosDe(a.hora_inicio)) / 60 * 100) / 100;
+
+// Horas totales de una bitácora.
+export const horasDeBitacora = (b) =>
+  Math.round((Array.isArray(b.actividades) ? b.actividades : []).reduce((t, a) => t + horasDeActividad(a), 0) * 100) / 100;
+
 // Estado de revisión de una bitácora → texto y variante de <Badge>.
 export const etiquetaEstado = (estado) =>
   estado === 'aprobada'

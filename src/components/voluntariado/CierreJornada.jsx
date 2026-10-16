@@ -20,7 +20,7 @@ const campoStyle = { display: 'flex', flexDirection: 'column', gap: '0.4rem' };
 // Contenido del modal de cierre de jornada. Solo se monta mientras está abierto,
 // así cada apertura arranca con su propia hora de apertura y estado limpio.
 const CierreJornadaModal = ({ onClose, onSuccess }) => {
-  const { user } = useAuth() || {};
+  const { user, profile } = useAuth() || {};
 
   // Borradores persistentes: si la señal falla o la app se minimiza, no se pierde lo escrito.
   const [actividades, setActividades] = usePersistentState('cierrejornada.actividades', [nuevaActividad()]);
@@ -38,7 +38,7 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const inputCamara = useRef(null);
   const inputGaleria = useRef(null);
 
-  // Superiores que pueden figurar como líder: super_admin, brigadista y coordinadores.
+  // Líderes que se pueden elegir: los designados por la coordinación (es_lider).
   useEffect(() => {
     if (!supabase) return;
     let cancelado = false;
@@ -46,10 +46,17 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
       let { data, error: err } = await supabase
         .from('perfiles')
         .select('id, nombre, email, rol, es_coordinador')
-        .or('rol.in.(super_admin,brigadista),es_coordinador.eq.true')
+        .eq('es_lider', true)
         .order('nombre');
       if (err) {
-        // Aún no existe es_coordinador (falta schema_v22): se filtra solo por rol.
+        // Aún no existe es_lider (falta schema_v27): se usa la regla anterior por rol.
+        ({ data, error: err } = await supabase
+          .from('perfiles')
+          .select('id, nombre, email, rol, es_coordinador')
+          .or('rol.in.(super_admin,brigadista),es_coordinador.eq.true')
+          .order('nombre'));
+      }
+      if (err) {
         ({ data, error: err } = await supabase
           .from('perfiles')
           .select('id, nombre, email, rol')
@@ -58,9 +65,16 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
       }
       if (cancelado) return;
       if (err) console.error('No se pudo cargar la lista de líderes:', err.message);
-      setLideres(err ? [] : data || []);
+      const lista = err ? [] : data || [];
+      setLideres(lista);
+      // Si la coordinación le asignó un líder y no hay borrador, se propone ese.
+      if (profile?.lider_id && lista.some(l => l.id === profile.lider_id)) {
+        setLiderId(actual => actual || profile.lider_id);
+      }
     })();
     return () => { cancelado = true; };
+    // profile?.lider_id solo se lee al abrir el modal; no debe relanzar la carga.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Libera las vistas previas al cerrar el modal.

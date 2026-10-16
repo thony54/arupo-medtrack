@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { ClipboardCheck, Download, CheckCircle, UserCheck, GraduationCap, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { firmarFotos } from '../lib/bitacoras';
+import { cargarPerfiles } from '../lib/equipos';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -12,7 +13,7 @@ import './pages.css';
 const POR_PAGINA = 30;
 const POR_LOTE_EXCEL = 1000; // tope de filas por petición de PostgREST
 const MAX_LOTES_EXCEL = 20;
-const FILTROS_VACIOS = { voluntarioId: '', estado: '', desde: '', hasta: '' };
+const FILTROS_VACIOS = { voluntarioId: '', liderId: '', estado: '', desde: '', hasta: '' };
 
 const labelStyle = { fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)' };
 const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -24,6 +25,7 @@ const fechaHora = (iso) =>
 const consultaBase = (f) => {
   let q = supabase.from('bitacoras').select('*').order('created_at', { ascending: false }).order('id');
   if (f.voluntarioId) q = q.eq('voluntario_id', f.voluntarioId);
+  if (f.liderId) q = q.eq('lider_id', f.liderId);
   if (f.estado) q = q.eq('estado', f.estado);
   if (f.desde) q = q.gte('created_at', new Date(`${f.desde}T00:00:00`).toISOString());
   if (f.hasta) {
@@ -65,16 +67,18 @@ export const Bitacoras = () => {
   useEffect(() => {
     if (!supabase) return;
     let cancelado = false;
-    supabase.from('perfiles').select('id, nombre, email, rol').then(({ data, error: err }) => {
-      if (cancelado) return;
-      if (err) console.error('No se pudo cargar la lista de personal:', err.message);
-      else setPerfiles(data || []);
-    });
+    cargarPerfiles()
+      .then(({ perfiles: lista }) => { if (!cancelado) setPerfiles(lista); })
+      .catch(err => console.error('No se pudo cargar la lista de personal:', err?.message));
     return () => { cancelado = true; };
   }, []);
 
   const mapaPerfiles = useMemo(
     () => Object.fromEntries(perfiles.map(p => [p.id, { nombre: p.nombre || p.email, email: p.email }])),
+    [perfiles]
+  );
+  const listaLideres = useMemo(
+    () => perfiles.filter(p => p.es_lider).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es')),
     [perfiles]
   );
   const listaVoluntarios = useMemo(
@@ -217,6 +221,18 @@ export const Bitacoras = () => {
                   ))}
                 </select>
               </label>
+              {listaLideres.length > 0 && (
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', ...labelStyle }}>
+                  Líder
+                  <select className="input-field" style={{ marginBottom: 0 }} value={filtros.liderId}
+                    onChange={e => cambiarFiltro('liderId', e.target.value)}>
+                    <option value="">Todos</option>
+                    {listaLideres.map(l => (
+                      <option key={l.id} value={l.id}>{l.nombre || l.email}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', ...labelStyle }}>
                 Estado
                 <select className="input-field" style={{ marginBottom: 0 }} value={filtros.estado}

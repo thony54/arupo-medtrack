@@ -53,7 +53,8 @@ src/
   utils/bitacora.js        Bitácora de jornada: validación de actividades, horas am/pm, compresión de foto
   components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
   utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
-supabase/                  Scripts SQL versionados (schema_v2 … v26, schema_salud)
+  lib/equipos.js           Perfiles con columnas tolerantes (v22/v27), designar líderes, asignar voluntarios
+supabase/                  Scripts SQL versionados (schema_v2 … v27, schema_salud)
 ```
 
 ### Roles y rutas
@@ -91,7 +92,16 @@ estado y fechas, aprobación y descarga a Excel (`utils/reporteBitacoras.js`: ho
 "Actividades" y "Resumen"). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
 el coordinador no es un valor de `rol`. Aprobar solo se hace con el RPC
 `aprobar_bitacora` (nadie aprueba la suya). El Inicio muestra el KPI "Bitácoras por
-Revisar". Pendiente: asignación de líderes de grupo.
+Revisar".
+
+**Líderes de grupo** (`schema_v27.sql`, pantalla `/equipos`): `perfiles.es_lider` marca quién
+puede ser "líder responsable" (lo designa un super_admin o coordinador con los RPC
+`asignar_lider` / `asignar_voluntario_a_lider`, porque `perfiles` solo lo escribe
+super_admin) y `perfiles.lider_id` es el líder asignado a un voluntario. El selector del
+cierre de jornada lista solo a los `es_lider` y preselecciona el asignado; `registrar_bitacora`
+lo valida igual. La migración marca como líderes a super_admin, brigadistas y coordinadores
+para no cambiar nada de golpe. `/equipos` también muestra la actividad de 30 días por
+voluntario y por líder.
 
 **Aviso a Discord de cada bitácora** (`api/notify-bitacora.js`, variable
 `DISCORD_WEBHOOK_BITACORAS`): tras registrar, el navegador llama al endpoint con la sesión del
@@ -108,6 +118,7 @@ El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles
 | `/inventory`, `/catalog`, `/lotes/:productoId`, `/evaluaciones` | `super_admin`, `brigadista` |
 | `/beneficiarios`, `/donantes` | `super_admin`, `voluntario` |
 | `/usuarios` | `super_admin` |
+| `/bitacoras`, `/equipos` | `super_admin` **o** coordinador (`es_coordinador`, vía `permitirCoordinador`) |
 
 **Esto es solo control de UI.** La autorización real depende de las políticas RLS de
 Postgres. Ver `SECURITY.md` — hoy las políticas son permisivas y el frontend hace

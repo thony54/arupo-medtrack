@@ -1,18 +1,10 @@
 import * as XLSX from 'xlsx';
-import { formatHora } from './bitacora';
+import { formatHora, horasDeActividad } from './bitacora';
 
 // Reporte Excel de bitácoras para la coordinación. Dos hojas:
 //   · "Actividades": una fila por actividad (lo más útil para filtrar y sumar).
 //   · "Resumen": una fila por voluntario con jornadas, actividades y horas.
 // Las columnas son una propuesta: el documento de módulos no las especifica.
-
-const minutos = (hhmm) => {
-  const [h, m] = String(hhmm || '').split(':').map(Number);
-  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : 0;
-};
-
-// Horas con dos decimales (90 min → 1.5).
-const horasDe = (a) => Math.round(Math.max(0, minutos(a.hora_fin) - minutos(a.hora_inicio)) / 60 * 100) / 100;
 
 const fecha = (iso) => (iso ? new Date(iso).toLocaleDateString('es-ES') : '');
 const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '');
@@ -38,7 +30,7 @@ export const construirHojas = (bitacoras, voluntarios) => {
     r[b.estado === 'aprobada' ? 'Aprobadas' : 'Pendientes'] += 1;
 
     for (const a of acts) {
-      const h = horasDe(a);
+      const h = horasDeActividad(a);
       r['Horas totales'] = Math.round((r['Horas totales'] + h) * 100) / 100;
       actividades.push({
         'Fecha': fecha(b.created_at),
