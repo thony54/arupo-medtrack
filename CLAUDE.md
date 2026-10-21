@@ -53,7 +53,8 @@ src/
   utils/estancia.js        Tiempo de estancia del voluntario (3–24 meses): rango, formato, fecha de fin
   i18n/                    Idiomas (es en de pt it fr): I18nProvider, useI18n(), SelectorIdioma, locales/*.js
   utils/bitacora.js        Bitácora de jornada: validación de actividades, horas am/pm, compresión de foto
-  components/voluntariado/ CierreJornada (modal) y MisActividades (timeline en Perfil)
+  components/voluntariado/ CierreJornada (modal); pages/MisActividades.jsx (`/actividades`,
+                           timeline de jornadas) y pages/Tareas.jsx (`/tareas`) son del voluntario
   utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
   lib/equipos.js           Perfiles con columnas tolerantes (v22/v27), designar líderes, asignar voluntarios
   legal/terminos.js        Texto y VERSION de los términos (BORRADOR a revisar por la Fundación)
@@ -84,7 +85,7 @@ mientras la columna no exista (`estanciaDisponible`), así que el orden de despl
 da igual.
 
 **Bitácora de cierre de jornada** (`schema_v24.sql`): el voluntario la registra desde
-Perfil → "Mis Actividades" (o el aviso del Inicio). Tabla `bitacoras` (actividades en
+el menú lateral → "Mis Actividades" (`/actividades`, o el aviso del Inicio). Tabla `bitacoras` (actividades en
 JSONB, líder, **1 a 3 fotos** (`fotos TEXT[]`, mínimo 1 en las nuevas), formación continua,
 `estado` pendiente/aprobada). **Solo se escribe con el RPC `registrar_bitacora`** (valida en
 servidor y fija `created_at` con el reloj de la base: es el timestamp inmutable); la API no
@@ -117,8 +118,8 @@ se reinicia a mano con un UPDATE puntual en el SQL Editor, sin archivo de schema
 borrar designaciones al re-ejecutarlo. No vuelvas a sembrarlos.) `/equipos` también muestra la actividad de 30 días por
 voluntario y por líder.
 
-**Tareas asignadas** (`schema_v30.sql`): la pestaña "Mis Actividades" muestra, encima del
-historial, las tareas que la coordinación le asignó al voluntario (`TareasAsignadas`). Las
+**Tareas asignadas** (`schema_v30.sql`): el menú del voluntario tiene su propia página
+"Tareas" (`/tareas`, `pages/Tareas.jsx`) con lo que la coordinación le asignó. Las
 asigna el coordinador (o super_admin) desde `/equipos`, columna "Tareas" → modal
 `GestionarTareas`. Tabla `tareas_voluntario` sin escritura por API: solo los RPC
 `asignar_tarea`, `completar_tarea` (el voluntario dueño o la coordinación) y `retirar_tarea`.

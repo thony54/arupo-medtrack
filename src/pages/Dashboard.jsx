@@ -173,7 +173,7 @@ export const Dashboard = () => {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => navigate('/perfil', { state: { tab: 'actividades' } })}
+            onClick={() => navigate('/tareas')}
           >
             {t('dashboard.ver_tareas')}
           </button>
@@ -190,7 +190,7 @@ export const Dashboard = () => {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => navigate('/perfil', { state: { tab: 'actividades' } })}
+            onClick={() => navigate('/actividades')}
           >
             {t('actividades.cerrar_jornada')}
           </button>

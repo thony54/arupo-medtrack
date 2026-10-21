@@ -16,6 +16,8 @@ import { Evaluaciones } from './pages/Evaluaciones';
 import { Bitacoras } from './pages/Bitacoras';
 import { Equipos } from './pages/Equipos';
 import { Curso } from './pages/Curso';
+import { MisActividades } from './pages/MisActividades';
+import { Tareas } from './pages/Tareas';
 import { ProteccionPantalla } from './components/security/ProteccionPantalla';
 import { I18nProvider } from './i18n/I18nProvider';
 
@@ -95,6 +97,17 @@ function App() {
             <Route path="curso" element={
               <ProtectedRoute allowedRoles={['voluntario', 'super_admin']}>
                 <Curso />
+              </ProtectedRoute>
+            } />
+            {/* Jornadas cerradas y tareas asignadas: solo Voluntarios */}
+            <Route path="actividades" element={
+              <ProtectedRoute allowedRoles={['voluntario']}>
+                <MisActividades />
+              </ProtectedRoute>
+            } />
+            <Route path="tareas" element={
+              <ProtectedRoute allowedRoles={['voluntario']}>
+                <Tareas />
               </ProtectedRoute>
             } />
             {/* Perfil del Usuario: Accesible para todos los autenticados */}

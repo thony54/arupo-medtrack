@@ -1,20 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ListChecks, CalendarClock, UserCheck, CheckCircle, RotateCcw, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { cargarTareas, marcarTarea, estaVencida } from '../../lib/tareas';
-import { useI18n } from '../../i18n/useI18n';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/ui/Button';
+import { Badge } from '../components/ui/Badge';
+import { cargarTareas, marcarTarea, estaVencida } from '../lib/tareas';
+import { useI18n } from '../i18n/useI18n';
+import './pages.css';
 
 const MAX_COMPLETADAS = 5;
 
 // 'AAAA-MM-DD' (fecha sin hora) → Date local; con mediodía para que la zona horaria no cambie el día.
 const fechaLocal = (ymd) => new Date(`${ymd}T12:00:00`);
 
-// Tareas que la coordinación le asignó al voluntario (schema_v30.sql). Va dentro de
-// "Mis Actividades", encima de su historial de jornadas. Si el módulo aún no está
-// activo en la base de datos, no muestra nada.
-export const TareasAsignadas = () => {
+// Página "Tareas" del voluntario: lo que la coordinación le asignó (schema_v30.sql).
+// Si el módulo aún no está activo en la base de datos, lo avisa en lugar de la lista.
+export const Tareas = () => {
   const { user } = useAuth() || {};
   const { t, formatearFecha } = useI18n();
   const userId = user?.id;
@@ -72,8 +72,6 @@ export const TareasAsignadas = () => {
     setGuardando(null);
   };
 
-  if (!activo && !cargando) return null;
-
   const tarjeta = (tarea, hecha) => {
     const vencida = estaVencida(tarea);
     return (
@@ -117,12 +115,19 @@ export const TareasAsignadas = () => {
   };
 
   return (
-    <section aria-labelledby="tareas-titulo" style={{ marginBottom: '2rem' }}>
-      <h4 id="tareas-titulo" style={{ margin: '0 0 0.25rem', fontSize: '1rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <ListChecks size={18} style={{ color: '#7c3aed' }} /> {t('tareas.titulo')}
-        {pendientes.length > 0 && <Badge variant="warning">{pendientes.length}</Badge>}
-      </h4>
-      <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{t('tareas.subtitulo')}</p>
+    <div className="animate-fade-in" style={{ width: '100%', maxWidth: '820px', margin: '0 auto', paddingBottom: '3rem' }}>
+      <div className="page-header">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', margin: 0 }}>
+              <ListChecks size={28} style={{ color: '#7c3aed' }} /> {t('tareas.titulo')}
+            </h1>
+            {/* Fuera del h1: el título usa texto con degradado y la insignia heredaría el relleno transparente */}
+            {pendientes.length > 0 && <Badge variant="warning">{pendientes.length}</Badge>}
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>{t('tareas.subtitulo')}</p>
+        </div>
+      </div>
 
       {error && (
         <div role="alert" style={{ padding: '0.75rem', marginBottom: '0.85rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -131,11 +136,15 @@ export const TareasAsignadas = () => {
       )}
 
       {cargando ? (
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('tareas.cargando')}</p>
+        <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>{t('tareas.cargando')}</div>
+      ) : !activo ? (
+        <div className="card" style={{ padding: '1.5rem', color: 'var(--text-secondary)' }}>{t('tareas.inactivo')}</div>
       ) : (
         <>
           {pendientes.length === 0 ? (
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>{t('tareas.vacio')}</p>
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>{t('tareas.vacio')}</p>
+            </div>
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {pendientes.map(x => tarjeta(x, false))}
@@ -153,6 +162,6 @@ export const TareasAsignadas = () => {
           )}
         </>
       )}
-    </section>
+    </div>
   );
 };
