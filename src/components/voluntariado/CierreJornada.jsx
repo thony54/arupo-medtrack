@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { usePersistentState } from '../../hooks/usePersistentState';
-import { getRolLabel } from '../../utils/roles';
 import { useI18n } from '../../i18n/useI18n';
 import { notificarBitacora } from '../../lib/bitacoras';
 import { cargarLeccionesDesde } from '../../lib/curso';
@@ -25,8 +24,6 @@ const campoStyle = { display: 'flex', flexDirection: 'column', gap: '0.4rem' };
 const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const { user, profile } = useAuth() || {};
   const { t, idioma, formatearFechaHora } = useI18n();
-  // Etiqueta del rol traducida; si no hay traducción, la de siempre.
-  const rolEtiqueta = (rol) => { const k = `roles.${rol}`; const v = t(k); return v === k ? getRolLabel(rol) : v; };
 
   // Borradores persistentes: si la señal falla o la app se minimiza, no se pierde lo escrito.
   const [actividades, setActividades] = usePersistentState('cierrejornada.actividades', [nuevaActividad()]);
@@ -48,31 +45,17 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
   const inputCamara = useRef(null);
   const inputGaleria = useRef(null);
 
-  // Líderes que se pueden elegir: los designados por la coordinación (es_lider).
+  // Líderes que se pueden elegir: solo los que la coordinación designa en Equipos (es_lider).
+  // Sin respaldo por rol: registrar_bitacora rechaza a quien no sea es_lider.
   useEffect(() => {
     if (!supabase) return;
     let cancelado = false;
     (async () => {
-      let { data, error: err } = await supabase
+      const { data, error: err } = await supabase
         .from('perfiles')
-        .select('id, nombre, email, rol, es_coordinador')
+        .select('id, nombre, email')
         .eq('es_lider', true)
         .order('nombre');
-      if (err) {
-        // Aún no existe es_lider (falta schema_v27): se usa la regla anterior por rol.
-        ({ data, error: err } = await supabase
-          .from('perfiles')
-          .select('id, nombre, email, rol, es_coordinador')
-          .or('rol.in.(super_admin,brigadista),es_coordinador.eq.true')
-          .order('nombre'));
-      }
-      if (err) {
-        ({ data, error: err } = await supabase
-          .from('perfiles')
-          .select('id, nombre, email, rol')
-          .in('rol', ['super_admin', 'brigadista'])
-          .order('nombre'));
-      }
       if (cancelado) return;
       if (err) console.error('No se pudo cargar la lista de líderes:', err.message);
       const lista = err ? [] : data || [];
@@ -363,7 +346,7 @@ const CierreJornadaModal = ({ onClose, onSuccess }) => {
               <option value="" disabled>{lideres === null ? t('comun.cargando') : t('cierre.lider_placeholder')}</option>
               {(lideres || []).map(l => (
                 <option key={l.id} value={l.id}>
-                  {l.nombre || l.email} · {l.es_coordinador ? t('roles.coordinador') : rolEtiqueta(l.rol)}
+                  {l.nombre?.trim() || (l.email || '').split('@')[0]}
                 </option>
               ))}
             </select>

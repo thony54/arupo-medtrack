@@ -71,7 +71,7 @@ export default {
   'cierre.quitar_foto': 'Rimuovi foto',
   'cierre.quitar_foto_n': 'Rimuovi foto {n}',
   'cierre.registrada': 'Registrata il {fecha}. Il tuo coordinatore la esaminerà.',
-  'cierre.sin_lideres': 'Nessun responsabile disponibile. Avvisa l’amministratore.',
+  'cierre.sin_lideres': 'Non ci sono ancora responsabili disponibili. Avvisa il coordinamento dei volontari.',
   'cierre.titulo': 'Chiusura della Giornata',
   'cierre.titulo_listo': 'Giornata registrata',
   'cierre.tomar_foto': 'Scatta una foto',

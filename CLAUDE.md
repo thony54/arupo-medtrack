@@ -61,7 +61,7 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v30, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v31, schema_salud)
 ```
 
 ### Roles y rutas
@@ -109,9 +109,12 @@ Revisar".
 puede ser "líder responsable" (lo designa un super_admin o coordinador con los RPC
 `asignar_lider` / `asignar_voluntario_a_lider`, porque `perfiles` solo lo escribe
 super_admin) y `perfiles.lider_id` es el líder asignado a un voluntario. El selector del
-cierre de jornada lista solo a los `es_lider` y preselecciona el asignado; `registrar_bitacora`
-lo valida igual. La migración marca como líderes a super_admin, brigadistas y coordinadores
-para no cambiar nada de golpe. `/equipos` también muestra la actividad de 30 días por
+cierre de jornada lista solo a los `es_lider` (solo el nombre, sin correo ni rol; sin respaldo
+por rol) y preselecciona el asignado; `registrar_bitacora` lo valida igual. Líder es únicamente
+quien designa la coordinación en `/equipos`: ni voluntarios ni brigadistas lo son por defecto.
+(La migración v27 sembró como líderes a super_admin, brigadistas y coordinadores; esa siembra
+se reinicia a mano con un UPDATE puntual en el SQL Editor, sin archivo de schema para no
+borrar designaciones al re-ejecutarlo. No vuelvas a sembrarlos.) `/equipos` también muestra la actividad de 30 días por
 voluntario y por líder.
 
 **Tareas asignadas** (`schema_v30.sql`): la pestaña "Mis Actividades" muestra, encima del

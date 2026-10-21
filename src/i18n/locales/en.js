@@ -71,7 +71,7 @@ export default {
   'cierre.quitar_foto': 'Remove photo',
   'cierre.quitar_foto_n': 'Remove photo {n}',
   'cierre.registrada': 'Recorded on {fecha}. Your coordinator will review it.',
-  'cierre.sin_lideres': 'No leaders are available. Please tell the administrator.',
+  'cierre.sin_lideres': 'No leaders are available yet. Please tell the volunteer coordination team.',
   'cierre.titulo': 'Close of Day',
   'cierre.titulo_listo': 'Day recorded',
   'cierre.tomar_foto': 'Take photo',

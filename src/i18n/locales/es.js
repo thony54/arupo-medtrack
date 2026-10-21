@@ -71,7 +71,7 @@ export default {
   'cierre.quitar_foto': 'Quitar foto',
   'cierre.quitar_foto_n': 'Quitar foto {n}',
   'cierre.registrada': 'Registrada el {fecha}. Tu coordinador la revisará.',
-  'cierre.sin_lideres': 'No se encontraron líderes disponibles. Avisa al administrador.',
+  'cierre.sin_lideres': 'Aún no hay líderes disponibles. Avisa a la coordinación de voluntariado.',
   'cierre.titulo': 'Cierre de Jornada',
   'cierre.titulo_listo': 'Jornada registrada',
   'cierre.tomar_foto': 'Tomar foto',

@@ -71,7 +71,7 @@ export default {
   'cierre.quitar_foto': 'Supprimer la photo',
   'cierre.quitar_foto_n': 'Supprimer la photo {n}',
   'cierre.registrada': 'Enregistrée le {fecha}. Votre coordinateur la vérifiera.',
-  'cierre.sin_lideres': 'Aucun responsable disponible. Prévenez l’administrateur.',
+  'cierre.sin_lideres': 'Aucun responsable disponible pour le moment. Prévenez la coordination du bénévolat.',
   'cierre.titulo': 'Clôture de la journée',
   'cierre.titulo_listo': 'Journée enregistrée',
   'cierre.tomar_foto': 'Prendre une photo',

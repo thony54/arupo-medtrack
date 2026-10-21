@@ -71,7 +71,7 @@ export default {
   'cierre.quitar_foto': 'Foto entfernen',
   'cierre.quitar_foto_n': 'Foto {n} entfernen',
   'cierre.registrada': 'Erfasst am {fecha}. Deine Koordination wird sie prüfen.',
-  'cierre.sin_lideres': 'Es sind keine Gruppenleitungen verfügbar. Bitte informiere die Administration.',
+  'cierre.sin_lideres': 'Es sind noch keine Gruppenleitungen verfügbar. Bitte informiere die Freiwilligenkoordination.',
   'cierre.titulo': 'Tagesabschluss',
   'cierre.titulo_listo': 'Einsatztag erfasst',
   'cierre.tomar_foto': 'Foto aufnehmen',
