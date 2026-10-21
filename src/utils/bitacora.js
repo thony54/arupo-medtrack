@@ -2,7 +2,9 @@
 // Los límites deben coincidir con los de la función registrar_bitacora
 // (supabase/schema_v24.sql y v26), que es quien las hace valer en el servidor.
 
-import { tEs } from '../i18n/tEs';
+// Con extensión `.js`: api/notify-bitacora.js importa este archivo y el servidor de Vercel
+// (Node ESM) no resuelve imports sin ella. Vite los acepta igual.
+import { tEs } from '../i18n/tEs.js';
 
 export const BUCKET_FOTOS = 'momentos-felices';
 export const MAX_ACTIVIDADES = 20;
