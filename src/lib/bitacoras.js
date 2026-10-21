@@ -27,7 +27,11 @@ export const firmarFotos = async (rutas, segundos = 3600) => {
 // fire-and-forget: nunca lanza y nunca debe bloquear ni romper el cierre de
 // jornada. El servidor comprueba que la bitácora sea de quien llama y que no se
 // haya avisado ya, así que repetir la llamada es inofensivo.
+const enCurso = new Set(); // bitácoras con un aviso en vuelo: no se repiten en paralelo
+
 export const notificarBitacora = async (bitacoraId) => {
+  if (enCurso.has(bitacoraId)) return false;
+  enCurso.add(bitacoraId);
   try {
     if (!supabase) return false;
     const { data } = await supabase.auth.getSession();
@@ -42,5 +46,7 @@ export const notificarBitacora = async (bitacoraId) => {
     return res.ok;
   } catch {
     return false; // sin red: se reintenta al volver a abrir Mis Actividades
+  } finally {
+    enCurso.delete(bitacoraId);
   }
 };

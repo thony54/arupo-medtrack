@@ -96,8 +96,10 @@ export const etiquetaEstado = (estado, t = tEs) => {
 };
 
 // Reduce la foto antes de subirla: lado mayor ≤ maxLado, JPEG. Una foto de
-// celular ronda los 4–8 MB; así queda en unos 150–400 KB y sube aun con poca señal.
-export const comprimirImagen = (file, maxLado = 1280, calidad = 0.8) =>
+// celular ronda los 4–8 MB; así queda en unos 400–900 KB y sube aun con poca señal.
+// Esa es la única copia que se guarda y la que llega a Discord, así que no conviene bajarla
+// más: 1920 px se ve nítida a pantalla completa y 0,85 casi no añade artefactos.
+export const comprimirImagen = (file, maxLado = 1920, calidad = 0.85) =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -107,7 +109,12 @@ export const comprimirImagen = (file, maxLado = 1280, calidad = 0.8) =>
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * escala);
       canvas.height = Math.round(img.height * escala);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const ctx = canvas.getContext('2d');
+      // Por defecto el navegador reduce con un filtro rápido y de baja calidad (bordes dentados
+      // y detalles borrosos al pasar de 4000 px a 1920); 'high' usa el filtro bueno.
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error('No se pudo procesar la imagen.'))),
         'image/jpeg',

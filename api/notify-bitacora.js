@@ -30,9 +30,19 @@ const clip = (v, max) => {
   return s.length > max ? s.slice(0, max - 1) + '…' : s;
 };
 
+// Dirección de la pantalla de revisión de bitácoras, a partir del host de la petición.
+// null si el host no tiene la forma esperada (no se enlaza nada en ese caso).
+const enlaceDeRevision = (req) => {
+  const host = String(req.headers?.['x-forwarded-host'] || req.headers?.host || '').split(',')[0].trim();
+  return /^[a-z0-9.-]+(:\d+)?$/i.test(host) ? `https://${host}/bitacoras` : null;
+};
+
 // Mensaje de Discord a partir de la fila que devuelve obtener_bitacora_a_notificar.
-// `adjuntos` son los nombres de archivo ya descargados (el primero va dentro del embed).
-export const componerMensaje = (b, adjuntos) => {
+// `adjuntos` son los nombres de archivo ya descargados, en el orden en que se tomaron.
+// Con `enlace`, todas las fotos salen juntas dentro de la tarjeta, en una galería: Discord
+// agrupa los embeds que comparten la misma `url`. Sin eso, la primera foto iba dentro de la
+// tarjeta y las demás como adjuntos sueltos, fuera de ella y en otro orden.
+export const componerMensaje = (b, adjuntos, enlace = null) => {
   const actividades = Array.isArray(b.actividades) ? b.actividades : [];
   const epoch = Math.floor(new Date(b.created_at).getTime() / 1000);
 
@@ -44,17 +54,22 @@ export const componerMensaje = (b, adjuntos) => {
   if (b.formacion_continua) campos.push({ name: 'Formación continua', value: clip(b.formacion_continua, 1024), inline: false });
   campos.push({ name: 'Fotos', value: String(adjuntos.length), inline: true });
 
+  const imagen = (nombre) => ({ url: `attachment://${nombre}` });
+  const tarjeta = {
+    title: clip(`📝 Nueva bitácora: ${b.voluntario_nombre || 'Voluntario'}`, 240),
+    description: clip(actividades.map((a) => `• ${describirActividad(a)}`).join('\n'), 4000) || undefined,
+    color: 0x7c3aed,
+    fields: campos,
+    image: adjuntos.length ? imagen(adjuntos[0]) : undefined,
+    timestamp: b.created_at,
+  };
+  const galeria = enlace && adjuntos.length > 1;
+  if (galeria) tarjeta.url = enlace;
+
   return {
     username: 'MedTrack',
     allowed_mentions: { parse: [] }, // nunca @everyone/@here
-    embeds: [{
-      title: clip(`📝 Nueva bitácora: ${b.voluntario_nombre || 'Voluntario'}`, 240),
-      description: clip(actividades.map((a) => `• ${describirActividad(a)}`).join('\n'), 4000) || undefined,
-      color: 0x7c3aed,
-      fields: campos,
-      image: adjuntos.length ? { url: `attachment://${adjuntos[0]}` } : undefined,
-      timestamp: b.created_at,
-    }],
+    embeds: [tarjeta, ...(galeria ? adjuntos.slice(1).map((n) => ({ url: enlace, image: imagen(n) })) : [])],
   };
 };
 
@@ -125,7 +140,7 @@ export default async function handler(req, res) {
     }
 
     const form = new FormData();
-    form.append('payload_json', JSON.stringify(componerMensaje(fila, archivos.map((a) => a.nombre))));
+    form.append('payload_json', JSON.stringify(componerMensaje(fila, archivos.map((a) => a.nombre), enlaceDeRevision(req))));
     archivos.forEach((a, i) => form.append(`files[${i}]`, a.blob, a.nombre));
 
     const r = await fetch(webhook, { method: 'POST', body: form });

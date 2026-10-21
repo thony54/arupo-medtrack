@@ -15,10 +15,12 @@ const VENTANA_AVISO_MS = 3 * 24 * 60 * 60 * 1000; // igual que obtener_bitacora_
 
 // Reintenta el aviso a Discord de jornadas recientes que aún no se avisaron (por ejemplo,
 // si se cerró la jornada sin señal). El servidor lo hace valer una sola vez por bitácora.
-// Solo actúa si la columna existe (schema_v26 aplicado).
+// Solo actúa si la columna existe (schema_v26 aplicado). Van de la más antigua a la más
+// nueva y de una en una, para que lleguen al canal en el orden en que se cerraron.
 const reintentarAvisos = async (bitacoras) => {
-  const pendientes = bitacoras.filter(b =>
-    'notificada_en' in b && !b.notificada_en && Date.now() - new Date(b.created_at).getTime() < VENTANA_AVISO_MS);
+  const pendientes = bitacoras
+    .filter(b => 'notificada_en' in b && !b.notificada_en && Date.now() - new Date(b.created_at).getTime() < VENTANA_AVISO_MS)
+    .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
   for (const b of pendientes) await notificarBitacora(b.id);
 };
 
