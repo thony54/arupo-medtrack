@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ClipboardList, Plus, MapPin, UserCheck, GraduationCap, AlertCircle, CheckCircle } from 'lucide-react';
+import { ClipboardList, Plus, MapPin, UserCheck, GraduationCap, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -182,12 +182,26 @@ export const MisActividades = () => {
                                 <CheckCircle size={14} /> {t('actividades.aprobada_por', { nombre: b.revisado_por_nombre })}
                               </span>
                             )}
+                            {b.estado === 'rechazada' && b.revisado_por_nombre && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <XCircle size={14} /> {t('actividades.rechazada_por', { nombre: b.revisado_por_nombre })}
+                              </span>
+                            )}
                             {b.formacion_continua && (
                               <span style={{ display: 'flex', alignItems: 'flex-start', gap: '0.35rem' }}>
                                 <GraduationCap size={14} style={{ flexShrink: 0, marginTop: '2px' }} /> {b.formacion_continua}
                               </span>
                             )}
                           </div>
+
+                          {b.estado === 'rechazada' && b.motivo_rechazo && (
+                            <div role="note" style={{ padding: '0.7rem 0.85rem', background: 'var(--danger-bg)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+                              <div style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--danger-color)', marginBottom: '0.25rem' }}>
+                                {t('actividades.motivo_rechazo')}
+                              </div>
+                              <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-line' }}>{b.motivo_rechazo}</div>
+                            </div>
+                          )}
 
                           {(b.fotos || []).some(r => fotos[r]) && (
                             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>

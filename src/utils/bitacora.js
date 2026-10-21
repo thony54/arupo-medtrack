@@ -87,10 +87,11 @@ export const horasDeBitacora = (b) =>
   Math.round((Array.isArray(b.actividades) ? b.actividades : []).reduce((t, a) => t + horasDeActividad(a), 0) * 100) / 100;
 
 // Estado de revisión de una bitácora → texto y variante de <Badge>.
-export const etiquetaEstado = (estado, t = tEs) =>
-  estado === 'aprobada'
-    ? { label: t('bitacora.estado_aprobada'), variant: 'success' }
-    : { label: t('bitacora.estado_pendiente'), variant: 'warning' };
+export const etiquetaEstado = (estado, t = tEs) => {
+  if (estado === 'aprobada') return { label: t('bitacora.estado_aprobada'), variant: 'success' };
+  if (estado === 'rechazada') return { label: t('bitacora.estado_rechazada'), variant: 'danger' };
+  return { label: t('bitacora.estado_pendiente'), variant: 'warning' };
+};
 
 // Reduce la foto antes de subirla: lado mayor ≤ maxLado, JPEG. Una foto de
 // celular ronda los 4–8 MB; así queda en unos 150–400 KB y sube aun con poca señal.

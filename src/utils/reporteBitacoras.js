@@ -15,7 +15,8 @@ const hora = (iso) => (iso ? new Date(iso).toLocaleTimeString('es-ES', { hour: '
 // "2026-10-15 14:03:22 UTC": el instante que fijó el servidor, sin zona horaria local de por medio.
 const marcaUtc = (iso) => (iso ? `${new Date(iso).toISOString().slice(0, 19).replace('T', ' ')} UTC` : '');
 
-const etiquetaEstado = (e) => (e === 'aprobada' ? 'Aprobada' : 'Pendiente');
+const ETIQUETAS_ESTADO = { aprobada: 'Aprobada', rechazada: 'Rechazada' };
+const etiquetaEstado = (e) => ETIQUETAS_ESTADO[e] || 'Pendiente';
 
 // Código corto para identificar al voluntario sin exponer el UUID completo.
 const codigoDe = (id) => String(id || '').slice(0, 8).toUpperCase();
@@ -47,12 +48,12 @@ export const construirHojas = (bitacoras, voluntarios, { fotos = {}, curso = nul
 
     const r = resumen.get(b.voluntario_id) || {
       'ID': v.codigo, 'Voluntario': v.nombre, 'Correo': v.email, 'Tiempo de estancia': v.estancia,
-      'Jornadas': 0, 'Actividades': 0, 'Horas totales': 0, 'Aprobadas': 0, 'Pendientes': 0,
+      'Jornadas': 0, 'Actividades': 0, 'Horas totales': 0, 'Aprobadas': 0, 'Pendientes': 0, 'Rechazadas': 0,
       'Avance español (%)': v.avancePct, 'Nivel de español': v.avanceNivel
     };
     r['Jornadas'] += 1;
     r['Actividades'] += acts.length;
-    r[b.estado === 'aprobada' ? 'Aprobadas' : 'Pendientes'] += 1;
+    r[b.estado === 'aprobada' ? 'Aprobadas' : b.estado === 'rechazada' ? 'Rechazadas' : 'Pendientes'] += 1;
 
     for (const a of acts) {
       const h = horasDeActividad(a);
@@ -79,7 +80,8 @@ export const construirHojas = (bitacoras, voluntarios, { fotos = {}, curso = nul
         'Nivel de español': v.avanceNivel,
         'Estado': etiquetaEstado(b.estado),
         'Revisado por': b.revisado_por_nombre || '',
-        'Fecha de revisión': fecha(b.revisado_en)
+        'Fecha de revisión': fecha(b.revisado_en),
+        'Motivo del rechazo': b.motivo_rechazo || ''
       });
     }
     resumen.set(b.voluntario_id, r);

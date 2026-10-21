@@ -15,6 +15,7 @@ import { Perfil } from './pages/Perfil';
 import { Evaluaciones } from './pages/Evaluaciones';
 import { Bitacoras } from './pages/Bitacoras';
 import { Equipos } from './pages/Equipos';
+import { AsignarTareas } from './pages/AsignarTareas';
 import { Curso } from './pages/Curso';
 import { MisActividades } from './pages/MisActividades';
 import { Tareas } from './pages/Tareas';
@@ -91,6 +92,12 @@ function App() {
             <Route path="equipos" element={
               <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
                 <Equipos />
+              </ProtectedRoute>
+            } />
+            {/* Asignar tareas a los voluntarios: Super Admin y Coordinadores */}
+            <Route path="asignar-tareas" element={
+              <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
+                <AsignarTareas />
               </ProtectedRoute>
             } />
             {/* Curso de español (opcional): Voluntarios; el Super Admin puede revisarlo */}

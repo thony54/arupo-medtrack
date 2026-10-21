@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Network, Search, Star, UserPlus, AlertCircle, CheckCircle, ListChecks } from 'lucide-react';
+import { Network, Search, Star, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { cargarPerfiles, cargarBitacorasRecientes, designarLider, asignarVoluntarioALider } from '../lib/equipos';
 import { cargarResumenCurso } from '../lib/curso';
-import { cargarTareas } from '../lib/tareas';
 import { todasLasLecciones } from '../curso/contenido';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { GestionarTareas } from '../components/voluntariado/GestionarTareas';
 import { getRolLabel } from '../utils/roles';
 import { horasDeBitacora } from '../utils/bitacora';
 import './pages.css';
@@ -40,8 +38,6 @@ export const Equipos = () => {
   const [busqueda, setBusqueda] = useState('');
   const [nuevoLiderId, setNuevoLiderId] = useState('');
   const [cursoPorUsuario, setCursoPorUsuario] = useState(null); // Map o null si no está disponible (schema_v29)
-  const [tareas, setTareas] = useState(null); // lista o null si no está disponible (schema_v30)
-  const [tareasDe, setTareasDe] = useState(null); // voluntario cuyo modal de tareas está abierto
   const totalLeccionesCurso = todasLasLecciones().length;
   const [ahora] = useState(() => Date.now()); // referencia fija para "hace N días"
 
@@ -56,9 +52,6 @@ export const Equipos = () => {
       .then(([resPerfiles, recientes]) => {
         if (cancelado) return;
         cargarResumenCurso().then((m) => { if (!cancelado) setCursoPorUsuario(m); });
-        cargarTareas()
-          .then((r) => { if (!cancelado) setTareas(r.activo ? r.tareas : null); })
-          .catch((err) => console.error('No se pudieron cargar las tareas:', err));
         setPerfiles(resPerfiles.perfiles);
         setLiderazgo(resPerfiles.liderazgo);
         setBitacoras(recientes);
@@ -106,23 +99,6 @@ export const Equipos = () => {
   }, [bitacoras]);
 
   const asignadosA = (liderId) => voluntarios.filter(v => v.lider_id === liderId).length;
-
-  // Tareas pendientes por voluntario (para la columna "Tareas").
-  const pendientesPorVoluntario = useMemo(() => {
-    const m = {};
-    for (const x of tareas || []) if (x.estado === 'pendiente') m[x.voluntario_id] = (m[x.voluntario_id] || 0) + 1;
-    return m;
-  }, [tareas]);
-
-  const recargarTareas = async () => {
-    try {
-      const r = await cargarTareas();
-      if (r.activo) setTareas(r.tareas);
-    } catch (err) {
-      console.error('No se pudieron recargar las tareas:', err);
-      setError('No se pudo actualizar la lista de tareas. Recarga la página.');
-    }
-  };
 
   const mostrarResultado = (res, textoOk) => {
     if (res.ok) {
@@ -201,12 +177,27 @@ export const Equipos = () => {
               <Star size={18} style={{ color: '#d97706' }} /> Líderes de grupo
             </h2>
 
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <select className="input-field" style={{ marginBottom: 0, flex: '1 1 240px', maxWidth: '380px' }} value={nuevoLiderId}
+                onChange={e => setNuevoLiderId(e.target.value)} aria-label="Persona a designar como líder">
+                <option value="">Elige a quién designar como líder...</option>
+                {candidatos.map(c => (
+                  <option key={c.id} value={c.id}>{nombreDe(c)} · {getRolLabel(c.rol)}</option>
+                ))}
+              </select>
+              <Button type="button" variant="primary" disabled={!nuevoLiderId || guardando === nuevoLiderId}
+                onClick={() => cambiarLider(candidatos.find(c => c.id === nuevoLiderId), true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <UserPlus size={16} /> Designar líder
+              </Button>
+            </div>
+
             {lideres.length === 0 ? (
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', fontStyle: 'italic', margin: '0 0 1rem' }}>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>
                 Aún no hay líderes. Designa al menos uno: los voluntarios lo eligen al cerrar su jornada.
               </p>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '0.85rem' }}>
                 {lideres.map(l => {
                   const act = porLider[l.id] || { jornadas: 0, pendientes: 0, horas: 0 };
                   return (
@@ -234,21 +225,6 @@ export const Equipos = () => {
                 })}
               </div>
             )}
-
-            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
-              <select className="input-field" style={{ marginBottom: 0, flex: '1 1 240px', maxWidth: '380px' }} value={nuevoLiderId}
-                onChange={e => setNuevoLiderId(e.target.value)} aria-label="Persona a designar como líder">
-                <option value="">Elige a quién designar como líder...</option>
-                {candidatos.map(c => (
-                  <option key={c.id} value={c.id}>{nombreDe(c)} · {getRolLabel(c.rol)}</option>
-                ))}
-              </select>
-              <Button type="button" variant="primary" disabled={!nuevoLiderId || guardando === nuevoLiderId}
-                onClick={() => cambiarLider(candidatos.find(c => c.id === nuevoLiderId), true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <UserPlus size={16} /> Designar líder
-              </Button>
-            </div>
           </section>
 
           {/* Voluntarios */}
@@ -274,13 +250,12 @@ export const Equipos = () => {
                     <th>Horas</th>
                     <th>Última jornada</th>
                     {cursoPorUsuario && <th>Curso</th>}
-                    {tareas && <th>Tareas</th>}
                     <th>Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {voluntariosFiltrados.length === 0 ? (
-                    <tr><td colSpan={6 + (cursoPorUsuario ? 1 : 0) + (tareas ? 1 : 0)} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>No hay voluntarios que coincidan.</td></tr>
+                    <tr><td colSpan={5 + (cursoPorUsuario ? 1 : 0)} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>No hay voluntarios que coincidan.</td></tr>
                   ) : voluntariosFiltrados.map(v => {
                     const act = porVoluntario[v.id];
                     const inactivo = !act || (ahora - new Date(act.ultima).getTime()) > DIAS_SIN_ACTIVIDAD * MS_DIA;
@@ -302,15 +277,6 @@ export const Equipos = () => {
                         <td>{act?.horas || 0}</td>
                         <td>{haceCuanto(act?.ultima, ahora)}</td>
                         {cursoPorUsuario && <td>{cursoPorUsuario.get(v.id) || 0}/{totalLeccionesCurso}</td>}
-                        {tareas && (
-                          <td>
-                            <Button type="button" variant="outline" size="sm" onClick={() => setTareasDe(v)}
-                              aria-label={`Gestionar las tareas de ${nombreDe(v)}`}
-                              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', whiteSpace: 'nowrap' }}>
-                              <ListChecks size={14} /> {pendientesPorVoluntario[v.id] || 0} {pendientesPorVoluntario[v.id] === 1 ? 'pendiente' : 'pendientes'}
-                            </Button>
-                          </td>
-                        )}
                         <td>
                           <Badge variant={inactivo ? 'warning' : 'success'}>
                             {inactivo ? `Sin actividad ${DIAS_SIN_ACTIVIDAD}+ días` : 'Activo'}
@@ -324,15 +290,6 @@ export const Equipos = () => {
             </div>
           </section>
         </>
-      )}
-
-      {tareasDe && (
-        <GestionarTareas
-          voluntario={tareasDe}
-          tareas={(tareas || []).filter(x => x.voluntario_id === tareasDe.id)}
-          onCambio={recargarTareas}
-          onClose={() => setTareasDe(null)}
-        />
       )}
     </div>
   );

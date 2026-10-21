@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity, ClipboardCheck, ClipboardList, ListChecks, Network, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity, ClipboardCheck, ClipboardList, ListChecks, ListPlus, Network, GraduationCap } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
@@ -184,6 +184,7 @@ export const Sidebar = () => {
             </div>
             {navItem('/bitacoras', ClipboardCheck, 'Bitácoras')}
             {navItem('/equipos', Network, 'Equipos')}
+            {navItem('/asignar-tareas', ListPlus, 'Asignar tareas')}
           </>
         )}
 

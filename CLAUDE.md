@@ -62,7 +62,7 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v31, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v32, schema_salud)
 ```
 
 ### Roles y rutas
@@ -103,8 +103,12 @@ en UTC, detalle de actividades, líder a cargo, evidencia (enlaces firmados de *
 fotos del bucket privado, como hipervínculo) y avance de español (% y nivel, de `curso_resumen`;
 "N/D" si falta v29). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
 el coordinador no es un valor de `rol`. Aprobar solo se hace con el RPC
-`aprobar_bitacora` (nadie aprueba la suya). El Inicio muestra el KPI "Bitácoras por
-Revisar".
+`aprobar_bitacora` (nadie aprueba la suya). **Rechazar** (`schema_v32.sql`): estado `rechazada`,
+columna `motivo_rechazo` (mensaje obligatorio, ≤500) y RPC `rechazar_bitacora`; el voluntario
+ve el estado y el mensaje en Mis Actividades (`bitacora.estado_rechazada`,
+`actividades.motivo_rechazo`). Una bitácora aprobada o rechazada no se vuelve a tocar: para
+corregir, el voluntario registra una jornada nueva. El Inicio muestra el KPI "Bitácoras por
+Revisar" (solo pendientes).
 
 **Líderes de grupo** (`schema_v27.sql`, pantalla `/equipos`): `perfiles.es_lider` marca quién
 puede ser "líder responsable" (lo designa un super_admin o coordinador con los RPC
@@ -120,12 +124,13 @@ voluntario y por líder.
 
 **Tareas asignadas** (`schema_v30.sql`): el menú del voluntario tiene su propia página
 "Tareas" (`/tareas`, `pages/Tareas.jsx`) con lo que la coordinación le asignó. Las
-asigna el coordinador (o super_admin) desde `/equipos`, columna "Tareas" → modal
-`GestionarTareas`. Tabla `tareas_voluntario` sin escritura por API: solo los RPC
+asigna el coordinador (o super_admin) desde su propia pantalla `/asignar-tareas`
+(`pages/AsignarTareas.jsx`, menú "Coordinación"): asignar, ver pendientes y hechas por
+voluntario y retirar; `/equipos` ya no maneja tareas. Tabla `tareas_voluntario` sin escritura por API: solo los RPC
 `asignar_tarea`, `completar_tarea` (el voluntario dueño o la coordinación) y `retirar_tarea`.
 El voluntario ve solo las suyas; el Inicio le avisa cuántas tiene pendientes. La app oculta
 todo mientras la tabla no exista (`lib/tareas.js`). Textos de voluntario en 6 idiomas
-(`tareas.*`); el modal de la coordinación va en español.
+(`tareas.*`); la pantalla de la coordinación va en español.
 
 **Formación continua de la bitácora:** el cierre de jornada sugiere (ya marcadas) las lecciones
 del curso de español que el voluntario trabajó desde su última jornada (tope 7 días; lee

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ClipboardCheck, Download, CheckCircle, UserCheck, GraduationCap, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Download, CheckCircle, XCircle, UserCheck, GraduationCap, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { firmarFotos } from '../lib/bitacoras';
 import { cargarPerfiles } from '../lib/equipos';
@@ -17,6 +17,8 @@ const MAX_LOTES_EXCEL = 20;
 const DIAS_ENLACES_EXCEL = 7; // las fotos pueden mostrar beneficiarios: los enlaces del Excel caducan
 const VIGENCIA_ENLACES_EXCEL = DIAS_ENLACES_EXCEL * 24 * 60 * 60;
 const FILTROS_VACIOS = { voluntarioId: '', liderId: '', estado: '', desde: '', hasta: '' };
+
+const MAX_MOTIVO = 500; // igual que rechazar_bitacora (schema_v32.sql)
 
 const labelStyle = { fontSize: '0.78rem', fontWeight: '600', color: 'var(--text-secondary)' };
 const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -51,7 +53,7 @@ const obtenerPagina = async (desde, filtros) => {
 const tablaInexistente = (err) => err?.code === '42P01' || err?.code === 'PGRST205';
 
 // Pantalla de revisión de bitácoras para super_admin y coordinadores: lista con
-// filtros, aprobación y descarga a Excel.
+// filtros, aprobación o rechazo (con un mensaje para el voluntario) y descarga a Excel.
 export const Bitacoras = () => {
   const { user } = useAuth() || {};
   const [perfiles, setPerfiles] = useState([]);
@@ -64,6 +66,9 @@ export const Bitacoras = () => {
   const [error, setError] = useState('');
   const [aviso, setAviso] = useState('');
   const [aprobandoId, setAprobandoId] = useState(null);
+  const [rechazandoId, setRechazandoId] = useState(null); // bitácora con el cuadro de rechazo abierto
+  const [motivo, setMotivo] = useState('');
+  const [enviandoRechazo, setEnviandoRechazo] = useState(false);
   const [exportando, setExportando] = useState(false);
 
   // Perfiles: nombres para mostrar y lista de voluntarios para el filtro.
@@ -161,6 +166,50 @@ export const Bitacoras = () => {
     }
   };
 
+  const abrirRechazo = (b) => {
+    setRechazandoId(b.id);
+    setMotivo('');
+    setError('');
+    setAviso('');
+  };
+
+  const cancelarRechazo = () => {
+    setRechazandoId(null);
+    setMotivo('');
+  };
+
+  const rechazar = async (b) => {
+    const texto = motivo.trim();
+    if (!texto) {
+      setError('Escribe el mensaje para el voluntario: explícale por qué se rechaza su bitácora.');
+      return;
+    }
+    setEnviandoRechazo(true);
+    setError('');
+    setAviso('');
+    try {
+      const { data, error: err } = await supabase.rpc('rechazar_bitacora', { p_id: b.id, p_motivo: texto });
+      if (err) {
+        console.error('Error al rechazar la bitácora:', err);
+        if (err.code === 'PGRST202') throw new Error('Falta activar el rechazo en la base de datos (schema_v32.sql).');
+        if (err.code === '42501') throw new Error('No tienes permiso para rechazar bitácoras.');
+        if (err.code === 'P0002') throw new Error('Esta bitácora ya fue revisada o no se puede rechazar. Recarga la lista.');
+        if (err.code === '22023') throw new Error(`Escribe el motivo del rechazo (hasta ${MAX_MOTIVO} caracteres).`);
+        throw new Error('No se pudo rechazar la bitácora. Inténtalo de nuevo.');
+      }
+      const r = Array.isArray(data) ? data[0] : data;
+      setItems(prev => prev.map(x => (x.id === b.id
+        ? { ...x, estado: 'rechazada', motivo_rechazo: texto, revisado_por: user?.id, revisado_por_nombre: r?.rechazada_por, revisado_en: r?.rechazada_en }
+        : x)));
+      setAviso(`Bitácora de ${mapaPerfiles[b.voluntario_id]?.nombre || 'voluntario'} rechazada. Verá tu mensaje en Mis Actividades.`);
+      cancelarRechazo();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviandoRechazo(false);
+    }
+  };
+
   // Descarga TODO lo que coincide con los filtros (no solo la página cargada).
   const exportar = async () => {
     setExportando(true);
@@ -205,7 +254,7 @@ export const Bitacoras = () => {
         <div>
           <h1 className="page-title">Bitácoras de Voluntariado</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Jornadas que cierran los voluntarios: revisa, aprueba y descarga los reportes.
+            Jornadas que cierran los voluntarios: revisa, aprueba o rechaza y descarga los reportes.
           </p>
         </div>
         <Button variant="primary" onClick={exportar} disabled={exportando || moduloInactivo}
@@ -251,6 +300,7 @@ export const Bitacoras = () => {
                   <option value="">Todos</option>
                   <option value="pendiente">Pendientes de revisión</option>
                   <option value="aprobada">Aprobadas</option>
+                  <option value="rechazada">Rechazadas</option>
                 </select>
               </label>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', ...labelStyle }}>
@@ -341,13 +391,44 @@ export const Bitacoras = () => {
                           {b.revisado_en && ` · ${new Date(b.revisado_en).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`}
                         </div>
                       )
-                    ) : puedeAprobar && (
-                      <div>
-                        <Button type="button" variant="primary" onClick={() => aprobar(b)} disabled={aprobandoId === b.id}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <CheckCircle size={16} /> {aprobandoId === b.id ? 'Aprobando...' : 'Aprobar'}
-                        </Button>
+                    ) : b.estado === 'rechazada' ? (
+                      <div style={{ padding: '0.7rem 0.85rem', background: 'var(--danger-bg)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--danger-color)', marginBottom: '0.25rem' }}>
+                          Rechazada{b.revisado_por_nombre && ` por ${b.revisado_por_nombre}`}
+                          {b.revisado_en && ` · ${new Date(b.revisado_en).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                        </div>
+                        <div style={{ whiteSpace: 'pre-line' }}>{b.motivo_rechazo}</div>
                       </div>
+                    ) : puedeAprobar && (
+                      rechazandoId === b.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.85rem', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', background: 'var(--bg-surface)' }}>
+                          <label htmlFor={`motivo-${b.id}`} style={{ ...labelStyle, fontSize: '0.85rem' }}>
+                            Mensaje para {nombre} <span style={{ color: 'var(--danger-color)' }}>*</span>
+                          </label>
+                          <textarea id={`motivo-${b.id}`} className="input-field" style={{ marginBottom: 0, resize: 'vertical' }} rows={3}
+                            value={motivo} onChange={e => setMotivo(e.target.value)} maxLength={MAX_MOTIVO} disabled={enviandoRechazo}
+                            placeholder="Explícale por qué se rechaza y qué debe corregir. Lo verá en Mis Actividades." autoFocus />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                            <Button type="button" variant="danger" onClick={() => rechazar(b)} disabled={enviandoRechazo || !motivo.trim()}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <XCircle size={16} /> {enviandoRechazo ? 'Enviando...' : 'Enviar rechazo'}
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={cancelarRechazo} disabled={enviandoRechazo}>Cancelar</Button>
+                            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{motivo.length}/{MAX_MOTIVO}</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                          <Button type="button" variant="primary" onClick={() => aprobar(b)} disabled={aprobandoId === b.id}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <CheckCircle size={16} /> {aprobandoId === b.id ? 'Aprobando...' : 'Aprobar'}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={() => abrirRechazo(b)} disabled={aprobandoId === b.id}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--danger-color)', borderColor: 'var(--danger-color)' }}>
+                            <XCircle size={16} /> Rechazar
+                          </Button>
+                        </div>
+                      )
                     )}
                   </article>
                 );
