@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom';
 import { X } from 'lucide-react';
 import './ui.css';
 
-export const Modal = ({ isOpen, onClose, title, children, footer }) => {
+// size="lg": modal ancho para formularios largos (en pantallas chicas igual ocupa el 100%).
+export const Modal = ({ isOpen, onClose, title, children, footer, size }) => {
   const modalRef = useRef(null);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer }) => {
       }}
     >
       <div
-        className="modal-content"
+        className={size === 'lg' ? 'modal-content modal-content--lg' : 'modal-content'}
         ref={modalRef}
         role="dialog"
         aria-modal="true"

@@ -222,6 +222,25 @@
   animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* Modal ancho y más compacto para formularios largos por pasos. Con la altura de un
+   portátil de 768 px, el relleno estándar dejaba los campos de abajo fuera de vista. */
+.modal-content--lg {
+  max-width: 46rem;
+  max-height: min(94vh, 820px);
+}
+
+.modal-content--lg .modal-header {
+  padding: 1rem 2rem;
+}
+
+.modal-content--lg .modal-body {
+  padding: 1.25rem 2rem;
+}
+
+.modal-content--lg .modal-footer {
+  padding: 0.9rem 2rem;
+}
+
 .dark .modal-content {
   border-color: rgba(255, 255, 255, 0.08);
   background-color: #131c2c; /* Slightly darker refined background */
@@ -301,6 +320,24 @@
   .modal-body .grid-responsive {
     grid-template-columns: 1fr;
   }
+}
+
+/* Formulario de la evaluación de salud (SaludStepper). `.label` no tenía estilos y
+   `.input-field` no define ancho: la etiqueta quedaba en línea con el campo (en el
+   resumen, el cuadro de notas aparecía arriba a la derecha de su título, descolocado)
+   y los campos no ocupaban el ancho de su columna. */
+.salud-form .label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.salud-form .input-field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Ensure dropdown */

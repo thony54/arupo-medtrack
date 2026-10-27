@@ -1,4 +1,5 @@
 import { tEs } from '../i18n/tEs';
+import { cargarLogo } from '../utils/logo';
 
 // Certificado del curso en PDF (jsPDF, se carga solo al descargar).
 // El texto principal va SIEMPRE en español (documento oficial); si la persona usa otro
@@ -12,22 +13,6 @@ const GRIS = [100, 116, 139];
 export const folioDe = (userId, fin) => {
   const f = `${fin.getFullYear()}${String(fin.getMonth() + 1).padStart(2, '0')}${String(fin.getDate()).padStart(2, '0')}`;
   return `ARUPO-ESP-${f}-${String(userId || '').replace(/-/g, '').slice(0, 8).toUpperCase()}`;
-};
-
-const cargarLogo = async () => {
-  try {
-    const res = await fetch('/arupo-logo.png');
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise((resolve) => {
-      const lector = new FileReader();
-      lector.onload = () => resolve(lector.result);
-      lector.onerror = () => resolve(null);
-      lector.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
 };
 
 // datos: { nombre, userId, inicio, fin, duracionEs, duracionLocal, local }

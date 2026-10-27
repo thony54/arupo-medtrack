@@ -62,7 +62,7 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v33, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v34, schema_salud)
 ```
 
 ### Roles y rutas
@@ -158,6 +158,15 @@ del curso de español que el voluntario trabajó desde su última jornada (tope 
 `curso_progreso`, solo si v29 está aplicado). Lo marcado + el texto libre se guardan como un
 único texto en `bitacoras.formacion_continua` (`armarFormacionContinua` en `utils/bitacora.js`,
 siempre en español porque lo lee la coordinación y va al Excel). No hay columna nueva.
+
+**Evaluaciones de salud** (`/evaluaciones`, `components/salud/`): el stepper (`SaludStepper`) cierra
+cada examen con un diagnóstico escrito por el médico o brigadista (`diagnostico_fisico` en Medidas
+Físicas, `diagnostico_medico` en Examen Médico; `schema_v34.sql`). Si la columna aún no existe, el
+diagnóstico se guarda dentro de `notas` (no se pierde). El PDF (`SaludPDF.jsx`) es una hoja A4 con el
+logo, el diagnóstico y la firma de la directora de la Fundación (Maria Fernanda Ayala) y la del
+paciente; no lleva pie de "generado automáticamente". Todo texto libre se escapa (`esc`) antes de
+volcarlo en el HTML del PDF. El formulario usa `.salud-form` (`ui.css`): `.label` y `.input-field`
+no tienen ancho por defecto y fuera de ese contenedor la etiqueta queda en línea con el campo.
 
 ## Idiomas (6)
 

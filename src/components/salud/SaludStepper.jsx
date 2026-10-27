@@ -39,8 +39,29 @@ const initialFormData = () => ({
   glucosa: '',
   presion_sistolica: '',
   presion_diastolica: '',
+  diagnostico_fisico: '',
+  diagnostico_medico: '',
   notas: ''
 });
+
+// Diagnóstico escrito, en la tarjeta del resumen: se recorta a 2 líneas.
+const resumenDiagnostico = {
+  fontSize: '0.75rem',
+  color: 'var(--text-secondary)',
+  marginTop: '0.35rem',
+  display: '-webkit-box',
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: 'vertical',
+  overflow: 'hidden'
+};
+
+// Cuando la columna de diagnóstico aún no existe (falta schema_v34) el diagnóstico no
+// se pierde: se guarda dentro de las notas.
+const notasConDiagnostico = (f) => [
+  f.diagnostico_fisico?.trim() && `Diagnóstico (medidas físicas): ${f.diagnostico_fisico.trim()}`,
+  f.diagnostico_medico?.trim() && `Diagnóstico (examen médico): ${f.diagnostico_medico.trim()}`,
+  f.notas?.trim()
+].filter(Boolean).join('\n\n');
 
 export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
   const { profile } = useAuth();
@@ -127,7 +148,7 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
     setLoading(true);
     setError('');
     try {
-      const { error: err } = await supabase.from('evaluaciones_salud').insert({
+      const registro = {
         beneficiario_id: beneficiarioId,
         brigadista_id: profile?.id,
         fecha: formData.fecha,
@@ -146,8 +167,18 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
         glucosa: parseFloat(formData.glucosa),
         presion_sistolica: parseInt(formData.presion_sistolica),
         presion_diastolica: parseInt(formData.presion_diastolica),
+        diagnostico_fisico: formData.diagnostico_fisico?.trim() || null,
+        diagnostico_medico: formData.diagnostico_medico?.trim() || null,
         notas: formData.notas
-      });
+      };
+
+      let { error: err } = await supabase.from('evaluaciones_salud').insert(registro);
+
+      // 42703 / PGRST204: la columna aún no existe (falta schema_v34).
+      if (err && ['42703', 'PGRST204'].includes(err.code)) {
+        const { diagnostico_fisico, diagnostico_medico, ...base } = registro; // eslint-disable-line no-unused-vars
+        ({ error: err } = await supabase.from('evaluaciones_salud').insert({ ...base, notas: notasConDiagnostico(formData) }));
+      }
 
       if (err) throw err;
       // Evaluación guardada: limpiar el borrador para no reabrir con datos viejos.
@@ -163,8 +194,23 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  // Diagnóstico escrito por el médico o brigadista, al final de cada examen.
+  const renderDiagnostico = (name, titulo) => (
+    <div style={{ width: '100%' }}>
+      <label className="label">{titulo}</label>
+      <textarea
+        name={name}
+        className="input-field"
+        style={{ minHeight: '80px', resize: 'vertical' }}
+        value={formData[name] || ''}
+        onChange={handleInputChange}
+        placeholder="Escriba aquí el diagnóstico del médico o brigadista..."
+      ></textarea>
+    </div>
+  );
+
   const renderStepIndicator = () => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', position: 'relative' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', position: 'relative' }}>
       <div style={{ position: 'absolute', top: '50%', left: '0', right: '0', height: '2px', background: 'var(--border-color)', zIndex: 0, transform: 'translateY(-50%)' }}></div>
       {[1, 2, 3, 4].map(num => (
         <div 
@@ -196,6 +242,7 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
       isOpen={isOpen}
       onClose={onClose}
       title="Nueva Evaluación de Salud"
+      size="lg"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
           <Button variant="ghost" onClick={step === 1 ? onClose : prevStep} disabled={loading}>
@@ -207,7 +254,7 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
         </div>
       }
     >
-      <div style={{ minHeight: '400px' }}>
+      <div className="salud-form" style={{ minHeight: '400px' }}>
         {renderStepIndicator()}
 
         {error && (
@@ -299,15 +346,15 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
 
         {/* STEP 2: Medidas Físicas */}
         {step === 2 && (
-          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center', paddingTop: '1rem' }}>
+          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center' }}>
             <div style={{ textAlign: 'center', maxWidth: '400px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>Medidas Físicas</h3>
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>Ingrese la talla y el peso del paciente para calcular el IMC automáticamente.</p>
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-              <div className="card" style={{ padding: '2rem', width: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                <Ruler size={40} color="var(--primary-color)" />
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+              <div className="card" style={{ padding: '1.25rem 1.5rem', flex: '1 1 150px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <Ruler size={32} color="var(--primary-color)" />
                 <label className="label" style={{ textAlign: 'center' }}>Talla (cm)</label>
                 <input 
                   type="number" 
@@ -320,8 +367,8 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
                 />
               </div>
 
-              <div className="card" style={{ padding: '2rem', width: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                <Weight size={40} color="var(--primary-color)" />
+              <div className="card" style={{ padding: '1.25rem 1.5rem', flex: '1 1 150px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <Weight size={32} color="var(--primary-color)" />
                 <label className="label" style={{ textAlign: 'center' }}>Peso (kg)</label>
                 <input 
                   type="number" 
@@ -333,41 +380,47 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
                   placeholder="0"
                 />
               </div>
+
+              {formData.imc && (
+                <div className="card" style={{
+                  padding: '1rem 1.5rem',
+                  flex: '1 1 180px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(135deg, var(--primary-color), #10b981)',
+                  color: 'white',
+                  borderRadius: 'var(--radius-lg)',
+                  textAlign: 'center',
+                  boxShadow: '0 10px 25px rgba(16,185,129,0.3)'
+                }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', opacity: 0.9 }}>Índice de Masa Corporal (IMC)</div>
+                  <div style={{ fontSize: '2.25rem', fontWeight: '900', lineHeight: 1.2 }}>{formData.imc}</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>
+                    {formData.imc < 18.5 && 'Bajo peso'}
+                    {formData.imc >= 18.5 && formData.imc < 25 && 'Peso normal'}
+                    {formData.imc >= 25 && formData.imc < 30 && 'Sobrepeso'}
+                    {formData.imc >= 30 && 'Obesidad'}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {formData.imc && (
-              <div className="card" style={{ 
-                padding: '1.5rem 3rem', 
-                background: 'linear-gradient(135deg, var(--primary-color), #10b981)', 
-                color: 'white', 
-                borderRadius: 'var(--radius-lg)',
-                textAlign: 'center',
-                boxShadow: '0 10px 25px rgba(16,185,129,0.3)'
-              }}>
-                <div style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', opacity: 0.9 }}>Índice de Masa Corporal (IMC)</div>
-                <div style={{ fontSize: '3rem', fontWeight: '900' }}>{formData.imc}</div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>
-                  {formData.imc < 18.5 && 'Bajo peso'}
-                  {formData.imc >= 18.5 && formData.imc < 25 && 'Peso normal'}
-                  {formData.imc >= 25 && formData.imc < 30 && 'Sobrepeso'}
-                  {formData.imc >= 30 && 'Obesidad'}
-                </div>
-              </div>
-            )}
+            {renderDiagnostico('diagnostico_fisico', 'Diagnóstico — Medidas físicas')}
           </div>
         )}
 
         {/* STEP 3: Examen Médico */}
         {step === 3 && (
-          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center', paddingTop: '1rem' }}>
+          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center' }}>
             <div style={{ textAlign: 'center', maxWidth: '400px' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>Examen Médico</h3>
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem' }}>Registre los niveles de glucosa y la presión arterial.</p>
             </div>
 
-            <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-              <div className="card" style={{ padding: '2rem', width: '250px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                <Activity size={40} color="#ef4444" />
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+              <div className="card" style={{ padding: '1.25rem 2rem', width: '230px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <Activity size={32} color="#ef4444" />
                 <label className="label" style={{ textAlign: 'center' }}>Glucosa (mg/dL)</label>
                 <input 
                   type="number" 
@@ -380,8 +433,8 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
                 />
               </div>
 
-              <div className="card" style={{ padding: '2rem', width: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                <Activity size={40} color="#3b82f6" />
+              <div className="card" style={{ padding: '1.25rem 2rem', width: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <Activity size={32} color="#3b82f6" />
                 <label className="label" style={{ textAlign: 'center' }}>Presión Arterial (Sist/Diast)</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <input 
@@ -406,15 +459,17 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
                 </div>
               </div>
             </div>
+
+            {renderDiagnostico('diagnostico_medico', 'Diagnóstico — Examen médico')}
           </div>
         )}
 
         {/* STEP 4: Resumen y Notas */}
         {step === 4 && (
-          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--primary-color)' }}>Resumen de Evaluación</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
               <div className="card" style={{ padding: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Paciente</div>
                 <div style={{ fontWeight: '700' }}>{formData.paciente_nombre}</div>
@@ -424,11 +479,13 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Físico</div>
                 <div style={{ fontWeight: '700' }}>IMC: {formData.imc}</div>
                 <div style={{ fontSize: '0.8rem' }}>{formData.peso} kg / {formData.talla} cm</div>
+                {formData.diagnostico_fisico?.trim() && <div style={resumenDiagnostico}>Dx: {formData.diagnostico_fisico}</div>}
               </div>
               <div className="card" style={{ padding: '1rem' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Signos</div>
                 <div style={{ fontWeight: '700' }}>{formData.presion_sistolica}/{formData.presion_diastolica} mmHg</div>
                 <div style={{ fontSize: '0.8rem' }}>Glucosa: {formData.glucosa} mg/dL</div>
+                {formData.diagnostico_medico?.trim() && <div style={resumenDiagnostico}>Dx: {formData.diagnostico_medico}</div>}
               </div>
             </div>
 
@@ -437,14 +494,14 @@ export const SaludStepper = ({ isOpen, onClose, onSuccess }) => {
               <textarea 
                 name="notas" 
                 className="input-field" 
-                style={{ minHeight: '120px', resize: 'vertical' }} 
+                style={{ minHeight: '100px', resize: 'vertical' }}
                 value={formData.notas} 
                 onChange={handleInputChange} 
                 placeholder="Escriba aquí cualquier observación relevante encontrada durante el examen..."
               ></textarea>
             </div>
 
-            <div style={{ padding: '1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
+            <div style={{ padding: '0.75rem 1rem', background: 'var(--bg-surface-hover)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
               <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
                 Al guardar, esta evaluación quedará registrada bajo su perfil de brigadista (**{profile?.nombre}**) y estará disponible para revisión por el equipo administrativo.
               </p>
