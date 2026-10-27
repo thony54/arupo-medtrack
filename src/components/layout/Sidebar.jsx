@@ -19,7 +19,7 @@ export const Sidebar = () => {
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const [showSaludStepper, setShowSaludStepper] = useState(false);
-  const { signOut, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario, profile } = useAuth();
+  const { signOut, isSuperAdmin, isCoordinador, isCoordinadorBrigadas, esCoordinacion, participaVoluntariado, isBrigadista, isVoluntario, profile } = useAuth();
   const { t } = useI18n();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
@@ -149,9 +149,9 @@ export const Sidebar = () => {
           {t('nav.general')}
         </div>
         {navItem('/', LayoutDashboard, t('nav.inicio'), true)}
-        {isVoluntario && navItem('/actividades', ClipboardList, t('nav.actividades'))}
-        {isVoluntario && navItem('/tareas', ListChecks, t('nav.tareas'))}
-        {(isVoluntario || isSuperAdmin) && navItem('/curso', GraduationCap, t('nav.curso'))}
+        {participaVoluntariado && navItem('/actividades', ClipboardList, t('nav.actividades'))}
+        {participaVoluntariado && navItem('/tareas', ListChecks, t('nav.tareas'))}
+        {(participaVoluntariado || isSuperAdmin) && navItem('/curso', GraduationCap, t('nav.curso'))}
 
         {/* Sección Donaciones / Medicinas: Visible para Super Admin y Brigadistas */}
         {(isSuperAdmin || isBrigadista) && (
@@ -176,8 +176,8 @@ export const Sidebar = () => {
           </>
         )}
 
-        {/* Sección Coordinación: Super Admin y Coordinadores (rol adicional) */}
-        {(isSuperAdmin || isCoordinador) && (
+        {/* Sección Coordinación: Super Admin y Coordinadores (roles adicionales) */}
+        {esCoordinacion && (
           <>
             <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
               Coordinación
@@ -244,7 +244,7 @@ export const Sidebar = () => {
                 {profile?.nombre || t('comun.cargando')}
               </p>
               <p style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', margin: 0 }}>
-                {t(`roles.${profile?.rol}`) === `roles.${profile?.rol}` ? t('roles.usuario') : t(`roles.${profile?.rol}`)}{isCoordinador && ` · ${t('roles.coordinador')}`}
+                {t(`roles.${profile?.rol}`) === `roles.${profile?.rol}` ? t('roles.usuario') : t(`roles.${profile?.rol}`)}{isCoordinador && ` · ${t('roles.coordinador')}`}{isCoordinadorBrigadas && ` · ${t('roles.coordinador_brigadas')}`}
               </p>
             </div>
           </div>

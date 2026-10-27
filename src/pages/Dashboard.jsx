@@ -11,10 +11,11 @@ import { useI18n } from '../i18n/useI18n';
 import './pages.css';
 
 export const Dashboard = () => {
-  const { user, role, profile, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario } = useAuth();
+  const { user, role, profile, isSuperAdmin, isCoordinador, isCoordinadorBrigadas, esCoordinacion, participaVoluntariado, isBrigadista, isVoluntario } = useAuth();
   const navigate = useNavigate();
   const { t, tn, formatearFecha } = useI18n();
   const [voluntariosRegistrados, setVoluntariosRegistrados] = useState(0);
+  const [brigadistasRegistrados, setBrigadistasRegistrados] = useState(0);
   const [bitacorasPendientes, setBitacorasPendientes] = useState(null); // null = módulo no disponible
   const [tareasPendientes, setTareasPendientes] = useState(null); // tareas del voluntario; null = módulo no disponible
   const [stats, setStats] = useState({ medicamentos: 0, donacionesMes: 0, donativosMes: 0, critico: 0, beneficiariosMes: 0, donantesActivos: 0, itemsGenerales: 0 });
@@ -26,10 +27,13 @@ export const Dashboard = () => {
   useEffect(() => { fetchData(); }, []);
 
   // KPI de quienes revisan bitácoras (super_admin y coordinadores): jornadas por aprobar.
-  const puedeRevisar = isSuperAdmin || isCoordinador;
+  // La base solo devuelve las de su equipo; las propias se excluyen porque nadie aprueba
+  // la suya (un coordinador de brigadas también es brigadista y cierra su jornada).
+  const puedeRevisar = esCoordinacion;
+  const perfilId = user?.id;
   useEffect(() => {
-    if (!puedeRevisar || !supabase) return;
-    supabase.from('bitacoras').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente')
+    if (!puedeRevisar || !perfilId || !supabase) return;
+    supabase.from('bitacoras').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente').neq('voluntario_id', perfilId)
       .then(({ count, error: err }) => {
         // 42P01 / PGRST205: aún no existe la tabla; el KPI simplemente no se muestra.
         if (err) {
@@ -38,18 +42,17 @@ export const Dashboard = () => {
           setBitacorasPendientes(count || 0);
         }
       });
-  }, [puedeRevisar]);
+  }, [puedeRevisar, perfilId]);
 
-  // Aviso del voluntario: tareas que la coordinación le asignó y siguen pendientes.
-  const perfilId = user?.id;
+  // Aviso de voluntarios y brigadistas: tareas que la coordinación les asignó y siguen pendientes.
   useEffect(() => {
-    if (!isVoluntario || !perfilId) return;
+    if (!participaVoluntariado || !perfilId) return;
     let cancelado = false;
     contarPendientes(perfilId).then(n => { if (!cancelado) setTareasPendientes(n); });
     return () => { cancelado = true; };
-  }, [isVoluntario, perfilId]);
+  }, [participaVoluntariado, perfilId]);
 
-  // KPI propio del coordinador de voluntariado.
+  // KPI propio de cada coordinación: cuánta gente tiene a cargo.
   useEffect(() => {
     if (!isCoordinador || !supabase) return;
     supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('rol', 'voluntario')
@@ -58,6 +61,15 @@ export const Dashboard = () => {
         else setVoluntariosRegistrados(count || 0);
       });
   }, [isCoordinador]);
+
+  useEffect(() => {
+    if (!isCoordinadorBrigadas || !supabase) return;
+    supabase.from('perfiles').select('*', { count: 'exact', head: true }).eq('rol', 'brigadista')
+      .then(({ count, error: err }) => {
+        if (err) console.error('No se pudo contar los brigadistas:', err.message);
+        else setBrigadistasRegistrados(count || 0);
+      });
+  }, [isCoordinadorBrigadas]);
 
   const fetchData = async () => {
     try {
@@ -123,14 +135,16 @@ export const Dashboard = () => {
     { title: t('dashboard.kpi_donantes'), value: stats.donantesActivos, subtitle: t('dashboard.kpi_donantes_sub'), icon: <Users size={24} />, color: '#f59e0b', bg: '#fffbeb', roles: ['super_admin', 'voluntario'] },
     { title: t('dashboard.kpi_items'), value: stats.itemsGenerales, subtitle: t('dashboard.kpi_items_sub'), icon: <ShoppingBag size={24} />, color: '#7c3aed', bg: '#f5f3ff', roles: ['super_admin', 'voluntario'] },
     { title: 'Voluntarios Registrados', value: voluntariosRegistrados, subtitle: 'Cuentas con rol de voluntario', icon: <Users size={24} />, color: '#d97706', bg: 'var(--warning-bg)', soloCoordinador: true },
+    { title: 'Brigadistas a Cargo', value: brigadistasRegistrados, subtitle: 'Cuentas con rol de brigadista', icon: <Users size={24} />, color: '#0891b2', bg: 'rgba(8, 145, 178, 0.12)', soloCoordinadorBrigadas: true },
     { title: 'Bitácoras por Revisar', value: bitacorasPendientes, subtitle: 'Jornadas pendientes de aprobación', icon: <ClipboardList size={24} />, color: '#d97706', bg: 'var(--warning-bg)', revisor: true },
   ];
 
-  // Filtrar KPIs de acuerdo al rol del usuario. `soloCoordinador` depende del rol
-  // adicional, no del principal; `revisor` es para super_admin o coordinador y solo
+  // Filtrar KPIs de acuerdo al rol del usuario. `soloCoordinador*` dependen de los roles
+  // adicionales, no del principal; `revisor` es para super_admin o coordinador y solo
   // aparece cuando el módulo de bitácoras responde.
   const visibleKpis = allKpis.filter(kpi => {
     if (kpi.soloCoordinador) return isCoordinador;
+    if (kpi.soloCoordinadorBrigadas) return isCoordinadorBrigadas;
     if (kpi.revisor) return puedeRevisar && kpi.value !== null;
     return kpi.roles.includes(role);
   });
@@ -164,7 +178,7 @@ export const Dashboard = () => {
       )}
 
       {/* Tareas asignadas por la coordinación que siguen pendientes */}
-      {isVoluntario && tareasPendientes > 0 && (
+      {participaVoluntariado && tareasPendientes > 0 && (
         <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-color)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.875rem' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ListChecks size={18} style={{ flexShrink: 0 }} />
@@ -180,8 +194,8 @@ export const Dashboard = () => {
         </div>
       )}
 
-      {/* Acceso rápido del voluntario al cierre de jornada */}
-      {isVoluntario && (
+      {/* Acceso rápido de voluntarios y brigadistas al cierre de jornada */}
+      {participaVoluntariado && (
         <div className="animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', backgroundColor: '#f5f3ff', color: '#6d28d9', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem', border: '1px solid rgba(124,58,237,0.2)', fontSize: '0.875rem' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ClipboardList size={18} style={{ flexShrink: 0 }} />

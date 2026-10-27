@@ -3,6 +3,8 @@ import { ListPlus, Plus, Trash2, CalendarClock, UserCheck, CheckCircle, AlertCir
 import { supabase } from '../lib/supabase';
 import { cargarPerfiles } from '../lib/equipos';
 import { cargarTareas, asignarTarea, retirarTarea, estaVencida } from '../lib/tareas';
+import { etiquetasPersonal } from '../utils/roles';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import './pages.css';
@@ -31,9 +33,11 @@ const ordenar = (a, b) => {
 };
 
 // Pantalla de la coordinación (super_admin y coordinadores): todo lo referente a las tareas
-// de los voluntarios. Asignar una tarea nueva, ver cuáles siguen pendientes o ya se hicieron
-// y retirar las asignadas por error (schema_v30.sql).
+// de su gente (voluntarios o brigadistas, según el rol). Asignar una tarea nueva, ver cuáles
+// siguen pendientes o ya se hicieron y retirar las asignadas por error (schema_v30.sql, v33).
 export const AsignarTareas = () => {
+  const { cohortes } = useAuth() || {};
+  const etiq = etiquetasPersonal(cohortes || []);
   const [perfiles, setPerfiles] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [activo, setActivo] = useState(true); // false si falta schema_v30
@@ -71,8 +75,8 @@ export const AsignarTareas = () => {
   }, []);
 
   const voluntarios = useMemo(
-    () => perfiles.filter(p => p.rol === 'voluntario').sort((a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es')),
-    [perfiles]
+    () => perfiles.filter(p => (cohortes || []).includes(p.rol)).sort((a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es')),
+    [perfiles, cohortes]
   );
   const nombrePorId = useMemo(() => Object.fromEntries(perfiles.map(p => [p.id, nombreDe(p)])), [perfiles]);
 
@@ -100,13 +104,13 @@ export const AsignarTareas = () => {
     e.preventDefault();
     setError('');
     setAviso('');
-    if (!voluntarioId) return setError('Elige a qué voluntario le asignas la tarea.');
+    if (!voluntarioId) return setError(`Elige ${etiq.elige} para asignarle la tarea.`);
     if (!titulo.trim()) return setError('Escribe el título de la tarea.');
     setGuardando(true);
     const res = await asignarTarea({ voluntarioId, titulo: titulo.trim(), descripcion: descripcion.trim(), fechaLimite });
     if (res.ok) {
       // Se conserva el voluntario elegido: lo habitual es asignarle varias seguidas.
-      setAviso(`Tarea asignada a ${nombrePorId[voluntarioId] || 'el voluntario'}.`);
+      setAviso(`Tarea asignada a ${nombrePorId[voluntarioId] || 'la persona'}.`);
       setTitulo('');
       setDescripcion('');
       setFechaLimite('');
@@ -118,7 +122,7 @@ export const AsignarTareas = () => {
   };
 
   const retirar = async (tarea) => {
-    if (!window.confirm(`¿Retirar la tarea "${tarea.titulo}"? Dejará de aparecerle a ${nombrePorId[tarea.voluntario_id] || 'el voluntario'}.`)) return;
+    if (!window.confirm(`¿Retirar la tarea "${tarea.titulo}"? Dejará de aparecerle a ${nombrePorId[tarea.voluntario_id] || 'la persona'}.`)) return;
     setError('');
     setAviso('');
     setRetirando(tarea.id);
@@ -141,7 +145,7 @@ export const AsignarTareas = () => {
         )}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem 1rem', marginTop: '0.45rem', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: '600', color: 'var(--text-secondary)' }}>
-            <UserCheck size={13} /> {nombrePorId[tarea.voluntario_id] || 'Voluntario'}
+            <UserCheck size={13} /> {nombrePorId[tarea.voluntario_id] || etiq.singular}
           </span>
           {tarea.fecha_limite && (
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CalendarClock size={13} /> Para el {fechaCorta(tarea.fecha_limite)}</span>
@@ -172,7 +176,7 @@ export const AsignarTareas = () => {
             <ListPlus size={28} style={{ color: '#7c3aed' }} /> Asignar tareas
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Asigna tareas a los voluntarios y sigue cuáles están pendientes o ya se hicieron. Ellos las ven en su sección “Tareas”.
+            Asigna tareas a {etiq.quienes} y sigue cuáles están pendientes o ya se hicieron. Ellos las ven en su sección “Tareas”.
           </p>
         </div>
       </div>
@@ -201,10 +205,10 @@ export const AsignarTareas = () => {
             <h2 style={{ fontSize: '1.05rem', fontWeight: '700', margin: '0 0 1rem' }}>Nueva tarea</h2>
             <form onSubmit={asignar} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
               <div style={campoStyle}>
-                <label htmlFor="at-voluntario" style={labelStyle}>Voluntario <span style={{ color: 'var(--danger-color)' }}>*</span></label>
+                <label htmlFor="at-voluntario" style={labelStyle}>{etiq.singular} <span style={{ color: 'var(--danger-color)' }}>*</span></label>
                 <select id="at-voluntario" className="input-field" style={{ marginBottom: 0 }} value={voluntarioId} disabled={guardando}
                   onChange={e => setVoluntarioId(e.target.value)}>
-                  <option value="">Elige al voluntario...</option>
+                  <option value="">Elige {etiq.elige}...</option>
                   {voluntarios.map(v => <option key={v.id} value={v.id}>{nombreDe(v)}</option>)}
                 </select>
               </div>
@@ -240,8 +244,8 @@ export const AsignarTareas = () => {
               </h2>
               <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <select className="input-field" style={{ marginBottom: 0, minWidth: '180px' }} value={filtroVoluntario}
-                  onChange={e => setFiltroVoluntario(e.target.value)} aria-label="Filtrar por voluntario">
-                  <option value="">Todos los voluntarios</option>
+                  onChange={e => setFiltroVoluntario(e.target.value)} aria-label={`Filtrar por ${etiq.singular.toLowerCase()}`}>
+                  <option value="">{etiq.todos}</option>
                   {voluntarios.map(v => <option key={v.id} value={v.id}>{nombreDe(v)}</option>)}
                 </select>
                 <select className="input-field" style={{ marginBottom: 0 }} value={filtroEstado}

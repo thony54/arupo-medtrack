@@ -2,10 +2,11 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-// `permitirCoordinador`: además de allowedRoles, deja pasar a quien tenga el rol
-// adicional de coordinador (perfiles.es_coordinador), que no es un valor de `rol`.
+// `permitirCoordinador`: además de allowedRoles, deja pasar a quien tenga alguno de los
+// roles adicionales de coordinación (perfiles.es_coordinador o es_coordinador_brigadas),
+// que no son valores de `rol`. Qué personas ve cada uno lo decide la base (RLS).
 export const ProtectedRoute = ({ children, allowedRoles, permitirCoordinador = false }) => {
-  const { session, role, isCoordinador, profileStatus, signOut } = useAuth();
+  const { session, role, isCoordinador, isCoordinadorBrigadas, profileStatus, signOut } = useAuth();
 
   if (!session) {
     return <Navigate to="/login" replace />;
@@ -42,7 +43,7 @@ export const ProtectedRoute = ({ children, allowedRoles, permitirCoordinador = f
       );
     }
 
-    if (!allowedRoles.includes(role) && !(permitirCoordinador && isCoordinador)) {
+    if (!allowedRoles.includes(role) && !(permitirCoordinador && (isCoordinador || isCoordinadorBrigadas))) {
       console.warn(`Acceso denegado a la ruta. Rol '${role}' no está en la lista permitida:`, allowedRoles);
       return <Navigate to="/" replace />;
     }

@@ -6,8 +6,9 @@ import { cargarResumenCurso } from '../lib/curso';
 import { todasLasLecciones } from '../curso/contenido';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { getRolLabel } from '../utils/roles';
+import { getRolLabel, etiquetasPersonal } from '../utils/roles';
 import { horasDeBitacora } from '../utils/bitacora';
+import { useAuth } from '../contexts/AuthContext';
 import './pages.css';
 
 const DIAS_VENTANA = 30;
@@ -25,9 +26,13 @@ const haceCuanto = (iso, ahora) => {
   return `Hace ${dias} días`;
 };
 
-// Equipos de voluntariado para super_admin y coordinadores: designar líderes de
-// grupo, asignar voluntarios y ver la actividad de los últimos 30 días.
+// Equipos para super_admin y coordinadores: designar líderes de grupo, asignar a cada
+// persona de su equipo (voluntarios o brigadistas, según el rol de coordinación) y ver su
+// actividad de los últimos 30 días. La lista de líderes es una sola y la comparten ambos equipos.
 export const Equipos = () => {
+  const { cohortes } = useAuth() || {};
+  const etiq = etiquetasPersonal(cohortes || []);
+  const variasCohortes = (cohortes || []).length > 1;
   const [perfiles, setPerfiles] = useState([]);
   const [liderazgo, setLiderazgo] = useState(true); // false si falta schema_v27
   const [bitacoras, setBitacoras] = useState([]);
@@ -74,8 +79,8 @@ export const Equipos = () => {
     [perfiles]
   );
   const voluntarios = useMemo(
-    () => perfiles.filter(p => p.rol === 'voluntario').sort((a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es')),
-    [perfiles]
+    () => perfiles.filter(p => (cohortes || []).includes(p.rol)).sort((a, b) => nombreDe(a).localeCompare(nombreDe(b), 'es')),
+    [perfiles, cohortes]
   );
 
   // Actividad por voluntario y por líder (el que el voluntario eligió en cada bitácora).
@@ -112,7 +117,7 @@ export const Equipos = () => {
   };
 
   const cambiarLider = async (usuario, esLider) => {
-    if (!esLider && !window.confirm(`¿Quitar a ${nombreDe(usuario)} como líder? Sus voluntarios quedarán sin asignar.`)) return;
+    if (!esLider && !window.confirm(`¿Quitar a ${nombreDe(usuario)} como líder? Quienes tiene asignados quedarán sin asignar.`)) return;
     setGuardando(usuario.id);
     const res = await designarLider(usuario.id, esLider);
     if (res.ok) {
@@ -145,9 +150,9 @@ export const Equipos = () => {
     <div className="animate-fade-in" style={{ width: '100%', paddingBottom: '2rem' }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Equipos de Voluntariado</h1>
+          <h1 className="page-title">Equipos {etiq.area}</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Designa líderes de grupo, asigna a cada voluntario y sigue su actividad de los últimos {DIAS_VENTANA} días.
+            Designa líderes de grupo, asigna a cada {etiq.singular.toLowerCase()} y sigue su actividad de los últimos {DIAS_VENTANA} días.
           </p>
         </div>
       </div>
@@ -194,7 +199,7 @@ export const Equipos = () => {
 
             {lideres.length === 0 ? (
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', fontStyle: 'italic', margin: 0 }}>
-                Aún no hay líderes. Designa al menos uno: los voluntarios lo eligen al cerrar su jornada.
+                Aún no hay líderes. Designa al menos uno: {etiq.quienes} lo eligen al cerrar su jornada.
               </p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '0.85rem' }}>
@@ -206,7 +211,7 @@ export const Equipos = () => {
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontWeight: '700', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nombreDe(l)}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                            {l.es_coordinador ? 'Coordinador · ' : ''}{getRolLabel(l.rol)}
+                            {l.es_coordinador ? 'Coordinador · ' : ''}{l.es_coordinador_brigadas ? 'Coord. de Brigadas · ' : ''}{getRolLabel(l.rol)}
                           </div>
                         </div>
                         <Button type="button" variant="ghost" size="sm" onClick={() => cambiarLider(l, false)} disabled={guardando === l.id}
@@ -215,7 +220,7 @@ export const Equipos = () => {
                         </Button>
                       </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem 0.9rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                        <span><strong>{asignadosA(l.id)}</strong> voluntarios</span>
+                        <span><strong>{asignadosA(l.id)}</strong> {etiq.personas}</span>
                         <span><strong>{act.jornadas}</strong> jornadas</span>
                         <span><strong>{act.horas}</strong> h</span>
                         {act.pendientes > 0 && <Badge variant="warning">{act.pendientes} por revisar</Badge>}
@@ -231,11 +236,11 @@ export const Equipos = () => {
           <section className="card" style={{ padding: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Network size={18} style={{ color: '#7c3aed' }} /> Voluntarios ({voluntarios.length})
+                <Network size={18} style={{ color: '#7c3aed' }} /> {etiq.plural} ({voluntarios.length})
               </h2>
               <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
                 <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-                <input className="input-field" style={{ paddingLeft: '2.25rem', marginBottom: 0, width: '100%' }} placeholder="Buscar voluntario..."
+                <input className="input-field" style={{ paddingLeft: '2.25rem', marginBottom: 0, width: '100%' }} placeholder={`Buscar ${etiq.singular.toLowerCase()}...`}
                   value={busqueda} onChange={e => setBusqueda(e.target.value)} />
               </div>
             </div>
@@ -244,7 +249,8 @@ export const Equipos = () => {
               <table className="data-table" style={{ width: '100%', minWidth: '720px' }}>
                 <thead>
                   <tr>
-                    <th>Voluntario</th>
+                    <th>{etiq.singular}</th>
+                    {variasCohortes && <th>Rol</th>}
                     <th>Líder asignado</th>
                     <th>Jornadas ({DIAS_VENTANA} d)</th>
                     <th>Horas</th>
@@ -255,7 +261,7 @@ export const Equipos = () => {
                 </thead>
                 <tbody>
                   {voluntariosFiltrados.length === 0 ? (
-                    <tr><td colSpan={5 + (cursoPorUsuario ? 1 : 0)} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>No hay voluntarios que coincidan.</td></tr>
+                    <tr><td colSpan={5 + (cursoPorUsuario ? 1 : 0) + (variasCohortes ? 1 : 0)} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-tertiary)' }}>No hay {etiq.personas} que coincidan.</td></tr>
                   ) : voluntariosFiltrados.map(v => {
                     const act = porVoluntario[v.id];
                     const inactivo = !act || (ahora - new Date(act.ultima).getTime()) > DIAS_SIN_ACTIVIDAD * MS_DIA;
@@ -265,6 +271,7 @@ export const Equipos = () => {
                           <div style={{ fontWeight: '600' }}>{nombreDe(v)}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{v.email}</div>
                         </td>
+                        {variasCohortes && <td>{getRolLabel(v.rol)}</td>}
                         <td>
                           <select className="input-field" style={{ marginBottom: 0, minWidth: '190px' }} value={v.lider_id || ''}
                             onChange={e => cambiarAsignacion(v, e.target.value)} disabled={guardando === v.id}

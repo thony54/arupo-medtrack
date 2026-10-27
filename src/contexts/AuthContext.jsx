@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, variablesFaltantes } from '../lib/supabase';
 import { consultarTerminos, registrarAceptacion } from '../lib/terminos';
+import { cohortesGestionadas } from '../utils/roles';
 
 const AuthContext = createContext();
 
@@ -118,6 +119,8 @@ export const AuthProvider = ({ children }) => {
     } catch { /* SSR/entornos sin window */ }
   }, [profile]);
 
+  // A quién gestiona como coordinación (identidad estable: las pantallas lo usan en dependencias).
+  const cohortes = useMemo(() => cohortesGestionadas(profile), [profile]);
 
   // Renderizador de pantalla elegante de error en caso de que el SDK de Supabase no inicie
   if (!supabase) {
@@ -188,10 +191,16 @@ export const AuthProvider = ({ children }) => {
     // Sin perfil no hay rol. Nunca se asume un privilegio que no se ha leído.
     role: profile?.rol || null,
     isSuperAdmin: profile?.rol === 'super_admin',
-    // Rol ADICIONAL: se suma al principal (p. ej. super_admin + coordinador).
+    // Roles ADICIONALES: se suman al principal (p. ej. super_admin + coordinador).
     isCoordinador: profile?.es_coordinador === true,
+    isCoordinadorBrigadas: profile?.es_coordinador_brigadas === true,
+    // Algún rol de coordinación, y a quién gestiona (ver cohortesGestionadas).
+    esCoordinacion: profile?.rol === 'super_admin' || profile?.es_coordinador === true || profile?.es_coordinador_brigadas === true,
+    cohortes,
     isBrigadista: profile?.rol === 'brigadista',
     isVoluntario: profile?.rol === 'voluntario',
+    // Voluntarios y brigadistas comparten Mis Actividades, Tareas y el Curso de español.
+    participaVoluntariado: profile?.rol === 'voluntario' || profile?.rol === 'brigadista',
     signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
     terminos,
     aceptarTerminos: async () => {

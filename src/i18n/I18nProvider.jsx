@@ -12,11 +12,11 @@ import fr from './locales/fr';
 // ─────────────────────────────────────────────────────────────────────────────
 // Idiomas de la app (es, en, de, pt, it, fr).
 //
-// Regla de producto: SOLO el voluntario ve la app en su idioma, y solo sus
-// pantallas (inicio, perfil, cierre de jornada, curso, términos, ingreso). El resto
-// (inventario, CRM, administración) está y seguirá en español: los componentes
-// compartidos usan t() y, como el idioma efectivo de quien no es voluntario es
-// siempre 'es', ven los mismos textos de siempre.
+// Regla de producto: SOLO el voluntario y el brigadista (que comparten actividades,
+// tareas y curso) ven la app en su idioma, y solo sus pantallas (inicio, perfil, cierre
+// de jornada, curso, términos, ingreso). El resto (inventario, CRM, administración) está
+// y seguirá en español: los componentes compartidos usan t() y, como el idioma efectivo
+// del super_admin es siempre 'es', ven los mismos textos de siempre.
 //
 // Antes de iniciar sesión (login) todavía no hay rol: se usa el idioma elegido.
 // La preferencia vive en localStorage con la clave `arupo_idioma` (NO empieza por
@@ -38,8 +38,8 @@ export const I18nProvider = ({ children }) => {
   const { role } = useAuth() || {};
   const [preferido, setPreferido] = useState(leerPreferido);
 
-  // Quien ya inició sesión y no es voluntario ve siempre español.
-  const selectorVisible = !role || role === 'voluntario';
+  // Quien ya inició sesión y no es voluntario ni brigadista ve siempre español.
+  const selectorVisible = !role || role === 'voluntario' || role === 'brigadista';
   const idioma = selectorVisible ? preferido : IDIOMA_POR_DEFECTO;
   const info = infoIdioma(idioma);
 

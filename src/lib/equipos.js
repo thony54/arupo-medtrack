@@ -1,10 +1,12 @@
 import { supabase } from './supabase';
 
 // Columnas de perfiles según lo que ya exista en la base: la app debe funcionar
-// aunque falten schema_v22 (es_coordinador), schema_v23 (estancia) o schema_v27
-// (es_lider, lider_id). Se prueban de la más completa a la mínima.
+// aunque falten schema_v22 (es_coordinador), schema_v23 (estancia), schema_v27
+// (es_lider, lider_id) o schema_v33 (es_coordinador_brigadas). Se prueban de la más
+// completa a la mínima.
 const ESTANCIA = 'tiempo_estancia_meses, fecha_inicio_estancia';
 const COLUMNAS = [
+  `id, nombre, email, rol, es_coordinador, es_coordinador_brigadas, es_lider, lider_id, ${ESTANCIA}`,
   `id, nombre, email, rol, es_coordinador, es_lider, lider_id, ${ESTANCIA}`,
   'id, nombre, email, rol, es_coordinador, es_lider, lider_id',
   `id, nombre, email, rol, es_coordinador, ${ESTANCIA}`,
@@ -28,9 +30,10 @@ export const cargarPerfiles = async () => {
 const mensajeDe = (error) => {
   switch (error?.code) {
     case 'PGRST202': return 'Falta activar esta función en la base de datos (schema_v27.sql).';
-    case '42501': return 'No tienes permiso para hacer este cambio.';
+    case '42501': return 'No tienes permiso para hacer este cambio: esa persona no es de tu equipo.';
     case '22023': return 'El líder elegido no es válido.';
     case 'P0002': return 'El usuario ya no existe. Recarga la lista.';
+    case '55006': return 'Este líder tiene personas del otro equipo asignadas. Pídele al administrador o a la otra coordinación que lo quite.';
     default: return 'No se pudo guardar el cambio. Inténtalo de nuevo.';
   }
 };

@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { describirActividad, etiquetaEstado } from '../utils/bitacora';
+import { etiquetasPersonal } from '../utils/roles';
 import { exportarBitacorasExcel } from '../utils/reporteBitacoras';
 import './pages.css';
 
@@ -53,9 +54,11 @@ const obtenerPagina = async (desde, filtros) => {
 const tablaInexistente = (err) => err?.code === '42P01' || err?.code === 'PGRST205';
 
 // Pantalla de revisión de bitácoras para super_admin y coordinadores: lista con
-// filtros, aprobación o rechazo (con un mensaje para el voluntario) y descarga a Excel.
+// filtros, aprobación o rechazo (con un mensaje para quien la envió) y descarga a Excel.
+// Cada coordinación ve a su gente (voluntarios o brigadistas): lo hace valer la base.
 export const Bitacoras = () => {
-  const { user } = useAuth() || {};
+  const { user, cohortes } = useAuth() || {};
+  const etiq = etiquetasPersonal(cohortes || []);
   const [perfiles, setPerfiles] = useState([]);
   const [filtros, setFiltros] = useState(FILTROS_VACIOS);
   const [items, setItems] = useState([]);
@@ -90,8 +93,8 @@ export const Bitacoras = () => {
     [perfiles]
   );
   const listaVoluntarios = useMemo(
-    () => perfiles.filter(p => p.rol === 'voluntario').sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es')),
-    [perfiles]
+    () => perfiles.filter(p => (cohortes || []).includes(p.rol)).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es')),
+    [perfiles, cohortes]
   );
 
   // Se vuelve a cargar desde cero cada vez que cambian los filtros.
@@ -158,7 +161,7 @@ export const Bitacoras = () => {
       setItems(prev => prev.map(x => (x.id === b.id
         ? { ...x, estado: 'aprobada', revisado_por: user?.id, revisado_por_nombre: r?.aprobada_por, revisado_en: r?.aprobada_en }
         : x)));
-      setAviso(`Bitácora de ${mapaPerfiles[b.voluntario_id]?.nombre || 'voluntario'} aprobada.`);
+      setAviso(`Bitácora de ${mapaPerfiles[b.voluntario_id]?.nombre || etiq.singular.toLowerCase()} aprobada.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -181,7 +184,7 @@ export const Bitacoras = () => {
   const rechazar = async (b) => {
     const texto = motivo.trim();
     if (!texto) {
-      setError('Escribe el mensaje para el voluntario: explícale por qué se rechaza su bitácora.');
+      setError('Escribe el mensaje: explícale por qué se rechaza su bitácora.');
       return;
     }
     setEnviandoRechazo(true);
@@ -201,7 +204,7 @@ export const Bitacoras = () => {
       setItems(prev => prev.map(x => (x.id === b.id
         ? { ...x, estado: 'rechazada', motivo_rechazo: texto, revisado_por: user?.id, revisado_por_nombre: r?.rechazada_por, revisado_en: r?.rechazada_en }
         : x)));
-      setAviso(`Bitácora de ${mapaPerfiles[b.voluntario_id]?.nombre || 'voluntario'} rechazada. Verá tu mensaje en Mis Actividades.`);
+      setAviso(`Bitácora de ${mapaPerfiles[b.voluntario_id]?.nombre || etiq.singular.toLowerCase()} rechazada. Verá tu mensaje en Mis Actividades.`);
       cancelarRechazo();
     } catch (err) {
       setError(err.message);
@@ -252,9 +255,9 @@ export const Bitacoras = () => {
     <div className="animate-fade-in" style={{ width: '100%', paddingBottom: '2rem' }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Bitácoras de Voluntariado</h1>
+          <h1 className="page-title">Bitácoras {etiq.area}</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            Jornadas que cierran los voluntarios: revisa, aprueba o rechaza y descarga los reportes.
+            Jornadas que cierran {etiq.quienes}: revisa, aprueba o rechaza y descarga los reportes.
           </p>
         </div>
         <Button variant="primary" onClick={exportar} disabled={exportando || moduloInactivo}
@@ -272,7 +275,7 @@ export const Bitacoras = () => {
           <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '0.85rem', alignItems: 'end' }}>
               <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', ...labelStyle }}>
-                Voluntario
+                {etiq.singular}
                 <select className="input-field" style={{ marginBottom: 0 }} value={filtros.voluntarioId}
                   onChange={e => cambiarFiltro('voluntarioId', e.target.value)}>
                   <option value="">Todos</option>
@@ -346,7 +349,7 @@ export const Bitacoras = () => {
               {items.map(b => {
                 const estado = etiquetaEstado(b.estado);
                 const acts = Array.isArray(b.actividades) ? b.actividades : [];
-                const nombre = mapaPerfiles[b.voluntario_id]?.nombre || 'Voluntario';
+                const nombre = mapaPerfiles[b.voluntario_id]?.nombre || etiq.singular;
                 const puedeAprobar = b.estado === 'pendiente' && b.voluntario_id !== user?.id;
                 return (
                   <article key={b.id} className="card" style={{ padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

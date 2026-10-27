@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   UserPlus, Search, Shield, Mail, Trash2, UserCheck, AlertCircle, 
-  Eye, EyeOff, HandHeart, Activity, ClipboardCheck, UserCog 
+  Eye, EyeOff, HandHeart, Activity, ClipboardCheck, UserCog, Stethoscope
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { ROL_CONFIG, ROLES_ORDEN, SECCIONES_ROL, tieneRol, getRolColor, getRolBg } from '../utils/roles';
+import { ROL_CONFIG, ROLES_ORDEN, ROLES_ADICIONALES, SECCIONES_ROL, tieneRol, getRolColor, getRolBg } from '../utils/roles';
 import './pages.css';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 const ROL_ICONOS = {
   super_admin: Shield,
   coordinador: ClipboardCheck,
+  coordinador_brigadas: Stethoscope,
   brigadista: Activity,
   voluntario: HandHeart
 };
@@ -43,7 +44,8 @@ export const Usuarios = () => {
   const [rol, setRol] = useState('brigadista');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Gestión de roles de un usuario existente: { usuario, nuevoRol, esCoordinador } o null.
+  // Gestión de roles de un usuario existente: { usuario, nuevoRol, adicionales } o null,
+  // con `adicionales` = { coordinador: bool, coordinador_brigadas: bool }.
   const [cambioRol, setCambioRol] = useState(null);
   const [cambiandoRol, setCambiandoRol] = useState(false);
   const [errorCambioRol, setErrorCambioRol] = useState('');
@@ -223,25 +225,32 @@ export const Usuarios = () => {
     }
   };
 
-  // Gestiona los roles de un usuario ya existente: el principal (`rol`) y el
-  // adicional de coordinador (`es_coordinador`). Solo lo ofrece la interfaz al
-  // super admin principal; la RLS de `perfiles` exige super_admin en la base.
+  // Gestiona los roles de un usuario ya existente: el principal (`rol`) y los
+  // adicionales de coordinación (`es_coordinador`, `es_coordinador_brigadas`). Solo los
+  // ofrece la interfaz al super admin principal; la base lo hace valer (RLS de `perfiles`
+  // exige super_admin y, para Brigadas Médicas, el trigger exige al super admin principal).
   const abrirCambioRol = (u) => {
     setErrorCambioRol('');
-    setCambioRol({ usuario: u, nuevoRol: u.rol, esCoordinador: u.es_coordinador === true });
+    setCambioRol({
+      usuario: u,
+      nuevoRol: u.rol,
+      adicionales: Object.fromEntries(Object.keys(ROLES_ADICIONALES).map(r => [r, tieneRol(u, r)]))
+    });
   };
 
   // Campos que realmente cambian respecto al perfil actual.
   const cambiosPendientes = (c) => {
     const cambios = {};
     if (c.nuevoRol !== c.usuario.rol) cambios.rol = c.nuevoRol;
-    if (c.esCoordinador !== (c.usuario.es_coordinador === true)) cambios.es_coordinador = c.esCoordinador;
+    for (const [rolAdicional, columna] of Object.entries(ROLES_ADICIONALES)) {
+      if (c.adicionales[rolAdicional] !== tieneRol(c.usuario, rolAdicional)) cambios[columna] = c.adicionales[rolAdicional];
+    }
     return cambios;
   };
 
   const handleCambiarRol = async () => {
     if (!cambioRol || !supabase) return;
-    const { usuario, nuevoRol, esCoordinador } = cambioRol;
+    const { usuario, nuevoRol } = cambioRol;
     const cambios = cambiosPendientes(cambioRol);
     if (Object.keys(cambios).length === 0 || usuario.id === user?.id) return;
 
@@ -249,22 +258,26 @@ export const Usuarios = () => {
     setErrorCambioRol('');
     try {
       // Se relee lo devuelto para detectar un UPDATE bloqueado por RLS
-      // (devolvería 0 filas sin lanzar error).
+      // (devolvería 0 filas sin lanzar error). Solo se piden las columnas que se tocan:
+      // pedir una que aún no existe en la base haría fallar también las demás.
       const { data, error: updError } = await supabase
         .from('perfiles')
         .update(cambios)
         .eq('id', usuario.id)
-        .select('rol, es_coordinador')
+        .select(['rol', ...Object.keys(cambios).filter(c => c !== 'rol')].join(', '))
         .maybeSingle();
 
       if (updError) {
         console.error('Error al cambiar los roles:', updError);
-        // 42703 / PGRST204: la columna es_coordinador aún no existe (falta schema_v22).
-        const faltaColumna = 'es_coordinador' in cambios && ['42703', 'PGRST204'].includes(updError.code);
+        // 42703 / PGRST204: la columna aún no existe (falta schema_v22 o schema_v33).
+        const faltaColumna = ['42703', 'PGRST204'].includes(updError.code);
+        const scriptFalta = 'es_coordinador_brigadas' in cambios ? 'schema_v33.sql' : 'schema_v22.sql';
         throw new Error(
           faltaColumna
-            ? 'La base de datos aún no admite el rol de Coordinador. Ejecuta schema_v22.sql en el SQL Editor de Supabase.'
-            : 'No se pudo cambiar el rol.'
+            ? `La base de datos aún no admite ese rol de Coordinador. Ejecuta ${scriptFalta} en el SQL Editor de Supabase.`
+            : updError.code === '42501'
+              ? 'La base de datos rechazó el cambio: solo el super admin principal puede otorgar este rol.'
+              : 'No se pudo cambiar el rol.'
         );
       }
       if (!data || Object.entries(cambios).some(([campo, valor]) => data[campo] !== valor)) {
@@ -273,8 +286,10 @@ export const Usuarios = () => {
 
       const partes = [];
       if ('rol' in cambios) partes.push(`ahora es ${ROL_CONFIG[nuevoRol].label}`);
-      if ('es_coordinador' in cambios) {
-        partes.push(esCoordinador ? 'ahora también es Coordinador de Voluntariado' : 'ya no es Coordinador de Voluntariado');
+      for (const [rolAdicional, columna] of Object.entries(ROLES_ADICIONALES)) {
+        if (!(columna in cambios)) continue;
+        const titulo = ROL_CONFIG[rolAdicional].titulo;
+        partes.push(cambios[columna] ? `ahora también es ${titulo}` : `ya no es ${titulo}`);
       }
 
       setCambioRol(null);
@@ -340,7 +355,8 @@ export const Usuarios = () => {
     (u.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
     u.rol.toLowerCase().includes(search.toLowerCase()) ||
-    (u.es_coordinador === true && 'coordinador'.includes(search.toLowerCase()))
+    (u.es_coordinador === true && 'coordinador'.includes(search.toLowerCase())) ||
+    (u.es_coordinador_brigadas === true && 'coordinador de brigadas médicas'.includes(search.toLowerCase()))
   );
 
   const renderUserTable = (usersList, roleKey) => {
@@ -403,6 +419,7 @@ export const Usuarios = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         {getRoleBadge(u.rol)}
                         {u.es_coordinador === true && getRoleBadge('coordinador')}
+                        {u.es_coordinador_brigadas === true && getRoleBadge('coordinador_brigadas')}
                       </div>
                     </td>
                     <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
@@ -705,6 +722,7 @@ export const Usuarios = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                 Rol actual {getRoleBadge(cambioRol.usuario.rol)}
                 {cambioRol.usuario.es_coordinador === true && getRoleBadge('coordinador')}
+                {cambioRol.usuario.es_coordinador_brigadas === true && getRoleBadge('coordinador_brigadas')}
               </div>
             </div>
 
@@ -713,39 +731,47 @@ export const Usuarios = () => {
               {renderOpcionesRol(cambioRol.nuevoRol, (nuevoRol) => setCambioRol(prev => ({ ...prev, nuevoRol })), cambiandoRol)}
             </div>
 
-            {/* Rol adicional: se suma al principal, no lo reemplaza */}
+            {/* Roles adicionales: se suman al principal, no lo reemplazan */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Rol adicional</span>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.75rem',
-                  padding: '1rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: `2px solid ${cambioRol.esCoordinador ? ROL_CONFIG.coordinador.color : 'var(--border-color)'}`,
-                  background: cambioRol.esCoordinador ? ROL_CONFIG.coordinador.bg : 'var(--bg-surface)',
-                  cursor: cambiandoRol ? 'default' : 'pointer',
-                  transition: 'all var(--transition-fast)'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={cambioRol.esCoordinador}
-                  disabled={cambiandoRol}
-                  onChange={e => setCambioRol(prev => ({ ...prev, esCoordinador: e.target.checked }))}
-                  style={{ marginTop: '3px', accentColor: ROL_CONFIG.coordinador.color }}
-                />
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '0.9rem', color: cambioRol.esCoordinador ? ROL_CONFIG.coordinador.color : 'var(--text-secondary)' }}>
-                    <ClipboardCheck size={18} />
-                    Coordinador de Voluntariado
-                  </div>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '0.35rem 0 0', lineHeight: '1.4' }}>
-                    {ROL_CONFIG.coordinador.descripcion}
-                  </p>
-                </div>
-              </label>
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Roles adicionales</span>
+              {Object.keys(ROLES_ADICIONALES).map(r => {
+                const cfg = ROL_CONFIG[r];
+                const Icon = ROL_ICONOS[r];
+                const marcado = cambioRol.adicionales[r];
+                return (
+                  <label
+                    key={r}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.75rem',
+                      padding: '1rem',
+                      borderRadius: 'var(--radius-lg)',
+                      border: `2px solid ${marcado ? cfg.color : 'var(--border-color)'}`,
+                      background: marcado ? cfg.bg : 'var(--bg-surface)',
+                      cursor: cambiandoRol ? 'default' : 'pointer',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={marcado}
+                      disabled={cambiandoRol}
+                      onChange={e => setCambioRol(prev => ({ ...prev, adicionales: { ...prev.adicionales, [r]: e.target.checked } }))}
+                      style={{ marginTop: '3px', accentColor: cfg.color }}
+                    />
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '700', fontSize: '0.9rem', color: marcado ? cfg.color : 'var(--text-secondary)' }}>
+                        <Icon size={18} />
+                        {cfg.titulo}
+                      </div>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '0.35rem 0 0', lineHeight: '1.4' }}>
+                        {cfg.descripcion}
+                      </p>
+                    </div>
+                  </label>
+                );
+              })}
             </div>
 
             {cambioRol.usuario.rol === 'super_admin' && cambioRol.nuevoRol !== 'super_admin' && (

@@ -40,10 +40,10 @@ export const contarPendientes = async (userId) => {
 const mensajeDe = (error) => {
   switch (error?.code) {
     case 'PGRST202': return 'Falta activar las tareas en la base de datos (schema_v30.sql).';
-    case '42501': return 'No tienes permiso para hacer este cambio.';
+    case '42501': return 'No tienes permiso para hacer este cambio: esa persona no es de tu equipo.';
     case '22023': return 'Revisa los datos: el título es obligatorio (máx. 120 caracteres), la descripción admite hasta 500 y la fecha límite no puede estar en el pasado.';
-    case 'P0002': return 'La tarea o el voluntario ya no existe. Recarga la lista.';
-    case '54000': return 'Este voluntario ya tiene 50 tareas pendientes.';
+    case 'P0002': return 'La tarea o la persona ya no existe. Recarga la lista.';
+    case '54000': return 'Esta persona ya tiene 50 tareas pendientes.';
     default: return 'No se pudo guardar el cambio. Inténtalo de nuevo.';
   }
 };

@@ -62,7 +62,7 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v32, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v33, schema_salud)
 ```
 
 ### Roles y rutas
@@ -74,8 +74,28 @@ puede ser `super_admin` y coordinador a la vez (caso de e_milton@fundacionarupo.
 Se otorga **solo desde `/usuarios` con la sesión del super admin principal**
 (`thony.karter@gmail.com`, botón "Gestionar roles"), nunca por registro. En código:
 `useAuth().isCoordinador`. Sus módulos (bitácoras, reportes Excel) se añaden por
-partes según `MedTrack Modulo por anadir.docx`; hoy solo suma un KPI al Dashboard y
-una insignia en Perfil/Sidebar. Requiere aplicar `schema_v22.sql` (columna).
+partes según `MedTrack Modulo por anadir.docx`. Requiere `schema_v22.sql` (columna).
+
+**Coordinador de Brigadas Médicas** (`schema_v33.sql`): segundo rol adicional, columna
+`perfiles.es_coordinador_brigadas` (`useAuth().isCoordinadorBrigadas`). Monitorea y lidera a
+los que entran con el rol `brigadista`. **Solo lo otorga el super admin principal** y la base
+lo hace valer (el trigger `perfiles_proteger_campos` compara el correo del JWT con
+`es_super_admin_principal()`; otro super_admin recibe 42501). **Alcance por equipo:**
+super_admin ve voluntarios y brigadistas; `es_coordinador`, solo voluntarios;
+`es_coordinador_brigadas`, solo brigadistas. Lo decide `puede_gestionar_usuario(id)` en las
+políticas de `bitacoras`, `tareas_voluntario`, `curso_progreso`, las fotos del bucket y los RPC
+(aprobar/rechazar, asignar/retirar tareas, `asignar_voluntario_a_lider`, `curso_resumen`).
+`puede_revisar_bitacoras()` ahora solo significa "tiene algún rol de coordinación": ya no basta
+para ver datos de una persona. En la UI: `cohortes` (de `cohortesGestionadas()` en `roles.js`) y
+`etiquetasPersonal()` adaptan `/bitacoras`, `/equipos` y `/asignar-tareas` a quién gestiona
+cada uno. La lista de líderes (`es_lider`) es una sola y la comparten ambos equipos; una
+coordinación no puede quitar a un líder que tiene personas del otro equipo (error 55006).
+
+**Brigadistas y el voluntariado:** los brigadistas conservan todo lo suyo y además usan Mis
+Actividades (`/actividades`), Tareas (`/tareas`) y el Curso (`/curso`), igual que el voluntario
+(`useAuth().participaVoluntariado` = voluntario o brigadista; `registrar_bitacora` acepta ambos
+roles). Su tiempo de estancia es **opcional** (solo hace falta para el curso) y ven la app en su
+idioma (ver "Idiomas").
 
 **Estancia del voluntario:** `perfiles.tiempo_estancia_meses` (3–24) y
 `fecha_inicio_estancia`, obligatorios en la edición de perfil del `voluntario`. Se
@@ -92,7 +112,8 @@ servidor y fija `created_at` con el reloj de la base: es el timestamp inmutable)
 tiene INSERT/UPDATE/DELETE. Las fotos "Momento feliz" van al bucket **privado**
 `momentos-felices` (`<uid>/<id>.jpg`) y se muestran con URL firmada; pueden contener a
 beneficiarios, así que el bucket nunca debe ser público (`schema_v26.sql` pasó de 1 a 3 fotos).
-Ven todas las bitácoras super_admin y coordinadores (`puede_revisar_bitacoras()`).
+Las ven super_admin y la coordinación de su equipo (`puede_gestionar_usuario()`, v33): cada
+coordinador, solo las de su gente.
 
 **Revisión de bitácoras** (`schema_v25.sql`): pantalla `/bitacoras` (`pages/Bitacoras.jsx`,
 menú "Coordinación") para super_admin y coordinadores, con filtros por voluntario,
@@ -142,11 +163,12 @@ siempre en español porque lo lee la coordinación y va al Excel). No hay column
 
 `src/i18n/`: `useI18n()` → `{ t, tn, idioma, formatearFecha, ... }`; `t('clave', { var })` y
 `{var}` en los textos. Idiomas: es (original), en, de, pt (neutro, sesgo brasileño), it, fr.
-**Regla de producto: solo el voluntario ve la app en su idioma y solo sus pantallas**
-(ingreso, términos, inicio, perfil, cierre de jornada, Mis Actividades, curso, menú lateral).
-Inventario, CRM (Beneficiarios/Donantes) y administración siguen en español. Los componentes
-compartidos usan `t()`: como el idioma efectivo de quien NO es voluntario es siempre `es`,
-staff ve lo de siempre y el selector (`SelectorIdioma`) no se muestra. Antes del login (sin
+**Regla de producto: solo el voluntario y el brigadista ven la app en su idioma y solo sus
+pantallas** (ingreso, términos, inicio, perfil, cierre de jornada, Mis Actividades, curso, menú
+lateral). Inventario, CRM (Beneficiarios/Donantes) y administración siguen en español. Los
+componentes compartidos usan `t()`: como el idioma efectivo del super_admin es siempre `es`,
+staff ve lo de siempre y el selector (`SelectorIdioma`) no se muestra. (Quitar el idioma al
+brigadista es una línea: `selectorVisible` en `I18nProvider.jsx`.) Antes del login (sin
 rol) se usa el idioma elegido, guardado en `localStorage` bajo `arupo_idioma` (sin prefijo
 `medtrack_` para que sobreviva al cerrar sesión). Las utilidades puras reciben `t` (español
 por defecto, vía `i18n/tEs.js`). **Al añadir un texto para voluntarios: ponlo con `t()` en los
@@ -205,7 +227,9 @@ El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles
 | `/inventory`, `/catalog`, `/lotes/:productoId`, `/evaluaciones` | `super_admin`, `brigadista` |
 | `/beneficiarios`, `/donantes` | `super_admin`, `voluntario` |
 | `/usuarios` | `super_admin` |
-| `/bitacoras`, `/equipos` | `super_admin` **o** coordinador (`es_coordinador`, vía `permitirCoordinador`) |
+| `/bitacoras`, `/equipos`, `/asignar-tareas` | `super_admin` **o** algún rol de coordinación (`es_coordinador` / `es_coordinador_brigadas`, vía `permitirCoordinador`); cada uno ve solo a su equipo |
+| `/actividades`, `/tareas` | `voluntario`, `brigadista` |
+| `/curso` | `voluntario`, `brigadista`; `super_admin` puede revisarlo |
 
 **Esto es solo control de UI.** La autorización real depende de las políticas RLS de
 Postgres. Ver `SECURITY.md` — hoy las políticas son permisivas y el frontend hace

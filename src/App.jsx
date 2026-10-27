@@ -82,38 +82,38 @@ function App() {
                 <Usuarios />
               </ProtectedRoute>
             } />
-            {/* Bitácoras de voluntariado: Super Admin y Coordinadores (rol adicional) */}
+            {/* Coordinación (bitácoras, equipos, tareas): Super Admin y los roles adicionales de
+                coordinación (Voluntariado y Brigadas Médicas). Cada uno ve solo a su gente: lo
+                hace valer la base (puede_gestionar_usuario, schema_v33), no esta ruta. */}
             <Route path="bitacoras" element={
               <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
                 <Bitacoras />
               </ProtectedRoute>
             } />
-            {/* Equipos de voluntariado (líderes y asignaciones): Super Admin y Coordinadores */}
             <Route path="equipos" element={
               <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
                 <Equipos />
               </ProtectedRoute>
             } />
-            {/* Asignar tareas a los voluntarios: Super Admin y Coordinadores */}
             <Route path="asignar-tareas" element={
               <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
                 <AsignarTareas />
               </ProtectedRoute>
             } />
-            {/* Curso de español (opcional): Voluntarios; el Super Admin puede revisarlo */}
+            {/* Curso de español (opcional): Voluntarios y Brigadistas; el Super Admin puede revisarlo */}
             <Route path="curso" element={
-              <ProtectedRoute allowedRoles={['voluntario', 'super_admin']}>
+              <ProtectedRoute allowedRoles={['voluntario', 'brigadista', 'super_admin']}>
                 <Curso />
               </ProtectedRoute>
             } />
-            {/* Jornadas cerradas y tareas asignadas: solo Voluntarios */}
+            {/* Jornadas cerradas y tareas asignadas: Voluntarios y Brigadistas */}
             <Route path="actividades" element={
-              <ProtectedRoute allowedRoles={['voluntario']}>
+              <ProtectedRoute allowedRoles={['voluntario', 'brigadista']}>
                 <MisActividades />
               </ProtectedRoute>
             } />
             <Route path="tareas" element={
-              <ProtectedRoute allowedRoles={['voluntario']}>
+              <ProtectedRoute allowedRoles={['voluntario', 'brigadista']}>
                 <Tareas />
               </ProtectedRoute>
             } />

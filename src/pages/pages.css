@@ -366,6 +366,11 @@
   box-shadow: 0 8px 24px rgba(217, 119, 6, 0.15) !important;
 }
 
+.active-coordinador-brigadas {
+  border-color: #0891b2 !important;
+  box-shadow: 0 8px 24px rgba(8, 145, 178, 0.15) !important;
+}
+
 .role-section-header {
   transition: all var(--transition-fast) !important;
 }
@@ -1121,6 +1126,11 @@
 .arupo-profile-bio-badge.coordinador {
   background: var(--warning-bg);
   color: #d97706;
+}
+
+.arupo-profile-bio-badge.coordinador-brigadas {
+  background: rgba(8, 145, 178, 0.12);
+  color: #0891b2;
 }
 
 .arupo-profile-bio-badge.admin {

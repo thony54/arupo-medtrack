@@ -19,7 +19,7 @@ import { SelectorIdioma } from '../i18n/SelectorIdioma';
 import './pages.css';
 
 export const Perfil = () => {
-  const { profile, user, role, isSuperAdmin, isCoordinador, isBrigadista, isVoluntario, signOut, refreshProfile } = useAuth();
+  const { profile, user, role, isSuperAdmin, isCoordinador, isCoordinadorBrigadas, isBrigadista, isVoluntario, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { t, local, formatearFecha } = useI18n();
@@ -164,15 +164,16 @@ export const Perfil = () => {
     setSuccess('');
 
     try {
-      // Tiempo de estancia del voluntario: obligatorio (3 a 24 meses). Se guarda
+      // Tiempo de estancia (3 a 24 meses): obligatorio para el voluntario; opcional para el
+      // brigadista, que solo lo necesita si quiere seguir el curso de español. Se guarda
       // con una función de la base que solo toca las columnas de estancia de la
       // fila propia, porque `perfiles` no admite auto-edición general.
-      if (isVoluntario && estanciaDisponible(profile)) {
-        if (!tempEstancia) {
+      if ((isVoluntario || isBrigadista) && estanciaDisponible(profile)) {
+        if (!tempEstancia && isVoluntario) {
           throw new Error(t('perfil.err_estancia_obligatoria'));
         }
         const meses = Number(tempEstancia);
-        if (meses !== profile.tiempo_estancia_meses) {
+        if (tempEstancia && meses !== profile.tiempo_estancia_meses) {
           const { data: estancia, error: estanciaError } = await supabase
             .rpc('guardar_tiempo_estancia', { p_meses: meses });
           if (estanciaError) {
@@ -419,6 +420,51 @@ export const Perfil = () => {
     if (isVoluntario) return '#7c3aed';
     return 'var(--text-secondary)';
   };
+
+  // Idioma de las pantallas y tiempo de permanencia: los comparten voluntarios y brigadistas
+  // (ambos usan Mis Actividades, Tareas y el Curso). La estancia es obligatoria para el
+  // voluntario y opcional para el brigadista. Solo aparece si la base ya tiene schema_v23.
+  const renderIdiomaYEstancia = (color, obligatoria) => (
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{t('perfil.idioma_app')}</span>
+        <SelectorIdioma style={{ alignSelf: 'flex-start' }} />
+      </div>
+
+      {estanciaDisponible(profile) && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+          <label htmlFor="p-estancia" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <Calendar size={14} style={{ color }} />
+            {t('perfil.estancia_label')}{' '}
+            {obligatoria
+              ? <span style={{ color: 'var(--danger-color)' }}>*</span>
+              : <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>({t('comun.opcional')})</span>}
+          </label>
+          <select
+            id="p-estancia"
+            className="input-field"
+            style={{ marginBottom: 0 }}
+            value={tempEstancia}
+            onChange={e => setTempEstancia(e.target.value)}
+            disabled={updating}
+            required={obligatoria}
+          >
+            <option value="" disabled={obligatoria}>{t('perfil.estancia_placeholder')}</option>
+            {opcionesEstancia(t).map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+            {tempEstancia && profile.fecha_inicio_estancia
+              ? `${t('perfil.estancia_terminaria', { fecha: formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, Number(tempEstancia)), local) })} `
+              : ''}
+            {t('perfil.estancia_ayuda')}
+          </span>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: '850px', margin: '0 auto', paddingBottom: '3rem', width: '100%' }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
@@ -531,6 +577,9 @@ export const Perfil = () => {
               {isCoordinador && (
                 <span className="arupo-profile-bio-badge coordinador">{t('perfil.coordinador_badge')}</span>
               )}
+              {isCoordinadorBrigadas && (
+                <span className="arupo-profile-bio-badge coordinador-brigadas">{t('perfil.coordinador_brigadas_badge')}</span>
+              )}
               <span className="arupo-role-subtitle">{getRoleTitle()}</span>
             </div>
 
@@ -575,9 +624,9 @@ export const Perfil = () => {
                 </div>
               )}
 
-              {isVoluntario && profile?.tiempo_estancia_meses && (
+              {(isVoluntario || isBrigadista) && profile?.tiempo_estancia_meses && (
                 <div className="contact-pill" title={t('perfil.estancia_titulo')}>
-                  <Calendar size={14} style={{ color: '#7c3aed' }} />
+                  <Calendar size={14} style={{ color: isBrigadista ? 'var(--success-color)' : '#7c3aed' }} />
                   <span>
                     {t('perfil.estancia_pill', { duracion: formatEstancia(profile.tiempo_estancia_meses, t) })}
                     {profile.fecha_inicio_estancia && t('perfil.estancia_hasta', { fecha: formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, profile.tiempo_estancia_meses), local) })}
@@ -858,6 +907,8 @@ export const Perfil = () => {
                       disabled={updating}
                     />
                   </div>
+
+                  {renderIdiomaYEstancia('var(--success-color)', false)}
                 </>
               )}
 
@@ -900,41 +951,7 @@ export const Perfil = () => {
                     </div>
                   </div>
 
-                  {/* Idioma de las pantallas del voluntario */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)' }}>{t('perfil.idioma_app')}</span>
-                    <SelectorIdioma style={{ alignSelf: 'flex-start' }} />
-                  </div>
-
-                  {/* Tiempo de permanencia: obligatorio. Solo aparece si la base ya tiene schema_v23. */}
-                  {estanciaDisponible(profile) && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      <label htmlFor="p-estancia" style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <Calendar size={14} style={{ color: '#7c3aed' }} />
-                        {t('perfil.estancia_label')} <span style={{ color: 'var(--danger-color)' }}>*</span>
-                      </label>
-                      <select
-                        id="p-estancia"
-                        className="input-field"
-                        style={{ marginBottom: 0 }}
-                        value={tempEstancia}
-                        onChange={e => setTempEstancia(e.target.value)}
-                        disabled={updating}
-                        required
-                      >
-                        <option value="" disabled>{t('perfil.estancia_placeholder')}</option>
-                        {opcionesEstancia(t).map(o => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                        {tempEstancia && profile.fecha_inicio_estancia
-                          ? `${t('perfil.estancia_terminaria', { fecha: formatFecha(fechaFinEstancia(profile.fecha_inicio_estancia, Number(tempEstancia)), local) })} `
-                          : ''}
-                        {t('perfil.estancia_ayuda')}
-                      </span>
-                    </div>
-                  )}
+                  {renderIdiomaYEstancia('#7c3aed', true)}
                 </>
               )}
 
@@ -1016,6 +1033,10 @@ export const Perfil = () => {
                             <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
                             <span>Entrega y salida de Medicamentos con lógica FEFO.</span>
                           </div>
+                          <div className="privilege-item">
+                            <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                            <span>{t('perfil.priv_brig_jornadas')}</span>
+                          </div>
                         </>
                       )}
                       {isVoluntario && (
@@ -1038,6 +1059,12 @@ export const Perfil = () => {
                         <div className="privilege-item">
                           <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
                           <span>{t('perfil.priv_coord')}</span>
+                        </div>
+                      )}
+                      {isCoordinadorBrigadas && (
+                        <div className="privilege-item">
+                          <CheckCircle size={16} style={{ color: 'var(--success-color)', flexShrink: 0, marginTop: '2px' }} />
+                          <span>{t('perfil.priv_coord_brigadas')}</span>
                         </div>
                       )}
                     </div>
