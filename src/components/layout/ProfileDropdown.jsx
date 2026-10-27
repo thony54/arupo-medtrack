@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, LogOut, User, Shield, ChevronRight, Edit2, Check, X, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { getRolColor } from '../../utils/roles';
+import { getRolColor, getRolLabel } from '../../utils/roles';
 import { useI18n } from '../../i18n/useI18n';
 import './layout.css';
 
@@ -110,7 +110,7 @@ export const ProfileDropdown = () => {
                 </button>
               </div>
               {/* role puede ser null mientras el perfil carga o si no se pudo leer */}
-              <p className="user-role-mini">{(role || 'sin rol asignado').replace('_', ' ')}</p>
+              <p className="user-role-mini">{role ? getRolLabel(role, role.replace('_', ' ')) : 'sin rol asignado'}</p>
             </div>
           </div>
 

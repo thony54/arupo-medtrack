@@ -297,7 +297,7 @@ export default {
   'roles.brigadista': 'Brigadista',
   'roles.coordinador': 'Coordinador',
   'roles.coordinador_brigadas': 'Coord. de Brigadas',
-  'roles.super_admin': 'Super Admin',
+  'roles.super_admin': 'Admin',
   'roles.usuario': 'Usuario',
   'roles.voluntario': 'Voluntario',
   'tareas.asignada_por': 'Asignada por {nombre}',

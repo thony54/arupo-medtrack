@@ -1,6 +1,12 @@
 // Fuente de verdad de los roles de MedTrack: etiquetas, colores y textos.
 // El mapeo ruta → roles NO vive aquí: sigue en src/App.jsx (allowedRoles).
 //
+// Jerarquía: el ADMIN PRINCIPAL (EMAIL_ADMIN_PRINCIPAL) no tiene a nadie por encima. Debajo
+// están los Admin (`rol = 'super_admin'`; "Admin" es solo la etiqueta: el valor en la base no
+// cambia) y, por debajo, brigadistas y voluntarios. Ser Admin NO da acceso a Coordinación:
+// solo lo da un rol de coordinación que el admin principal asigne (ver abajo). El admin
+// principal sí accede a la Coordinación de ambos equipos.
+//
 // Hay dos tipos de rol:
 //   · Rol PRINCIPAL: un solo valor en `perfiles.rol` (ROLES_ORDEN).
 //   · Roles ADICIONALES de coordinación, que se SUMAN al principal (un super_admin
@@ -15,17 +21,24 @@
 // `badge` es la variante de <Badge>. `asignablePorDeveloper` marca los roles
 // principales que solo puede otorgar el super admin principal (Usuarios.jsx).
 
+// Único correo con rango de admin principal. Es solo para la interfaz: la base lo hace valer
+// con `es_super_admin_principal()` (schema_v33.sql), que lee el correo del JWT.
+export const EMAIL_ADMIN_PRINCIPAL = 'thony.karter@gmail.com';
+
+export const esAdminPrincipal = (email) =>
+  typeof email === 'string' && email.trim().toLowerCase() === EMAIL_ADMIN_PRINCIPAL;
+
 export const ROL_CONFIG = {
   super_admin: {
-    label: 'Super Admin',
+    label: 'Admin',
     plural: 'Admins',
-    titulo: 'Administrador del Sistema',
+    titulo: 'Administrador',
     color: 'var(--danger-color)',
     bg: 'var(--danger-bg)',
     rgb: '225, 29, 72',
     badge: 'danger',
-    permisos: 'Acceso total e irrestricto en todos los módulos.',
-    descripcion: 'Acceso total e irrestricto en todos los módulos y gestión de personal.',
+    permisos: 'Administración de inventario, CRM y personal.',
+    descripcion: 'Administra inventario, CRM y personal. No accede a Coordinación salvo que el admin principal le asigne un rol de coordinación.',
     asignablePorDeveloper: true
   },
   brigadista: {
@@ -93,11 +106,12 @@ export const SECCIONES_ROL = [...ROLES_ORDEN, ...Object.keys(ROLES_ADICIONALES)]
 export const tieneRol = (perfil, rol) =>
   rol in ROLES_ADICIONALES ? perfil?.[ROLES_ADICIONALES[rol]] === true : perfil?.rol === rol;
 
-// Roles principales cuyo personal gestiona el perfil como coordinación: el super_admin, a
+// Roles principales cuyo personal gestiona el perfil como coordinación: el admin principal, a
 // todos; el coordinador, a los voluntarios; el coordinador de brigadas, a los brigadistas.
-// Es solo para la interfaz: la base lo hace valer con `puede_gestionar_usuario` (schema_v33).
-export const cohortesGestionadas = (perfil) => {
-  if (perfil?.rol === 'super_admin') return ['voluntario', 'brigadista'];
+// Un Admin corriente no gestiona a nadie: [] = sin acceso a Coordinación.
+// Es solo para la interfaz: la base lo hace valer con `puede_gestionar_usuario` (schema_v35).
+export const cohortesGestionadas = (perfil, email) => {
+  if (perfil?.rol === 'super_admin' && esAdminPrincipal(email)) return ['voluntario', 'brigadista'];
   const cohortes = [];
   if (perfil?.es_coordinador === true) cohortes.push('voluntario');
   if (perfil?.es_coordinador_brigadas === true) cohortes.push('brigadista');

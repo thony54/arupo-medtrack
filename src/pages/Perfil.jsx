@@ -400,7 +400,7 @@ export const Perfil = () => {
   };
 
   const getRoleTitle = () => {
-    if (isSuperAdmin) return 'Administrador del Sistema';
+    if (isSuperAdmin) return 'Administrador';
     if (isBrigadista) return 'Especialista Médico / Brigadista';
     // No usar "Coordinador" aquí: es el rol adicional de Coordinador de Voluntariado.
     if (isVoluntario) return t('perfil.titulo_voluntario');
@@ -408,7 +408,7 @@ export const Perfil = () => {
   };
 
   const getRoleLabel = () => {
-    if (isSuperAdmin) return 'Super Admin';
+    if (isSuperAdmin) return 'Admin';
     if (isBrigadista) return 'Brigadista';
     if (isVoluntario) return t('roles.voluntario');
     return 'General';

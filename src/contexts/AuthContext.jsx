@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, variablesFaltantes } from '../lib/supabase';
 import { consultarTerminos, registrarAceptacion } from '../lib/terminos';
-import { cohortesGestionadas } from '../utils/roles';
+import { cohortesGestionadas, esAdminPrincipal } from '../utils/roles';
 
 const AuthContext = createContext();
 
@@ -119,8 +119,13 @@ export const AuthProvider = ({ children }) => {
     } catch { /* SSR/entornos sin window */ }
   }, [profile]);
 
+  // Admin principal: nadie por encima. Es el único que otorga roles de coordinación y el único
+  // Admin que entra a Coordinación por serlo (los demás, solo con un rol de coordinación asignado).
+  const emailSesion = session?.user?.email;
+  const adminPrincipal = esAdminPrincipal(emailSesion) && profile?.rol === 'super_admin';
+
   // A quién gestiona como coordinación (identidad estable: las pantallas lo usan en dependencias).
-  const cohortes = useMemo(() => cohortesGestionadas(profile), [profile]);
+  const cohortes = useMemo(() => cohortesGestionadas(profile, emailSesion), [profile, emailSesion]);
 
   // Renderizador de pantalla elegante de error en caso de que el SDK de Supabase no inicie
   if (!supabase) {
@@ -194,8 +199,9 @@ export const AuthProvider = ({ children }) => {
     // Roles ADICIONALES: se suman al principal (p. ej. super_admin + coordinador).
     isCoordinador: profile?.es_coordinador === true,
     isCoordinadorBrigadas: profile?.es_coordinador_brigadas === true,
-    // Algún rol de coordinación, y a quién gestiona (ver cohortesGestionadas).
-    esCoordinacion: profile?.rol === 'super_admin' || profile?.es_coordinador === true || profile?.es_coordinador_brigadas === true,
+    esAdminPrincipal: adminPrincipal,
+    // Acceso a Coordinación y a quién gestiona (ver cohortesGestionadas). Ser Admin no basta.
+    esCoordinacion: cohortes.length > 0,
     cohortes,
     isBrigadista: profile?.rol === 'brigadista',
     isVoluntario: profile?.rol === 'voluntario',

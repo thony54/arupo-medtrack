@@ -53,9 +53,10 @@ const obtenerPagina = async (desde, filtros) => {
 // 42P01 / PGRST205: la tabla aún no existe (falta schema_v24).
 const tablaInexistente = (err) => err?.code === '42P01' || err?.code === 'PGRST205';
 
-// Pantalla de revisión de bitácoras para super_admin y coordinadores: lista con
-// filtros, aprobación o rechazo (con un mensaje para quien la envió) y descarga a Excel.
-// Cada coordinación ve a su gente (voluntarios o brigadistas): lo hace valer la base.
+// Pantalla de revisión de bitácoras para quien tiene un rol de coordinación (y el admin
+// principal): lista con filtros, aprobación o rechazo (con un mensaje para quien la envió) y
+// descarga a Excel. Cada coordinación ve a su gente (voluntarios o brigadistas): lo hace valer
+// la base. Un Admin sin rol de coordinación no entra.
 export const Bitacoras = () => {
   const { user, cohortes } = useAuth() || {};
   const etiq = etiquetasPersonal(cohortes || []);

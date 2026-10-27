@@ -32,7 +32,7 @@ const ordenar = (a, b) => {
   return a.created_at < b.created_at ? 1 : -1;
 };
 
-// Pantalla de la coordinación (super_admin y coordinadores): todo lo referente a las tareas
+// Pantalla de la coordinación (roles de coordinación y admin principal): todo lo referente a las tareas
 // de su gente (voluntarios o brigadistas, según el rol). Asignar una tarea nueva, ver cuáles
 // siguen pendientes o ya se hicieron y retirar las asignadas por error (schema_v30.sql, v33).
 export const AsignarTareas = () => {

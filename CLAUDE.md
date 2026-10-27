@@ -62,13 +62,21 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v34, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v35, schema_salud)
 ```
 
 ### Roles y rutas
 
+**Jerarquía (decidida por el dueño, Karter):** el **admin principal**
+(`thony.karter@gmail.com`) no tiene a nadie por encima. Debajo están los **Admin**
+(`perfiles.rol = 'super_admin'`; "Admin" es solo la etiqueta de la interfaz, el valor de la base
+no cambia) y, por debajo, brigadistas y voluntarios. **Ser Admin NO da acceso a Coordinación**
+(menú, rutas ni datos): solo lo da un rol de coordinación que el admin principal asigne; el
+admin principal sí accede a la Coordinación de ambos equipos. Lo hace valer la base
+(`schema_v35.sql`), no solo la interfaz. No des a un Admin acceso a Coordinación "por ser admin".
+
 Tres roles principales en `perfiles.rol`: `super_admin`, `brigadista`, `voluntario`.
-Además hay un **rol adicional** que se suma al principal: `perfiles.es_coordinador`
+Además hay roles **adicionales** que se suman al principal; el primero, `perfiles.es_coordinador`
 (Coordinador de Voluntariado). No es un valor de `rol` porque un mismo usuario
 puede ser `super_admin` y coordinador a la vez (caso de e_milton@fundacionarupo.org).
 Se otorga **solo desde `/usuarios` con la sesión del super admin principal**
@@ -78,17 +86,21 @@ partes según `MedTrack Modulo por anadir.docx`. Requiere `schema_v22.sql` (colu
 
 **Coordinador de Brigadas Médicas** (`schema_v33.sql`): segundo rol adicional, columna
 `perfiles.es_coordinador_brigadas` (`useAuth().isCoordinadorBrigadas`). Monitorea y lidera a
-los que entran con el rol `brigadista`. **Solo lo otorga el super admin principal** y la base
-lo hace valer (el trigger `perfiles_proteger_campos` compara el correo del JWT con
-`es_super_admin_principal()`; otro super_admin recibe 42501). **Alcance por equipo:**
-super_admin ve voluntarios y brigadistas; `es_coordinador`, solo voluntarios;
-`es_coordinador_brigadas`, solo brigadistas. Lo decide `puede_gestionar_usuario(id)` en las
+los que entran con el rol `brigadista`. **Solo lo otorga el admin principal** y la base
+lo hace valer: el trigger `perfiles_proteger_campos` compara el correo del JWT con
+`es_super_admin_principal()` y, desde v35, exige lo mismo para cambiar `es_coordinador`,
+`es_coordinador_brigadas`, `es_lider` y `lider_id` (otro Admin recibe 42501 aunque llame a la API
+directamente). **Alcance por equipo:** el admin principal ve voluntarios y brigadistas;
+`es_coordinador`, solo voluntarios; `es_coordinador_brigadas`, solo brigadistas; un Admin sin rol
+de coordinación, a nadie. Lo decide `puede_gestionar_usuario(id)` en las
 políticas de `bitacoras`, `tareas_voluntario`, `curso_progreso`, las fotos del bucket y los RPC
 (aprobar/rechazar, asignar/retirar tareas, `asignar_voluntario_a_lider`, `curso_resumen`).
-`puede_revisar_bitacoras()` ahora solo significa "tiene algún rol de coordinación": ya no basta
-para ver datos de una persona. En la UI: `cohortes` (de `cohortesGestionadas()` en `roles.js`) y
-`etiquetasPersonal()` adaptan `/bitacoras`, `/equipos` y `/asignar-tareas` a quién gestiona
-cada uno. La lista de líderes (`es_lider`) es una sola y la comparten ambos equipos; una
+`puede_revisar_bitacoras()` solo significa "tiene acceso a Coordinación" (rol de coordinación o
+admin principal): no basta por sí sola para ver datos de una persona. En la UI: `cohortes` (de
+`cohortesGestionadas()` en `roles.js`; `[]` = sin acceso), `esCoordinacion` (= `cohortes.length > 0`)
+y `esAdminPrincipal` salen de `useAuth()`; `etiquetasPersonal()` adapta `/bitacoras`, `/equipos` y
+`/asignar-tareas` a quién gestiona cada uno. Las rutas usan `<ProtectedRoute requiereCoordinacion>`.
+La lista de líderes (`es_lider`) es una sola y la comparten ambos equipos; una
 coordinación no puede quitar a un líder que tiene personas del otro equipo (error 55006).
 
 **Brigadistas y el voluntariado:** los brigadistas conservan todo lo suyo y además usan Mis
@@ -122,8 +134,8 @@ estado y fechas, aprobación y descarga a Excel (`utils/reporteBitacoras.js`: ho
 docx (viene como IMAGEN dentro del documento): ID y voluntario, tiempo de estancia, timestamp
 en UTC, detalle de actividades, líder a cargo, evidencia (enlaces firmados de **7 días** a las
 fotos del bucket privado, como hipervínculo) y avance de español (% y nivel, de `curso_resumen`;
-"N/D" si falta v29). La ruta usa `<ProtectedRoute permitirCoordinador>` porque
-el coordinador no es un valor de `rol`. Aprobar solo se hace con el RPC
+"N/D" si falta v29). La ruta usa `<ProtectedRoute requiereCoordinacion>` porque
+el coordinador no es un valor de `rol` y un Admin corriente no debe entrar. Aprobar solo se hace con el RPC
 `aprobar_bitacora` (nadie aprueba la suya). **Rechazar** (`schema_v32.sql`): estado `rechazada`,
 columna `motivo_rechazo` (mensaje obligatorio, ≤500) y RPC `rechazar_bitacora`; el voluntario
 ve el estado y el mensaje en Mis Actividades (`bitacora.estado_rechazada`,
@@ -236,7 +248,7 @@ El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles
 | `/inventory`, `/catalog`, `/lotes/:productoId`, `/evaluaciones` | `super_admin`, `brigadista` |
 | `/beneficiarios`, `/donantes` | `super_admin`, `voluntario` |
 | `/usuarios` | `super_admin` |
-| `/bitacoras`, `/equipos`, `/asignar-tareas` | `super_admin` **o** algún rol de coordinación (`es_coordinador` / `es_coordinador_brigadas`, vía `permitirCoordinador`); cada uno ve solo a su equipo |
+| `/bitacoras`, `/equipos`, `/asignar-tareas` | solo quien tenga un rol de coordinación asignado (`es_coordinador` / `es_coordinador_brigadas`) o sea el admin principal, vía `requiereCoordinacion`; **un Admin corriente no entra**; cada uno ve solo a su equipo |
 | `/actividades`, `/tareas` | `voluntario`, `brigadista` |
 | `/curso` | `voluntario`, `brigadista`; `super_admin` puede revisarlo |
 

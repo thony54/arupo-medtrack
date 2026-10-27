@@ -26,7 +26,7 @@ const haceCuanto = (iso, ahora) => {
   return `Hace ${dias} días`;
 };
 
-// Equipos para super_admin y coordinadores: designar líderes de grupo, asignar a cada
+// Equipos para quien tiene un rol de coordinación (y el admin principal): designar líderes de grupo, asignar a cada
 // persona de su equipo (voluntarios o brigadistas, según el rol de coordinación) y ver su
 // actividad de los últimos 30 días. La lista de líderes es una sola y la comparten ambos equipos.
 export const Equipos = () => {

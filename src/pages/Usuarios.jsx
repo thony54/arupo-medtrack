@@ -21,13 +21,13 @@ const ROL_ICONOS = {
 };
 
 export const Usuarios = () => {
-  const { user } = useAuth() || {};
-  
-  const isDeveloper = user?.email?.toLowerCase() === 'thony.karter@gmail.com';
-  
-  // Solo el super admin principal otorga super_admin y el rol adicional de
-  // coordinador. Es control de interfaz: la escritura real la limita la RLS de
-  // `perfiles` (solo super_admin), igual que antes con super_admin.
+  const { user, esAdminPrincipal } = useAuth() || {};
+
+  const isDeveloper = esAdminPrincipal === true;
+
+  // Solo el admin principal otorga el rol de Admin y los roles adicionales de
+  // coordinación. Es control de interfaz; la base lo hace valer: los roles de coordinación,
+  // con el trigger de `perfiles` (schema_v33/v35), y el resto, con su RLS (solo super_admin).
   const rolesDisponibles = ROLES_ORDEN.filter(r => isDeveloper || !ROL_CONFIG[r].asignablePorDeveloper);
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -734,6 +734,9 @@ export const Usuarios = () => {
             {/* Roles adicionales: se suman al principal, no lo reemplazan */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <span style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-secondary)' }}>Roles adicionales</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '-0.35rem' }}>
+                Sin uno de estos roles, un Admin no accede a Coordinación.
+              </span>
               {Object.keys(ROLES_ADICIONALES).map(r => {
                 const cfg = ROL_CONFIG[r];
                 const Icon = ROL_ICONOS[r];
@@ -778,7 +781,7 @@ export const Usuarios = () => {
               <div style={{ padding: '0.75rem', background: 'var(--warning-bg)', color: 'var(--warning-color)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
                 <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
                 <span>
-                  {cambioRol.usuario.nombre} dejará de ser Super Admin: perderá el acceso a Gestión de Personal
+                  {cambioRol.usuario.nombre} dejará de ser Admin: perderá el acceso a Gestión de Personal
                   y a todo módulo que su nuevo rol no incluya.
                 </span>
               </div>

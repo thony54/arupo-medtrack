@@ -176,7 +176,8 @@ export const Sidebar = () => {
           </>
         )}
 
-        {/* Sección Coordinación: Super Admin y Coordinadores (roles adicionales) */}
+        {/* Sección Coordinación: solo con un rol de coordinación asignado (o el admin principal).
+            Ser Admin no basta. */}
         {esCoordinacion && (
           <>
             <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>

@@ -76,27 +76,28 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* Administración Interna: Solo Super Admin */}
+            {/* Administración Interna: Admins */}
             <Route path="usuarios" element={
               <ProtectedRoute allowedRoles={['super_admin']}>
                 <Usuarios />
               </ProtectedRoute>
             } />
-            {/* Coordinación (bitácoras, equipos, tareas): Super Admin y los roles adicionales de
-                coordinación (Voluntariado y Brigadas Médicas). Cada uno ve solo a su gente: lo
-                hace valer la base (puede_gestionar_usuario, schema_v33), no esta ruta. */}
+            {/* Coordinación (bitácoras, equipos, tareas): solo quien tenga un rol de coordinación
+                asignado (Voluntariado o Brigadas Médicas) y el admin principal. Ser Admin no basta.
+                Cada uno ve solo a su gente: lo hace valer la base (puede_gestionar_usuario,
+                schema_v35), no esta ruta. */}
             <Route path="bitacoras" element={
-              <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
+              <ProtectedRoute requiereCoordinacion>
                 <Bitacoras />
               </ProtectedRoute>
             } />
             <Route path="equipos" element={
-              <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
+              <ProtectedRoute requiereCoordinacion>
                 <Equipos />
               </ProtectedRoute>
             } />
             <Route path="asignar-tareas" element={
-              <ProtectedRoute allowedRoles={['super_admin']} permitirCoordinador>
+              <ProtectedRoute requiereCoordinacion>
                 <AsignarTareas />
               </ProtectedRoute>
             } />
