@@ -337,62 +337,6 @@
   color: var(--primary-color);
 }
 
-/* Premium Role Selector Cards styles */
-.role-selector-card {
-  transition: all var(--transition-bounce) !important;
-}
-
-.role-selector-card:hover {
-  transform: translateY(-4px) scale(1.02);
-}
-
-.active-super-admin {
-  border-color: var(--danger-color) !important;
-  box-shadow: 0 8px 24px rgba(225, 29, 72, 0.15) !important;
-}
-
-.active-brigadista {
-  border-color: var(--success-color) !important;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15) !important;
-}
-
-.active-voluntario {
-  border-color: #7c3aed !important;
-  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15) !important;
-}
-
-.active-coordinador {
-  border-color: #d97706 !important;
-  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.15) !important;
-}
-
-.active-coordinador-brigadas {
-  border-color: #0891b2 !important;
-  box-shadow: 0 8px 24px rgba(8, 145, 178, 0.15) !important;
-}
-
-.active-gestion-personal {
-  border-color: #4f46e5 !important;
-  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15) !important;
-}
-
-.role-section-header {
-  transition: all var(--transition-fast) !important;
-}
-
-.role-section-header:hover {
-  background-color: var(--bg-surface-hover) !important;
-  border-color: var(--primary-color) !important;
-}
-
-/* Ensure the table scrolls horizontally on mobile with plenty of breathing room */
-.usuarios-table-container {
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  width: 100%;
-}
-
-
 .mobile-user-card {
   padding: 1.25rem;
   border-radius: var(--radius-lg);

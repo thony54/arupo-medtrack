@@ -1,24 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Database, LogOut, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, BadgeAlert, ChevronRight, Activity, ClipboardCheck, ClipboardList, ListChecks, ListPlus, Network, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Package, Database, Users, HandHeart, Plus, ShoppingBag, Gift, User, UserCog, ChevronRight, Activity, ClipboardCheck, ClipboardList, ListChecks, ListPlus, Network, GraduationCap } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { ProfileDropdown } from './ProfileDropdown';
 import { LoteForm } from '../inventory/LoteForm';
 import { SalidaFEFO } from '../inventory/SalidaFEFO';
 import { DonacionGeneral } from '../inventory/DonacionGeneral';
 import { SalidaGeneral } from '../inventory/SalidaGeneral';
+import { MobileNav } from './MobileNav';
 // import { SaludStepper } from '../salud/SaludStepper';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRolColor } from '../../utils/roles';
 import { useI18n } from '../../i18n/useI18n';
 import './layout.css';
 
+const estiloTituloGrupo = {
+  fontSize: '0.7rem',
+  fontWeight: '700',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: 'var(--text-tertiary)'
+};
+
 export const Sidebar = () => {
   const [showLoteForm, setShowLoteForm] = useState(false);
   const [showSalida, setShowSalida] = useState(false);
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
-  const [showSaludStepper, setShowSaludStepper] = useState(false);
   const { signOut, isSuperAdmin, isCoordinador, isCoordinadorBrigadas, esCoordinacion, puedeGestionarPersonal, puedeVerEvaluaciones, participaVoluntariado, isBrigadista, isVoluntario, profile } = useAuth();
   const { t } = useI18n();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -40,12 +47,71 @@ export const Sidebar = () => {
     navigate('/login');
   };
 
-  const navItem = (to, Icon, label, end = false) => (
-    <NavLink to={to} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end={end}>
-      <Icon size={20} />
-      <span>{label}</span>
-    </NavLink>
-  );
+  // Una sola definición de módulos para la barra lateral (escritorio) y el menú del teléfono
+  // (MobileNav). `pin` decide qué módulos tienen atajo en el dock del teléfono (menor = antes).
+  // `rgb` del área pinta su punto en el panel del teléfono; `rgb` de cada módulo es el color de su
+  // icono, como el de una app.
+  const secciones = [
+    {
+      clave: 'general',
+      titulo: t('nav.general'),
+      rgb: '13, 148, 136',
+      items: [
+        { to: '/', icon: LayoutDashboard, rgb: '13, 148, 136', label: t('nav.inicio'), end: true, pin: 0 },
+        participaVoluntariado && { to: '/actividades', icon: ClipboardList, rgb: '2, 132, 199', label: t('nav.actividades'), pin: 1 },
+        participaVoluntariado && { to: '/tareas', icon: ListChecks, rgb: '217, 119, 6', label: t('nav.tareas'), pin: 3 },
+        (participaVoluntariado || isSuperAdmin) && { to: '/curso', icon: GraduationCap, rgb: '219, 39, 119', label: t('nav.curso') }
+      ]
+    },
+    // Inventario y Catálogo para Admins y Brigadistas. Evaluaciones, solo para brigadistas,
+    // Coordinador de Brigadas y admin principal: ser Admin no basta.
+    {
+      clave: 'medicina',
+      titulo: isBrigadista ? 'Medicina' : 'Donaciones Médicas',
+      rgb: '225, 29, 72',
+      items: [
+        (isSuperAdmin || isBrigadista) && { to: '/inventory', icon: Package, rgb: '225, 29, 72', label: 'Inventario', rutas: ['/lotes'], pin: 2 },
+        (isSuperAdmin || isBrigadista) && { to: '/catalog', icon: Database, rgb: '234, 88, 12', label: 'Catálogo' },
+        puedeVerEvaluaciones && { to: '/evaluaciones', icon: Activity, rgb: '5, 150, 105', label: 'Evaluaciones', pin: 3 }
+      ]
+    },
+    // CRM: Super Admin y Voluntarios.
+    {
+      clave: 'comunidad',
+      titulo: t('nav.comunidad'),
+      rgb: '124, 58, 237',
+      items: [
+        (isSuperAdmin || isVoluntario) && { to: '/beneficiarios', icon: Users, rgb: '124, 58, 237', label: t('nav.beneficiarios'), pin: 3 },
+        (isSuperAdmin || isVoluntario) && { to: '/donantes', icon: HandHeart, rgb: '192, 38, 211', label: t('nav.donantes') }
+      ]
+    },
+    // Coordinación: solo con un rol de coordinación asignado (o el admin principal).
+    // Ser Admin no basta.
+    {
+      clave: 'coordinacion',
+      titulo: 'Coordinación',
+      rgb: '217, 119, 6',
+      items: [
+        esCoordinacion && { to: '/bitacoras', icon: ClipboardCheck, rgb: '8, 145, 178', label: 'Bitácoras', pin: 2 },
+        esCoordinacion && { to: '/equipos', icon: Network, rgb: '79, 70, 229', label: 'Equipos' },
+        esCoordinacion && { to: '/asignar-tareas', icon: ListPlus, rgb: '101, 163, 13', label: 'Asignar tareas' }
+      ]
+    },
+    // Administración: solo el admin principal o un Admin con el rol "Gestión de Personal"
+    // que él asigne. Ser Admin no basta.
+    {
+      clave: 'administracion',
+      titulo: 'Administración',
+      rgb: '79, 70, 229',
+      items: [
+        puedeGestionarPersonal && { to: '/usuarios', icon: UserCog, rgb: '71, 85, 105', label: 'Gestión de Personal', corto: 'Personal' }
+      ]
+    }
+  ]
+    .map((s) => ({ ...s, items: s.items.filter(Boolean) }))
+    .filter((s) => s.items.length > 0);
+
+  const etiquetaRol = `${t(`roles.${profile?.rol}`) === `roles.${profile?.rol}` ? t('roles.usuario') : t(`roles.${profile?.rol}`)}${isCoordinador ? ` · ${t('roles.coordinador')}` : ''}${isCoordinadorBrigadas ? ` · ${t('roles.coordinador_brigadas')}` : ''}`;
 
   return (
     <aside className="sidebar">
@@ -60,12 +126,12 @@ export const Sidebar = () => {
                 <span className="mobile-only" style={{ fontSize: '1.1rem' }}>MedTrack</span>
               </div>
               {!isOnline && (
-                <div style={{ 
-                  padding: '1px 6px', 
-                  background: 'var(--danger-color)', 
-                  color: 'white', 
-                  borderRadius: '100px', 
-                  fontSize: '0.55rem', 
+                <div style={{
+                  padding: '1px 6px',
+                  background: 'var(--danger-color)',
+                  color: 'white',
+                  borderRadius: '100px',
+                  fontSize: '0.55rem',
                   fontWeight: '900',
                   textTransform: 'uppercase',
                   marginTop: '2px',
@@ -78,7 +144,7 @@ export const Sidebar = () => {
             </div>
           </div>
           <div className="header-actions">
-            
+
             {/* Botones Médicos: Visibles para Super Admin y Brigadistas */}
             {(isSuperAdmin || isBrigadista) && (
               <div style={{ display: 'flex', gap: '0.3rem' }}>
@@ -120,11 +186,11 @@ export const Sidebar = () => {
             )}
             {/* Separador final eliminado para mayor limpieza visual */}
             {/* Profile Link (The "Old" Button) */}
-            <button 
-              onClick={() => navigate('/perfil')} 
-              className="icon-btn mobile-only" 
-              title={t('nav.mi_perfil')} 
-              style={{ 
+            <button
+              onClick={() => navigate('/perfil')}
+              className="icon-btn mobile-only"
+              title={t('nav.mi_perfil')}
+              style={{
                 color: 'var(--primary-color)',
                 width: '32px',
                 height: '32px',
@@ -144,84 +210,52 @@ export const Sidebar = () => {
         </div>
       </div>
 
+      {/* Escritorio: lista lateral con todos los módulos. En el teléfono la reemplaza MobileNav. */}
       <nav className="sidebar-nav" style={{ flex: 1, overflowY: 'auto' }}>
-        <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }}>
-          {t('nav.general')}
-        </div>
-        {navItem('/', LayoutDashboard, t('nav.inicio'), true)}
-        {participaVoluntariado && navItem('/actividades', ClipboardList, t('nav.actividades'))}
-        {participaVoluntariado && navItem('/tareas', ListChecks, t('nav.tareas'))}
-        {(participaVoluntariado || isSuperAdmin) && navItem('/curso', GraduationCap, t('nav.curso'))}
-
-        {/* Sección Donaciones / Medicinas: Inventario y Catálogo para Admins y Brigadistas.
-            Evaluaciones, solo para brigadistas, Coordinador de Brigadas y admin principal:
-            ser Admin no basta. */}
-        {(isSuperAdmin || isBrigadista || puedeVerEvaluaciones) && (
-          <>
-            <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
-              {isBrigadista ? 'Medicina' : 'Donaciones Médicas'}
+        {secciones.map((s, i) => (
+          <React.Fragment key={s.clave}>
+            <div
+              className="nav-group-title"
+              style={i === 0
+                ? { ...estiloTituloGrupo, padding: '0.25rem 0.5rem 0.25rem', marginTop: '0.25rem' }
+                : { ...estiloTituloGrupo, padding: '0.75rem 0.5rem 0.25rem' }}
+            >
+              {s.titulo}
             </div>
-            {(isSuperAdmin || isBrigadista) && navItem('/inventory', Package, 'Inventario')}
-            {(isSuperAdmin || isBrigadista) && navItem('/catalog', Database, 'Catálogo')}
-            {puedeVerEvaluaciones && navItem('/evaluaciones', Activity, 'Evaluaciones')}
-          </>
-        )}
-
-        {/* Sección CRM: Visible para Super Admin y Voluntarios */}
-        {(isSuperAdmin || isVoluntario) && (
-          <>
-            <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
-              {t('nav.comunidad')}
-            </div>
-            {navItem('/beneficiarios', Users, t('nav.beneficiarios'))}
-            {navItem('/donantes', HandHeart, t('nav.donantes'))}
-          </>
-        )}
-
-        {/* Sección Coordinación: solo con un rol de coordinación asignado (o el admin principal).
-            Ser Admin no basta. */}
-        {esCoordinacion && (
-          <>
-            <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
-              Coordinación
-            </div>
-            {navItem('/bitacoras', ClipboardCheck, 'Bitácoras')}
-            {navItem('/equipos', Network, 'Equipos')}
-            {navItem('/asignar-tareas', ListPlus, 'Asignar tareas')}
-          </>
-        )}
-
-        {/* Sección Administración: solo el admin principal o un Admin con el rol "Gestión de
-            Personal" que él asigne. Ser Admin no basta. */}
-        {puedeGestionarPersonal && (
-          <>
-            <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
-              Administración
-            </div>
-            {navItem('/usuarios', UserCog, 'Gestión de Personal')}
-          </>
-        )}
+            {s.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                  <Icon size={20} />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </React.Fragment>
+        ))}
       </nav>
+
+      <MobileNav secciones={secciones} etiquetaRol={etiquetaRol} onLogout={handleLogout} />
 
       {/* FOOTER DE ESCRITORIO: Tarjeta del Usuario y Copyright en la parte inferior */}
       <div className="desktop-only" style={{ marginTop: 'auto', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
-        
+
         {/* Perfil del Usuario Adaptable */}
-        <div style={{ 
-          padding: '0.75rem', 
-          borderRadius: 'var(--radius-lg)', 
-          background: 'var(--bg-surface-hover)', 
-          border: '1px solid var(--border-color)', 
+        <div style={{
+          padding: '0.75rem',
+          borderRadius: 'var(--radius-lg)',
+          background: 'var(--bg-surface-hover)',
+          border: '1px solid var(--border-color)',
           marginBottom: '0.75rem',
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem'
         }}>
           <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'center', flex: 1, minWidth: 0 }}>
-            <div style={{ 
-              width: '34px', 
-              height: '34px', 
-              borderRadius: '50%', 
+            <div style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '50%',
               backgroundColor: profile?.avatar ? 'transparent' : getRolColor(profile?.rol),
               color: '#fff',
               display: 'flex',
@@ -234,10 +268,10 @@ export const Sidebar = () => {
               border: profile?.avatar ? '1px solid var(--border-color)' : 'none'
             }}>
               {profile?.avatar ? (
-                <img 
-                  src={profile.avatar} 
-                  alt="Avatar" 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                <img
+                  src={profile.avatar}
+                  alt="Avatar"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
                 (profile?.nombre || 'U').substring(0, 2).toUpperCase()
@@ -248,12 +282,12 @@ export const Sidebar = () => {
                 {profile?.nombre || t('comun.cargando')}
               </p>
               <p style={{ fontSize: '0.65rem', fontWeight: '600', color: 'var(--text-tertiary)', textTransform: 'uppercase', margin: 0 }}>
-                {t(`roles.${profile?.rol}`) === `roles.${profile?.rol}` ? t('roles.usuario') : t(`roles.${profile?.rol}`)}{isCoordinador && ` · ${t('roles.coordinador')}`}{isCoordinadorBrigadas && ` · ${t('roles.coordinador_brigadas')}`}
+                {etiquetaRol}
               </p>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => navigate('/perfil')}
             className="icon-btn"
             style={{ color: 'var(--primary-color)' }}
@@ -276,5 +310,3 @@ export const Sidebar = () => {
     </aside>
   );
 };
-
-

@@ -42,7 +42,10 @@ src/
   lib/supabase.js          Cliente único de Supabase. Es null si falta o es inválida
                            la VITE_SUPABASE_URL — todo el código debe tolerarlo.
   contexts/AuthContext.jsx Sesión + perfil + rol. Expone signIn/signOut/refreshProfile.
-  components/layout/       Layout, Sidebar, ProtectedRoute, ProfileDropdown, PWAInstallPrompt
+  components/layout/       Layout, Sidebar, ProtectedRoute, ProfileDropdown, PWAInstallPrompt.
+                           Los módulos del menú se definen UNA vez en `secciones` de Sidebar.jsx y
+                           alimentan la barra lateral (escritorio) y MobileNav.jsx (teléfono: dock
+                           flotante con 3 atajos —`pin`— + panel con todos). Un módulo nuevo se añade ahí.
   components/ui/           Primitivas: Button, Input, Select, Modal, Badge
   components/inventory/    Flujos de entrada/salida de stock (ver abajo)
   components/salud/        Stepper de evaluación de salud + generación de PDF
@@ -57,6 +60,7 @@ src/
                            timeline de jornadas) y pages/Tareas.jsx (`/tareas`) son del voluntario
   utils/reporteBitacoras.js Excel de bitácoras (hojas Actividades y Resumen)
   lib/equipos.js           Perfiles con columnas tolerantes (v22/v27), designar líderes, asignar voluntarios
+  lib/personal.js          Lista de personal de /usuarios (columnas tolerantes v22/v33/v36, sin avatar base64)
   legal/terminos.js        Texto y VERSION de los términos (BORRADOR a revisar por la Fundación)
   lib/terminos.js          Verificar/registrar la aceptación de términos
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)

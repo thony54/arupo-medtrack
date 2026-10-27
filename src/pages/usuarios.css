@@ -1,0 +1,358 @@
+/* Gestión de Personal: selector de grupos + lista de personas (ver Usuarios.jsx).
+   Una sola lista que se adapta: en el teléfono cada persona es una tarjeta de dos líneas. */
+
+/* ---------- Búsqueda ---------- */
+.personal-buscar {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.personal-buscar > svg:first-child {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+}
+
+.personal-buscar .input-field {
+  width: 100%;
+  margin-bottom: 0;
+  padding-left: 2.75rem;
+  padding-right: 2.75rem;
+}
+
+.personal-buscar-limpiar {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.personal-buscar-limpiar:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+/* ---------- Selector de grupos ---------- */
+.personal-filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.personal-filtro {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font: inherit;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-glass);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast),
+    box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.personal-filtro:hover {
+  border-color: var(--c);
+  transform: translateY(-2px);
+}
+
+.personal-filtro-icono {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--c-bg);
+  color: var(--c);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.personal-filtro-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.personal-filtro-texto strong {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.personal-filtro-texto small {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.personal-filtro.is-active {
+  border-color: var(--c);
+  background: rgba(var(--c-rgb), 0.1);
+  box-shadow: 0 6px 18px -6px rgba(var(--c-rgb), 0.4);
+}
+
+.personal-filtro.is-active .personal-filtro-icono {
+  background: var(--c);
+  color: #fff;
+}
+
+.personal-filtro.is-vacio:not(.is-active) {
+  opacity: 0.55;
+}
+
+/* ---------- Resultados ---------- */
+.personal-resultados-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.personal-resultados-icono {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--c-bg, var(--bg-surface-hover));
+  color: var(--c, var(--text-secondary));
+}
+
+.personal-resultados-titulo {
+  flex: 1;
+  min-width: 0;
+}
+
+.personal-resultados-titulo h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-primary);
+}
+
+.personal-resultados-titulo p {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.personal-todos-btn {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+}
+
+.personal-todos-btn:hover {
+  text-decoration: underline;
+}
+
+.personal-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+}
+
+.persona {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-areas:
+    'avatar main acciones'
+    'roles roles fecha';
+  align-items: center;
+  gap: 0.6rem 0.75rem;
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--border-color);
+  transition: background-color var(--transition-fast);
+}
+
+.persona:first-child {
+  border-top: 0;
+}
+
+.persona:hover {
+  background: var(--bg-surface-hover);
+}
+
+.persona-avatar {
+  grid-area: avatar;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid rgba(var(--c-rgb), 0.15);
+}
+
+.persona-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.persona-nombre {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.persona-email {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.persona-email > svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.persona-email > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.persona-roles {
+  grid-area: roles;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.persona-fecha {
+  grid-area: fecha;
+  justify-self: end;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.persona-acciones {
+  grid-area: acciones;
+  display: flex;
+  align-items: center;
+}
+
+.persona-acciones .btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0.4rem;
+  height: auto;
+  justify-content: center;
+}
+
+.personal-mas {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.personal-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  border-radius: var(--radius-lg);
+  border: 1.5px dashed var(--border-color);
+}
+
+.personal-hint svg {
+  opacity: 0.45;
+  margin-bottom: 0.25rem;
+}
+
+.personal-hint strong {
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.personal-hint span {
+  font-size: 0.85rem;
+  max-width: 28rem;
+}
+
+/* ---------- Escritorio: una fila por persona ---------- */
+@media (min-width: 769px) {
+  .persona {
+    grid-template-columns: 40px minmax(0, 1.6fr) minmax(0, 1.2fr) 120px auto;
+    grid-template-areas: 'avatar main roles fecha acciones';
+    padding: 0.8rem 1.25rem;
+    gap: 0.75rem 1rem;
+  }
+
+  .persona-fecha {
+    justify-self: start;
+    font-size: 0.8rem;
+  }
+}
+
+/* ---------- Teléfono: el selector pasa a una fila deslizable ---------- */
+@media (max-width: 768px) {
+  .personal-filtros {
+    display: flex;
+    gap: 0.6rem;
+    margin: 0 -1rem 1.25rem;
+    padding: 0.25rem 1rem 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scroll-padding: 0 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .personal-filtros::-webkit-scrollbar {
+    display: none;
+  }
+
+  .personal-filtro {
+    flex: 0 0 auto;
+    width: 158px;
+    scroll-snap-align: start;
+    padding: 0.7rem 0.8rem;
+  }
+
+  .personal-filtro:hover {
+    transform: none;
+  }
+}

@@ -190,7 +190,7 @@
 }
 
 
-/* Mobile Adjustments (Bottom Nav) */
+/* Mobile Adjustments: barra superior fija + dock flotante (ver mobile-nav.css) */
 @media (max-width: 768px) {
   .ambient-glow {
     display: block; /* Visible on mobile */
@@ -202,43 +202,30 @@
 
   .main-content {
     margin-left: 0;
-    margin-bottom: 80px; /* Space for bottom nav */
+    margin-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); /* Espacio para el dock flotante */
     padding: 1.5rem 1rem;
     padding-top: 92px; /* Space for fixed top bar */
   }
 
+  /* En el teléfono el aside ya no es una barra: solo aloja la cabecera fija (arriba) y el
+     dock/panel de MobileNav, que se posicionan solos. */
   .sidebar {
-    /* Transform to bottom nav */
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
+    position: static;
+    width: auto;
     height: auto;
-    min-height: 64px;
-    flex-direction: row;
-    border-right: none;
-    border-top: 1px solid var(--border-color);
-    padding: 0.25rem 0.5rem;
-    padding-bottom: env(safe-area-inset-bottom, 0.25rem);
-    z-index: 100;
-    
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    box-shadow: 0 -8px 30px rgba(0,0,0,0.08);
+    box-shadow: none !important;
     overflow: visible !important;
   }
 
-  .sidebar::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: var(--bg-glass-heavy);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    z-index: -1;
-    pointer-events: none;
+  .sidebar-nav {
+    display: none; /* La lista lateral es de escritorio; aquí la reemplaza MobileNav */
   }
 
   .sidebar-header {
@@ -277,64 +264,6 @@
     margin-bottom: 0 !important;
     width: 100%;
     align-items: center !important;
-  }
-
-  .sidebar-nav {
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: center;
-    width: 100%;
-    gap: 0;
-  }
-
-  .nav-item {
-    flex: 1;
-    flex-direction: column;
-    gap: 0.2rem;
-    padding: 0.5rem 0.25rem;
-    font-size: 0.65rem;
-    border-radius: var(--radius-md);
-    text-align: center;
-    justify-content: center;
-    min-width: 0;
-  }
-
-  .nav-item span {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-
-  .nav-item svg {
-    width: 22px;
-    height: 22px;
-    margin-bottom: 2px;
-  }
-
-  .nav-item:hover {
-    transform: none;
-    background: transparent;
-  }
-
-  .nav-item.active {
-    background-color: var(--primary-color);
-    color: white;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.5); 
-    font-weight: 700;
-  }
-
-  .nav-item.active::before,
-  .nav-item.active::after {
-    display: none !important; /* Hide floating lines/pills on mobile navigation icons */
-  }
-
-  .sidebar-footer {
-    display: none; /* Hide footer on mobile bottom nav to save space */
-  }
-
-  .nav-group-title {
-    display: none !important;
   }
 }
 

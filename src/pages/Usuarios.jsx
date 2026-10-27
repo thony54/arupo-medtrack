@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  UserPlus, Search, Shield, Mail, Trash2, UserCheck, AlertCircle, 
-  Eye, EyeOff, HandHeart, Activity, ClipboardCheck, UserCog, Stethoscope
+import {
+  UserPlus, Search, Shield, Mail, Trash2, UserCheck, AlertCircle,
+  Eye, EyeOff, HandHeart, Activity, ClipboardCheck, UserCog, Stethoscope, X, Users, ChevronDown
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { cargarPersonal } from '../lib/personal';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { ROL_CONFIG, ROLES_ORDEN, ROLES_ADICIONALES, ROLES_SOLO_ADMIN, SECCIONES_ROL, tieneRol, getRolColor, getRolBg } from '../utils/roles';
 import './pages.css';
+import './usuarios.css';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -20,6 +22,12 @@ const ROL_ICONOS = {
   brigadista: Activity,
   voluntario: HandHeart
 };
+
+// Personas que se pintan de golpe; el resto, con "Mostrar más". Un grupo como Voluntarios
+// puede ser largo y nadie necesita ver todo para encontrar a una persona.
+const POR_PAGINA = 20;
+
+const normalizar = (texto) => (texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export const Usuarios = () => {
   const { user, esAdminPrincipal } = useAuth() || {};
@@ -51,41 +59,44 @@ export const Usuarios = () => {
   const [cambiandoRol, setCambiandoRol] = useState(false);
   const [errorCambioRol, setErrorCambioRol] = useState('');
   const [aviso, setAviso] = useState('');
+  const [errorLista, setErrorLista] = useState('');
+  const [eliminandoId, setEliminandoId] = useState(null);
 
-  // Estados para colapsables de Roles
-  const [expandedRoles, setExpandedRoles] = useState(
-    Object.fromEntries(SECCIONES_ROL.map(r => [r, true]))
-  );
+  // Grupo de personal que se está viendo. Al abrir la pantalla no hay ninguno: se elige uno
+  // (o se busca) y solo entonces se pinta esa lista.
+  const [categoria, setCategoria] = useState(null);
+  const [mostrar, setMostrar] = useState(POR_PAGINA);
 
-  const toggleRole = (roleKey) => {
-    setExpandedRoles(prev => ({
-      ...prev,
-      [roleKey]: !prev[roleKey]
-    }));
+  const elegirCategoria = (clave) => {
+    setCategoria(prev => (prev === clave ? null : clave));
+    setMostrar(POR_PAGINA);
+  };
+
+  const cambiarBusqueda = (valor) => {
+    setSearch(valor);
+    setMostrar(POR_PAGINA);
+  };
+
+  // Recarga silenciosa tras crear, eliminar o cambiar el rol de alguien.
+  const fetchUsuarios = async () => {
+    try {
+      setUsuarios(await cargarPersonal());
+    } catch (err) {
+      console.error('Error al cargar usuarios:', err);
+    }
   };
 
   useEffect(() => {
-    fetchUsuarios();
+    let vigente = true;
+    cargarPersonal()
+      .then(data => { if (vigente) setUsuarios(data); })
+      .catch(err => {
+        console.error('Error al cargar usuarios:', err);
+        if (vigente) setUsuarios([]);
+      })
+      .finally(() => { if (vigente) setLoading(false); });
+    return () => { vigente = false; };
   }, []);
-
-  const fetchUsuarios = async () => {
-    setLoading(true);
-    try {
-      if (!supabase) return;
-      const { data, error: err } = await supabase
-        .from('perfiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (err) throw err;
-      setUsuarios(data || []);
-    } catch (err) {
-      console.error('Error al cargar usuarios:', err);
-      setUsuarios([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const resetForm = () => {
     setNombre('');
@@ -207,7 +218,8 @@ export const Usuarios = () => {
       return;
     }
 
-    setLoading(true);
+    setEliminandoId(userId);
+    setErrorLista('');
     try {
       const { error: delError } = await supabase.rpc('eliminar_usuario', {
         p_user_id: userId
@@ -215,14 +227,14 @@ export const Usuarios = () => {
 
       if (delError) throw delError;
 
-      setSuccess('Usuario eliminado con éxito');
+      setAviso(`${userNombre} fue eliminado.`);
+      setTimeout(() => setAviso(''), 5000);
       fetchUsuarios();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error al eliminar:', err);
-      setError('No se pudo eliminar el usuario. Asegúrate de haber ejecutado schema_v13.sql');
+      setErrorLista('No se pudo eliminar el usuario. Asegúrate de haber ejecutado schema_v13.sql');
     } finally {
-      setLoading(false);
+      setEliminandoId(null);
     }
   };
 
@@ -365,121 +377,87 @@ export const Usuarios = () => {
     </div>
   );
 
-  const filtered = usuarios.filter(u =>
-    (u.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
-    (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
-    u.rol.toLowerCase().includes(search.toLowerCase()) ||
-    Object.keys(ROLES_ADICIONALES).some(r => tieneRol(u, r) && ROL_CONFIG[r].titulo.toLowerCase().includes(search.toLowerCase()))
+  const termino = normalizar(search.trim());
+  const coincideBusqueda = (u) =>
+    !termino ||
+    normalizar(u.nombre).includes(termino) ||
+    normalizar(u.email).includes(termino) ||
+    normalizar(u.rol).includes(termino) ||
+    normalizar(ROL_CONFIG[u.rol]?.label).includes(termino) ||
+    Object.keys(ROLES_ADICIONALES).some(r => tieneRol(u, r) && normalizar(ROL_CONFIG[r].titulo).includes(termino));
+
+  // Cuántas personas tiene cada grupo (con la búsqueda aplicada, si hay).
+  const conteo = Object.fromEntries(
+    SECCIONES_ROL.map(r => [r, usuarios.filter(u => tieneRol(u, r) && coincideBusqueda(u)).length])
   );
 
-  const renderUserTable = (usersList, roleKey) => {
-    const isExpanded = expandedRoles[roleKey];
-    
-    if (!isExpanded) return null;
-    
-    return (
-      <div className="role-section-block animate-slide-up" style={{ marginBottom: '1.75rem', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)', background: 'var(--bg-glass)' }}>
-        <div className="table-container usuarios-table-container" style={{ border: 'none', borderRadius: 0, margin: 0 }}>
-          <table className="data-table" style={{ minWidth: '800px', width: '100%' }}>
-            <thead>
-              <tr>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Nombre</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Email</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Rol asignado</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Fecha Registro</th>
-                <th style={{ padding: '0.85rem 1.25rem' }}>Permisos & Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usersList.length === 0 ? (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-tertiary)' }}>
-                    <Shield size={36} style={{ display: 'block', margin: '0 auto 0.5rem', opacity: 0.4 }} />
-                    <span style={{ fontSize: '0.9rem', fontStyle: 'italic' }}>No hay personal registrado en este rol o no coincide con la búsqueda.</span>
-                  </td>
-                </tr>
-              ) : (
-                usersList.map(u => (
-                  <tr key={u.id}>
-                    <td style={{ padding: '0.85rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                        <div style={{
-                          width: '34px',
-                          height: '34px',
-                          borderRadius: '50%',
-                          backgroundColor: getRolBg(u.rol),
-                          color: getRolColor(u.rol),
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: '700',
-                          fontSize: '0.85rem',
-                          border: `1px solid rgba(${ROL_CONFIG[u.rol]?.rgb ?? '100, 116, 139'}, 0.13)`,
-                          boxShadow: '0 2px 5px rgba(0,0,0,0.05)'
-                        }}>
-                          {(u.nombre || 'U').substring(0, 2).toUpperCase()}
-                        </div>
-                        <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{u.nombre}</div>
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-secondary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Mail size={13} style={{ opacity: 0.7 }} />
-                        {u.email}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                        {getRoleBadge(u.rol)}
-                        {insigniasAdicionales(u)}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
-                      {new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </td>
-                    <td style={{ padding: '0.85rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>
-                          {ROL_CONFIG[u.rol]?.permisos}
-                        </span>
+  const hayVista = categoria !== null || termino !== '';
+  const lista = hayVista
+    ? usuarios.filter(u => (categoria === null || tieneRol(u, categoria)) && coincideBusqueda(u))
+    : [];
+  const cfgCategoria = categoria ? ROL_CONFIG[categoria] : null;
+  const IconoCategoria = categoria ? ROL_ICONOS[categoria] : Search;
 
-                        {u.id !== user?.id && (
-                          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                            {isDeveloper && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => abrirCambioRol(u)}
-                                style={{ color: 'var(--primary-color)', padding: '0.4rem', height: 'auto' }}
-                                title="Gestionar roles"
-                                aria-label={`Gestionar roles de ${u.nombre}`}
-                              >
-                                <UserCog size={16} />
-                              </Button>
-                            )}
-                            {/* Solo el admin principal elimina a un Admin (la base lo hace valer). */}
-                            {(u.rol !== 'super_admin' || isDeveloper) && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteUser(u.id, u.nombre)}
-                                style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto' }}
-                                title="Eliminar usuario"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+  const renderPersona = (u) => {
+    const rgb = ROL_CONFIG[u.rol]?.rgb ?? '100, 116, 139';
+    return (
+      <li key={u.id} className="persona">
+        <span
+          className="persona-avatar"
+          style={{ '--c-rgb': rgb, backgroundColor: getRolBg(u.rol), color: getRolColor(u.rol) }}
+          aria-hidden="true"
+        >
+          {(u.nombre || 'U').substring(0, 2).toUpperCase()}
+        </span>
+
+        <div className="persona-main">
+          <span className="persona-nombre">{u.nombre}</span>
+          <span className="persona-email">
+            <Mail size={13} />
+            <span>{u.email}</span>
+          </span>
         </div>
-      </div>
+
+        <div className="persona-roles">
+          {getRoleBadge(u.rol)}
+          {insigniasAdicionales(u)}
+        </div>
+
+        <span className="persona-fecha">
+          {u.created_at ? new Date(u.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+        </span>
+
+        {u.id !== user?.id && (
+          <div className="persona-acciones">
+            {isDeveloper && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => abrirCambioRol(u)}
+                style={{ color: 'var(--primary-color)' }}
+                title="Gestionar roles"
+                aria-label={`Gestionar roles de ${u.nombre}`}
+              >
+                <UserCog size={18} />
+              </Button>
+            )}
+            {/* Solo el admin principal elimina a un Admin (la base lo hace valer). */}
+            {(u.rol !== 'super_admin' || isDeveloper) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeleteUser(u.id, u.nombre)}
+                disabled={eliminandoId === u.id}
+                style={{ color: 'var(--danger-color)' }}
+                title="Eliminar usuario"
+                aria-label={`Eliminar a ${u.nombre}`}
+              >
+                <Trash2 size={18} />
+              </Button>
+            )}
+          </div>
+        )}
+      </li>
     );
   };
 
@@ -504,98 +482,107 @@ export const Usuarios = () => {
         </div>
       )}
 
-      <div className="card" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
-        <div style={{ position: 'relative' }}>
-          <Search size={18} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input
-            className="input-field"
-            style={{ paddingLeft: '2.75rem', marginBottom: 0, width: '100%' }}
-            placeholder="Buscar por nombre, email o rol..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+      {errorLista && (
+        <div role="alert" style={{ padding: '0.75rem 1rem', marginBottom: '1.5rem', background: 'var(--danger-bg)', color: 'var(--danger-color)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+          <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <span>{errorLista}</span>
         </div>
+      )}
+
+      <div className="personal-buscar">
+        <Search size={18} />
+        <input
+          className="input-field"
+          type="search"
+          placeholder="Buscar por nombre, email o rol..."
+          aria-label="Buscar personal"
+          value={search}
+          onChange={e => cambiarBusqueda(e.target.value)}
+        />
+        {search && (
+          <button type="button" className="personal-buscar-limpiar" onClick={() => cambiarBusqueda('')} aria-label="Borrar búsqueda">
+            <X size={16} />
+          </button>
+        )}
       </div>
 
-      {/* Tarjetas Premium de Categorías / Selector de Roles */}
-      <div className="role-selector-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '1rem',
-        marginBottom: '1.75rem'
-      }}>
+      {/* Selector de grupo: se elige uno y solo se pinta su lista */}
+      <div className="personal-filtros" role="group" aria-label="Grupo de personal">
         {SECCIONES_ROL.map(r => {
           const cfg = ROL_CONFIG[r];
           const Icon = ROL_ICONOS[r];
-          const abierto = expandedRoles[r];
+          const activo = categoria === r;
+          const n = conteo[r];
           return (
-            <div
+            <button
               key={r}
-              onClick={() => toggleRole(r)}
-              className={`card glass role-selector-card ${abierto ? `active-${r.replace('_', '-')}` : ''}`}
-              style={{
-                padding: '1.15rem 1.25rem',
-                borderRadius: 'var(--radius-lg)',
-                border: `1px solid ${abierto ? cfg.color : 'var(--border-color)'}`,
-                boxShadow: abierto ? `0 4px 15px rgba(${cfg.rgb}, 0.12)` : 'none',
-                background: abierto ? cfg.bg : 'var(--bg-glass)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.85rem',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
-                opacity: abierto ? 1 : 0.75
-              }}
+              type="button"
+              className={`personal-filtro ${activo ? 'is-active' : ''} ${n === 0 ? 'is-vacio' : ''}`}
+              style={{ '--c': cfg.color, '--c-bg': cfg.bg, '--c-rgb': cfg.rgb }}
+              aria-pressed={activo}
+              onClick={() => elegirCategoria(r)}
             >
-              <div style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: 'var(--radius-md)',
-                background: cfg.bg,
-                color: cfg.color,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: `1px solid rgba(${cfg.rgb}, 0.15)`
-              }}>
-                <Icon size={20} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                <span style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>{cfg.plural}</span>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: '600', marginTop: '0.15rem' }}>
-                  {usuarios.filter(u => tieneRol(u, r)).length} registrados
-                </span>
-              </div>
-              <div style={{ color: abierto ? cfg.color : 'var(--text-tertiary)' }}>
-                <span style={{ 
-                  fontSize: '0.65rem', 
-                  fontWeight: '700', 
-                  textTransform: 'uppercase',
-                  background: abierto ? `rgba(${cfg.rgb}, 0.12)` : 'var(--bg-surface-hover)',
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: 'var(--radius-sm)'
-                }}>
-                  {abierto ? 'Abierto' : 'Cerrado'}
-                </span>
-              </div>
-            </div>
+              <span className="personal-filtro-icono"><Icon size={19} /></span>
+              <span className="personal-filtro-texto">
+                <strong>{cfg.plural}</strong>
+                <small>{loading ? '…' : `${n} ${n === 1 ? 'persona' : 'personas'}`}</small>
+              </span>
+            </button>
           );
         })}
       </div>
 
-      {/* Secciones de Tablas Colapsables por Rol */}
       {loading ? (
         <div className="card glass" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
           Cargando personal de la fundación...
         </div>
+      ) : !hayVista ? (
+        <div className="personal-hint">
+          <Users size={40} />
+          <strong>Elige un grupo para ver a su personal</strong>
+          <span>
+            Hay {usuarios.length} {usuarios.length === 1 ? 'persona registrada' : 'personas registradas'}. Toca un grupo arriba o escribe en el buscador para encontrar a alguien en todos.
+          </span>
+        </div>
       ) : (
-        <div className="collapsible-sections-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {SECCIONES_ROL.map(r => (
-            <React.Fragment key={r}>
-              {renderUserTable(filtered.filter(u => tieneRol(u, r)), r)}
-            </React.Fragment>
-          ))}
+        <div style={cfgCategoria ? { '--c': cfgCategoria.color, '--c-bg': cfgCategoria.bg, '--c-rgb': cfgCategoria.rgb } : undefined}>
+          <div className="personal-resultados-head">
+            <span className="personal-resultados-icono"><IconoCategoria size={18} /></span>
+            <div className="personal-resultados-titulo">
+              <h2>{cfgCategoria ? cfgCategoria.plural : 'Resultados de la búsqueda'} · {lista.length}</h2>
+              {cfgCategoria && <p>{cfgCategoria.permisos}</p>}
+            </div>
+          </div>
+
+          {categoria && termino && (
+            <button type="button" className="personal-todos-btn" onClick={() => setCategoria(null)}>
+              Buscar “{search.trim()}” en todos los grupos
+            </button>
+          )}
+
+          {lista.length === 0 ? (
+            <div className="personal-hint">
+              <Shield size={36} />
+              <span>
+                {termino
+                  ? 'Nadie coincide con la búsqueda.'
+                  : 'No hay personal registrado en este grupo.'}
+              </span>
+            </div>
+          ) : (
+            <>
+              <ul className="personal-lista">
+                {lista.slice(0, mostrar).map(renderPersona)}
+              </ul>
+              {lista.length > mostrar && (
+                <div className="personal-mas">
+                  <Button variant="outline" onClick={() => setMostrar(m => m + POR_PAGINA)}>
+                    <ChevronDown size={16} /> Mostrar más ({lista.length - mostrar} restantes)
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
@@ -680,8 +667,8 @@ export const Usuarios = () => {
                 minLength={12}
                 disabled={saving}
               />
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', padding: '4px' }}
               >
