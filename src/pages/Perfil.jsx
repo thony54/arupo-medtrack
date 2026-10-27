@@ -580,6 +580,9 @@ export const Perfil = () => {
               {isCoordinadorBrigadas && (
                 <span className="arupo-profile-bio-badge coordinador-brigadas">{t('perfil.coordinador_brigadas_badge')}</span>
               )}
+              {isSuperAdmin && profile?.es_gestor_personal === true && (
+                <span className="arupo-profile-bio-badge gestion-personal">Gestión de Personal</span>
+              )}
               <span className="arupo-role-subtitle">{getRoleTitle()}</span>
             </div>
 

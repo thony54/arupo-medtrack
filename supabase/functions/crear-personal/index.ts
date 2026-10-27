@@ -5,7 +5,9 @@
 // SEGURA, resolviendo el hallazgo §2.1 de SECURITY.md:
 //
 //   - El rol NUNCA lo decide el cliente. Se valida en el servidor que QUIEN
-//     LLAMA es super_admin, leyendo su JWT (nunca un campo del body).
+//     LLAMA gestiona personal (admin principal o Admin con el rol "Gestión de
+//     Personal"), leyendo su JWT (nunca un campo del body). Solo el admin
+//     principal puede crear a otro Admin.
 //   - Usa la SERVICE_ROLE key (solo existe en el servidor de Supabase, jamás
 //     viaja al navegador) para crear el usuario ya confirmado y fijarle el rol,
 //     saltándose el trigger handle_new_user que fuerza 'voluntario'.
@@ -24,6 +26,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const ROLES_VALIDOS = ['super_admin', 'brigadista', 'voluntario'];
+
+// Admin principal: nadie por encima. Único que puede crear a otro Admin. Debe coincidir con
+// es_super_admin_principal() (supabase/schema_v33.sql) y EMAIL_ADMIN_PRINCIPAL (src/utils/roles.js).
+const ADMIN_PRINCIPAL_EMAIL = 'thony.karter@gmail.com';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,16 +78,23 @@ Deno.serve(async (req) => {
     return json({ error: 'Sesión inválida.' }, 401);
   }
   const solicitanteId = userData.user.id;
+  const esAdminPrincipal =
+    (userData.user.email ?? '').trim().toLowerCase() === ADMIN_PRINCIPAL_EMAIL;
 
   // ------------------------------------------------------------------------
-  // 2. Autorización: SOLO super_admin puede crear personal.
+  // 2. Autorización: solo quien GESTIONA PERSONAL puede crear personal: el admin
+  //    principal o un Admin con el rol "Gestión de Personal" (perfiles.es_gestor_personal,
+  //    schema_v36.sql). Ser Admin no basta. Se lee con select('*') para que siga
+  //    funcionando aunque la columna aún no exista (entonces solo pasa el admin principal).
   // ------------------------------------------------------------------------
   const { data: perfil, error: perfilErr } = await admin
     .from('perfiles')
-    .select('rol')
+    .select('*')
     .eq('id', solicitanteId)
     .single();
-  if (perfilErr || perfil?.rol !== 'super_admin') {
+  const esAdmin = !perfilErr && perfil?.rol === 'super_admin';
+  const gestionaPersonal = esAdmin && (esAdminPrincipal || perfil?.es_gestor_personal === true);
+  if (!gestionaPersonal) {
     return json({ error: 'No tienes permisos para crear personal.' }, 403);
   }
 
@@ -107,6 +120,10 @@ Deno.serve(async (req) => {
   }
   if (!ROLES_VALIDOS.includes(rol)) {
     return json({ error: 'Rol inválido.' }, 400);
+  }
+  // Los Admin están por debajo del admin principal: solo él crea a otro Admin.
+  if (rol === 'super_admin' && !esAdminPrincipal) {
+    return json({ error: 'Solo el admin principal puede crear a un Admin.' }, 403);
   }
 
   // ------------------------------------------------------------------------

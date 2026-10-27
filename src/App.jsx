@@ -57,8 +57,10 @@ function App() {
               </ProtectedRoute>
             } />
             
+            {/* Evaluaciones de salud: brigadistas (las suyas), Coordinador de Brigadas y admin
+                principal. Ser Admin no basta: es un beneficio del rol de Brigadas Médicas. */}
             <Route path="evaluaciones" element={
-              <ProtectedRoute allowedRoles={['super_admin', 'brigadista']}>
+              <ProtectedRoute permiso="evaluaciones">
                 <Evaluaciones />
               </ProtectedRoute>
             } />
@@ -76,9 +78,10 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* Administración Interna: Admins */}
+            {/* Gestión de Personal: solo el admin principal o un Admin con el rol "Gestión de
+                Personal" que él asigne. Ser Admin no basta. */}
             <Route path="usuarios" element={
-              <ProtectedRoute allowedRoles={['super_admin']}>
+              <ProtectedRoute permiso="personal">
                 <Usuarios />
               </ProtectedRoute>
             } />
@@ -87,17 +90,17 @@ function App() {
                 Cada uno ve solo a su gente: lo hace valer la base (puede_gestionar_usuario,
                 schema_v35), no esta ruta. */}
             <Route path="bitacoras" element={
-              <ProtectedRoute requiereCoordinacion>
+              <ProtectedRoute permiso="coordinacion">
                 <Bitacoras />
               </ProtectedRoute>
             } />
             <Route path="equipos" element={
-              <ProtectedRoute requiereCoordinacion>
+              <ProtectedRoute permiso="coordinacion">
                 <Equipos />
               </ProtectedRoute>
             } />
             <Route path="asignar-tareas" element={
-              <ProtectedRoute requiereCoordinacion>
+              <ProtectedRoute permiso="coordinacion">
                 <AsignarTareas />
               </ProtectedRoute>
             } />

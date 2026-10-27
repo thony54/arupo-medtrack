@@ -8,7 +8,9 @@ import { SaludStepper } from '../components/salud/SaludStepper';
 import './pages.css';
 
 export const Evaluaciones = () => {
-  const { isSuperAdmin, isBrigadista, profile } = useAuth();
+  // veTodasEvaluaciones: admin principal y Coordinador de Brigadas (historial completo).
+  // El brigadista ve solo las suyas. Un Admin sin esos roles no llega a esta pantalla.
+  const { veTodasEvaluaciones, puedeVerEvaluaciones, profile } = useAuth();
   const [evaluaciones, setEvaluaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -29,7 +31,7 @@ export const Evaluaciones = () => {
         .order('fecha', { ascending: false })
         .order('hora_atencion', { ascending: false });
 
-      if (!isSuperAdmin) {
+      if (!veTodasEvaluaciones) {
         query = query.eq('brigadista_id', profile?.id);
       }
 
@@ -55,10 +57,10 @@ export const Evaluaciones = () => {
         <div>
           <h1 className="page-title">Evaluaciones de Salud</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            {isSuperAdmin ? 'Historial completo de evaluaciones realizadas por el personal.' : 'Mis evaluaciones realizadas en campo.'}
+            {veTodasEvaluaciones ? 'Historial completo de evaluaciones realizadas por el personal.' : 'Mis evaluaciones realizadas en campo.'}
           </p>
         </div>
-        {(isSuperAdmin || isBrigadista) && (
+        {puedeVerEvaluaciones && (
           <Button variant="primary" onClick={() => setIsModalOpen(true)}>
             <Plus size={18} /> Nueva Evaluación
           </Button>
@@ -88,16 +90,16 @@ export const Evaluaciones = () => {
               <th style={{ textAlign: 'center' }}>IMC</th>
               <th style={{ textAlign: 'center' }}>Glucosa</th>
               <th style={{ textAlign: 'center' }}>Presión</th>
-              {isSuperAdmin && <th>Brigadista</th>}
+              {veTodasEvaluaciones && <th>Brigadista</th>}
               <th style={{ width: '100px', textAlign: 'center' }}>Reporte</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={isSuperAdmin ? 8 : 7} style={{ textAlign: 'center', padding: '2rem' }}>Cargando evaluaciones...</td></tr>
+              <tr><td colSpan={veTodasEvaluaciones ? 8 : 7} style={{ textAlign: 'center', padding: '2rem' }}>Cargando evaluaciones...</td></tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={isSuperAdmin ? 8 : 7} style={{ textAlign: 'center', padding: '3rem' }}>
+                <td colSpan={veTodasEvaluaciones ? 8 : 7} style={{ textAlign: 'center', padding: '3rem' }}>
                   <Activity size={40} style={{ display: 'block', margin: '0 auto 0.75rem', color: 'var(--text-tertiary)', opacity: 0.5 }} />
                   <span style={{ color: 'var(--text-secondary)' }}>No se encontraron evaluaciones registradas.</span>
                 </td>
@@ -127,7 +129,7 @@ export const Evaluaciones = () => {
                 </td>
                 <td style={{ textAlign: 'center', fontWeight: '600' }}>{e.glucosa} <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>mg/dL</span></td>
                 <td style={{ textAlign: 'center', fontWeight: '600' }}>{e.presion_sistolica}/{e.presion_diastolica} <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>mmHg</span></td>
-                {isSuperAdmin && (
+                {veTodasEvaluaciones && (
                   <td style={{ fontSize: '0.85rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <User size={14} /> {e.perfiles?.nombre || '—'}

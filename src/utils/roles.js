@@ -3,9 +3,12 @@
 //
 // Jerarquía: el ADMIN PRINCIPAL (EMAIL_ADMIN_PRINCIPAL) no tiene a nadie por encima. Debajo
 // están los Admin (`rol = 'super_admin'`; "Admin" es solo la etiqueta: el valor en la base no
-// cambia) y, por debajo, brigadistas y voluntarios. Ser Admin NO da acceso a Coordinación:
-// solo lo da un rol de coordinación que el admin principal asigne (ver abajo). El admin
-// principal sí accede a la Coordinación de ambos equipos.
+// cambia) y, por debajo, brigadistas y voluntarios. Ser Admin NO da acceso a Coordinación, a
+// las Evaluaciones de salud ni a Gestión de Personal: cada una la da un rol que el admin
+// principal asigne (ver abajo). El admin principal accede a todo.
+//   · Coordinación ............ es_coordinador (voluntarios) / es_coordinador_brigadas (brigadistas)
+//   · Evaluaciones de salud ... brigadista (las suyas) / es_coordinador_brigadas (todas)
+//   · Gestión de Personal ..... es_gestor_personal (solo en un Admin)
 //
 // Hay dos tipos de rol:
 //   · Rol PRINCIPAL: un solo valor en `perfiles.rol` (ROLES_ORDEN).
@@ -86,7 +89,18 @@ export const ROL_CONFIG = {
     rgb: '8, 145, 178',
     badge: 'brigadas',
     permisos: 'Monitoreo y liderazgo de los brigadistas.',
-    descripcion: 'Rol adicional: monitorea y lidera a los brigadistas (revisa sus bitácoras, les asigna tareas y líder y sigue su curso). Se suma al rol principal.'
+    descripcion: 'Rol adicional: monitorea y lidera a los brigadistas (revisa sus bitácoras, les asigna tareas y líder y sigue su curso) y ve todas las evaluaciones de salud. Se suma al rol principal.'
+  },
+  gestion_personal: {
+    label: 'Gestión de Personal',
+    plural: 'Gestión de Personal',
+    titulo: 'Gestión de Personal',
+    color: '#4f46e5',
+    bg: 'rgba(79, 70, 229, 0.12)',
+    rgb: '79, 70, 229',
+    badge: 'gestion',
+    permisos: 'Ve, registra y elimina personal.',
+    descripcion: 'Rol adicional solo para Admins: ve, registra y elimina brigadistas y voluntarios en Gestión de Personal. No puede tocar a otros Admin. Sin este rol, un Admin no gestiona personal.'
   }
 };
 
@@ -96,8 +110,12 @@ export const ROLES_ORDEN = ['super_admin', 'brigadista', 'voluntario'];
 // Roles adicionales de coordinación, con la columna booleana de `perfiles` que los marca.
 export const ROLES_ADICIONALES = {
   coordinador: 'es_coordinador',
-  coordinador_brigadas: 'es_coordinador_brigadas'
+  coordinador_brigadas: 'es_coordinador_brigadas',
+  gestion_personal: 'es_gestor_personal'
 };
+
+// Roles adicionales que solo tienen sentido en un Admin (`rol = 'super_admin'`).
+export const ROLES_SOLO_ADMIN = ['gestion_personal'];
 
 // Secciones de la pantalla de personal: los principales + los adicionales.
 export const SECCIONES_ROL = [...ROLES_ORDEN, ...Object.keys(ROLES_ADICIONALES)];

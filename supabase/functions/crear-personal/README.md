@@ -7,8 +7,11 @@ en el cliente y el alta ya no depende del registro público.
 ## Qué hace
 
 1. Lee el **JWT del solicitante** (lo adjunta `supabase.functions.invoke`) y
-   verifica en el servidor que su rol en `perfiles` es `super_admin`. El rol
-   **nunca** se toma del cuerpo de la petición.
+   verifica en el servidor que **gestiona personal**: es el admin principal
+   (`thony.karter@gmail.com`) o un Admin (`super_admin`) con el rol "Gestión de
+   Personal" (`perfiles.es_gestor_personal`, `schema_v36.sql`). Ser Admin no
+   basta. Solo el admin principal puede crear a otro Admin. El rol **nunca** se
+   toma del cuerpo de la petición.
 2. Con la **service_role key** (solo vive en el servidor) crea la cuenta con el
    email ya confirmado y le asigna el rol pedido. No usa `signUp()`, así que
    funciona aunque el alta pública esté desactivada.
@@ -58,7 +61,7 @@ curl -i -X POST \
 
 Respuestas:
 - `200 {"ok":true,"id":"…","rol":"brigadista"}` — creado.
-- `403` — quien llama no es super_admin.
+- `403` — quien llama no gestiona personal, o pide crear un Admin sin ser el admin principal.
 - `409` — el email ya existe.
 - `400` — validación (nombre/email/contraseña/rol).
 
@@ -80,7 +83,10 @@ deseado descrito en `supabase/schema_v19.sql` (PARTE 3) y `schema_v21.sql`.
 - La service_role key **jamás** viaja al navegador: solo se usa dentro de la
   función.
 - `verify_jwt = true` (en `supabase/config.toml`): el gateway exige un JWT
-  válido antes de ejecutar; la función además revalida que sea super_admin.
+  válido antes de ejecutar; la función además revalida que gestione personal.
+- Aplica `schema_v36.sql` ANTES de redesplegar: la función lee `es_gestor_personal`
+  con `select('*')`, así que no falla si la columna aún no existe (entonces solo
+  puede crear personal el admin principal).
 - El trigger `handle_new_user` sigue creando todo perfil como `voluntario`; esta
   función lo promueve tras crearlo. Si el `upsert` del rol fallara, la cuenta
   queda como voluntario y la función lo informa para promover a mano.

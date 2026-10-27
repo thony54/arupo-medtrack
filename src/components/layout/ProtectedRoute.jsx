@@ -2,21 +2,28 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-// `requiereCoordinacion`: la ruta es de Coordinación. Solo pasa quien tenga un rol de
-// coordinación asignado (perfiles.es_coordinador o es_coordinador_brigadas, que no son
-// valores de `rol`) o sea el admin principal. Ser Admin (`super_admin`) NO basta. Qué
-// personas ve cada uno lo decide la base (RLS), no esta ruta.
-export const ProtectedRoute = ({ children, allowedRoles, requiereCoordinacion = false }) => {
-  const { session, role, esCoordinacion, profileStatus, signOut } = useAuth();
+// Permisos que no son un valor de `perfiles.rol`: cada uno lo da un rol adicional que asigna el
+// admin principal (o lo es). Ser Admin (`super_admin`) NO basta para ninguno. Qué datos ve cada
+// uno lo decide la base (RLS), no esta ruta. El valor es la propiedad de useAuth() que lo expresa.
+const PERMISOS = {
+  coordinacion: 'esCoordinacion',          // es_coordinador / es_coordinador_brigadas
+  personal: 'puedeGestionarPersonal',      // es_gestor_personal (en un Admin)
+  evaluaciones: 'puedeVerEvaluaciones'     // brigadista / es_coordinador_brigadas
+};
+
+// `allowedRoles`: lista de valores de `rol` que pasan. `permiso`: una clave de PERMISOS.
+export const ProtectedRoute = ({ children, allowedRoles, permiso }) => {
+  const auth = useAuth();
+  const { session, role, profileStatus, signOut } = auth;
 
   if (!session) {
     return <Navigate to="/login" replace />;
   }
 
-  // Las rutas con roles declarados NO se resuelven hasta conocer el rol real.
+  // Las rutas con roles o permisos declarados NO se resuelven hasta conocer el rol real.
   // Antes se decidía con el rol que hubiera en ese instante y, como el valor
   // por defecto era 'super_admin', bastaba esa ventana para entrar a /usuarios.
-  if (allowedRoles || requiereCoordinacion) {
+  if (allowedRoles || permiso) {
     if (profileStatus === 'idle' || profileStatus === 'loading') {
       return (
         <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
@@ -44,10 +51,12 @@ export const ProtectedRoute = ({ children, allowedRoles, requiereCoordinacion = 
       );
     }
 
-    if (requiereCoordinacion ? !esCoordinacion : !allowedRoles.includes(role)) {
-      console.warn(requiereCoordinacion
-        ? `Acceso denegado: el rol '${role}' no tiene un rol de coordinación asignado.`
-        : `Acceso denegado a la ruta. Rol '${role}' no está en la lista permitida:`, allowedRoles);
+    // Un permiso desconocido no concede nada (fail closed).
+    const permitido = permiso ? auth[PERMISOS[permiso]] === true : allowedRoles.includes(role);
+    if (!permitido) {
+      console.warn(permiso
+        ? `Acceso denegado: el rol '${role}' no tiene el permiso '${permiso}'.`
+        : `Acceso denegado a la ruta. Rol '${role}' no está en la lista permitida: ${allowedRoles.join(', ')}`);
       return <Navigate to="/" replace />;
     }
   }

@@ -19,7 +19,7 @@ export const Sidebar = () => {
   const [showDonacionGeneral, setShowDonacionGeneral] = useState(false);
   const [showSalidaGeneral, setShowSalidaGeneral] = useState(false);
   const [showSaludStepper, setShowSaludStepper] = useState(false);
-  const { signOut, isSuperAdmin, isCoordinador, isCoordinadorBrigadas, esCoordinacion, participaVoluntariado, isBrigadista, isVoluntario, profile } = useAuth();
+  const { signOut, isSuperAdmin, isCoordinador, isCoordinadorBrigadas, esCoordinacion, puedeGestionarPersonal, puedeVerEvaluaciones, participaVoluntariado, isBrigadista, isVoluntario, profile } = useAuth();
   const { t } = useI18n();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const navigate = useNavigate();
@@ -153,15 +153,17 @@ export const Sidebar = () => {
         {participaVoluntariado && navItem('/tareas', ListChecks, t('nav.tareas'))}
         {(participaVoluntariado || isSuperAdmin) && navItem('/curso', GraduationCap, t('nav.curso'))}
 
-        {/* Sección Donaciones / Medicinas: Visible para Super Admin y Brigadistas */}
-        {(isSuperAdmin || isBrigadista) && (
+        {/* Sección Donaciones / Medicinas: Inventario y Catálogo para Admins y Brigadistas.
+            Evaluaciones, solo para brigadistas, Coordinador de Brigadas y admin principal:
+            ser Admin no basta. */}
+        {(isSuperAdmin || isBrigadista || puedeVerEvaluaciones) && (
           <>
             <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
               {isBrigadista ? 'Medicina' : 'Donaciones Médicas'}
             </div>
-            {navItem('/inventory', Package, 'Inventario')}
-            {navItem('/catalog', Database, 'Catálogo')}
-            {navItem('/evaluaciones', Activity, 'Evaluaciones')}
+            {(isSuperAdmin || isBrigadista) && navItem('/inventory', Package, 'Inventario')}
+            {(isSuperAdmin || isBrigadista) && navItem('/catalog', Database, 'Catálogo')}
+            {puedeVerEvaluaciones && navItem('/evaluaciones', Activity, 'Evaluaciones')}
           </>
         )}
 
@@ -189,8 +191,9 @@ export const Sidebar = () => {
           </>
         )}
 
-        {/* Sección Administración: Visible SOLO para Super Admin */}
-        {isSuperAdmin && (
+        {/* Sección Administración: solo el admin principal o un Admin con el rol "Gestión de
+            Personal" que él asigne. Ser Admin no basta. */}
+        {puedeGestionarPersonal && (
           <>
             <div className="nav-group-title" style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', padding: '0.75rem 0.5rem 0.25rem' }}>
               Administración

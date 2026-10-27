@@ -62,7 +62,7 @@ src/
   components/security/     ProteccionPantalla (cortina anti-captura, mejor esfuerzo)
   curso/                   Curso de español: plan.js (12 unidades), calendario.js, contenido/, certificado.js
   components/curso/        LeccionPlayer (ejercicios); pages/Curso.jsx = línea de tiempo
-supabase/                  Scripts SQL versionados (schema_v2 … v35, schema_salud)
+supabase/                  Scripts SQL versionados (schema_v2 … v36, schema_salud)
 ```
 
 ### Roles y rutas
@@ -70,10 +70,22 @@ supabase/                  Scripts SQL versionados (schema_v2 … v35, schema_sa
 **Jerarquía (decidida por el dueño, Karter):** el **admin principal**
 (`thony.karter@gmail.com`) no tiene a nadie por encima. Debajo están los **Admin**
 (`perfiles.rol = 'super_admin'`; "Admin" es solo la etiqueta de la interfaz, el valor de la base
-no cambia) y, por debajo, brigadistas y voluntarios. **Ser Admin NO da acceso a Coordinación**
-(menú, rutas ni datos): solo lo da un rol de coordinación que el admin principal asigne; el
-admin principal sí accede a la Coordinación de ambos equipos. Lo hace valer la base
-(`schema_v35.sql`), no solo la interfaz. No des a un Admin acceso a Coordinación "por ser admin".
+no cambia) y, por debajo, brigadistas y voluntarios. **Ser Admin NO da acceso a Coordinación, a
+las Evaluaciones de salud ni a Gestión de Personal** (menú, rutas ni datos): cada una la da un
+rol que el admin principal asigne, y el admin principal accede a todo. Lo hace valer la base
+(`schema_v35.sql` y `schema_v36.sql`), no solo la interfaz. **No des a un Admin acceso a nada de
+esto "por ser admin"**; si añades un módulo nuevo, decide qué rol adicional lo abre.
+
+| Permiso | Quién lo tiene | En la base | En la UI (`useAuth()`) |
+|---|---|---|---|
+| Coordinación | admin principal; `es_coordinador` (voluntarios); `es_coordinador_brigadas` (brigadistas) | `puede_revisar_bitacoras()`, `puede_gestionar_usuario(id)` | `esCoordinacion`, `cohortes` |
+| Evaluaciones de salud | brigadista (las suyas); `es_coordinador_brigadas` y admin principal (todas) | `puede_ver_todas_evaluaciones()`, `puede_registrar_evaluaciones()` | `puedeVerEvaluaciones`, `veTodasEvaluaciones` |
+| Gestión de Personal (`/usuarios`) | admin principal; un Admin con `es_gestor_personal` | `puede_gestionar_personal()` | `puedeGestionarPersonal` |
+
+`es_gestor_personal` solo vale en un Admin y solo lo otorga el admin principal (trigger de `perfiles`).
+Quien gestiona personal no puede crear, modificar ni eliminar a otro Admin ni al admin principal
+(políticas de `perfiles`, `eliminar_usuario` y la Edge Function `crear-personal`, que hay que
+**redesplegar** con `supabase functions deploy crear-personal` cuando cambia su código).
 
 Tres roles principales en `perfiles.rol`: `super_admin`, `brigadista`, `voluntario`.
 Además hay roles **adicionales** que se suman al principal; el primero, `perfiles.es_coordinador`
@@ -99,7 +111,7 @@ políticas de `bitacoras`, `tareas_voluntario`, `curso_progreso`, las fotos del 
 admin principal): no basta por sí sola para ver datos de una persona. En la UI: `cohortes` (de
 `cohortesGestionadas()` en `roles.js`; `[]` = sin acceso), `esCoordinacion` (= `cohortes.length > 0`)
 y `esAdminPrincipal` salen de `useAuth()`; `etiquetasPersonal()` adapta `/bitacoras`, `/equipos` y
-`/asignar-tareas` a quién gestiona cada uno. Las rutas usan `<ProtectedRoute requiereCoordinacion>`.
+`/asignar-tareas` a quién gestiona cada uno. Las rutas usan `<ProtectedRoute permiso="coordinacion">`.
 La lista de líderes (`es_lider`) es una sola y la comparten ambos equipos; una
 coordinación no puede quitar a un líder que tiene personas del otro equipo (error 55006).
 
@@ -134,7 +146,7 @@ estado y fechas, aprobación y descarga a Excel (`utils/reporteBitacoras.js`: ho
 docx (viene como IMAGEN dentro del documento): ID y voluntario, tiempo de estancia, timestamp
 en UTC, detalle de actividades, líder a cargo, evidencia (enlaces firmados de **7 días** a las
 fotos del bucket privado, como hipervínculo) y avance de español (% y nivel, de `curso_resumen`;
-"N/D" si falta v29). La ruta usa `<ProtectedRoute requiereCoordinacion>` porque
+"N/D" si falta v29). La ruta usa `<ProtectedRoute permiso="coordinacion">` porque
 el coordinador no es un valor de `rol` y un Admin corriente no debe entrar. Aprobar solo se hace con el RPC
 `aprobar_bitacora` (nadie aprueba la suya). **Rechazar** (`schema_v32.sql`): estado `rechazada`,
 columna `motivo_rechazo` (mensaje obligatorio, ≤500) y RPC `rechazar_bitacora`; el voluntario
@@ -245,10 +257,11 @@ El mapeo ruta → roles vive en `src/App.jsx` vía `<ProtectedRoute allowedRoles
 | Ruta | Roles |
 |---|---|
 | `/` (Dashboard), `/perfil` | cualquiera autenticado |
-| `/inventory`, `/catalog`, `/lotes/:productoId`, `/evaluaciones` | `super_admin`, `brigadista` |
+| `/inventory`, `/catalog`, `/lotes/:productoId` | `super_admin`, `brigadista` |
+| `/evaluaciones` | brigadista, `es_coordinador_brigadas` o admin principal (`permiso="evaluaciones"`); **un Admin corriente no entra** |
 | `/beneficiarios`, `/donantes` | `super_admin`, `voluntario` |
-| `/usuarios` | `super_admin` |
-| `/bitacoras`, `/equipos`, `/asignar-tareas` | solo quien tenga un rol de coordinación asignado (`es_coordinador` / `es_coordinador_brigadas`) o sea el admin principal, vía `requiereCoordinacion`; **un Admin corriente no entra**; cada uno ve solo a su equipo |
+| `/usuarios` | admin principal o Admin con `es_gestor_personal` (`permiso="personal"`); **un Admin corriente no entra** |
+| `/bitacoras`, `/equipos`, `/asignar-tareas` | solo quien tenga un rol de coordinación asignado (`es_coordinador` / `es_coordinador_brigadas`) o sea el admin principal (`permiso="coordinacion"`); **un Admin corriente no entra**; cada uno ve solo a su equipo |
 | `/actividades`, `/tareas` | `voluntario`, `brigadista` |
 | `/curso` | `voluntario`, `brigadista`; `super_admin` puede revisarlo |
 

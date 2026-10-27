@@ -203,6 +203,12 @@ export const AuthProvider = ({ children }) => {
     // Acceso a Coordinación y a quién gestiona (ver cohortesGestionadas). Ser Admin no basta.
     esCoordinacion: cohortes.length > 0,
     cohortes,
+    // Gestión de Personal: el admin principal o un Admin con el rol asignado. Ser Admin no basta.
+    puedeGestionarPersonal: adminPrincipal || (profile?.rol === 'super_admin' && profile?.es_gestor_personal === true),
+    // Evaluaciones de salud: brigadistas (las suyas), coordinador de brigadas y admin principal
+    // (todas). Un Admin no las ve por serlo.
+    veTodasEvaluaciones: adminPrincipal || profile?.es_coordinador_brigadas === true,
+    puedeVerEvaluaciones: adminPrincipal || profile?.es_coordinador_brigadas === true || profile?.rol === 'brigadista',
     isBrigadista: profile?.rol === 'brigadista',
     isVoluntario: profile?.rol === 'voluntario',
     // Voluntarios y brigadistas comparten Mis Actividades, Tareas y el Curso de español.

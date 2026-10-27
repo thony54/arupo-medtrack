@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
-import { ROL_CONFIG, ROLES_ORDEN, ROLES_ADICIONALES, SECCIONES_ROL, tieneRol, getRolColor, getRolBg } from '../utils/roles';
+import { ROL_CONFIG, ROLES_ORDEN, ROLES_ADICIONALES, ROLES_SOLO_ADMIN, SECCIONES_ROL, tieneRol, getRolColor, getRolBg } from '../utils/roles';
 import './pages.css';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -16,6 +16,7 @@ const ROL_ICONOS = {
   super_admin: Shield,
   coordinador: ClipboardCheck,
   coordinador_brigadas: Stethoscope,
+  gestion_personal: UserCog,
   brigadista: Activity,
   voluntario: HandHeart
 };
@@ -45,7 +46,7 @@ export const Usuarios = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // Gestión de roles de un usuario existente: { usuario, nuevoRol, adicionales } o null,
-  // con `adicionales` = { coordinador: bool, coordinador_brigadas: bool }.
+  // con `adicionales` = { coordinador, coordinador_brigadas, gestion_personal } (booleanos).
   const [cambioRol, setCambioRol] = useState(null);
   const [cambiandoRol, setCambiandoRol] = useState(false);
   const [errorCambioRol, setErrorCambioRol] = useState('');
@@ -226,9 +227,9 @@ export const Usuarios = () => {
   };
 
   // Gestiona los roles de un usuario ya existente: el principal (`rol`) y los
-  // adicionales de coordinación (`es_coordinador`, `es_coordinador_brigadas`). Solo los
-  // ofrece la interfaz al super admin principal; la base lo hace valer (RLS de `perfiles`
-  // exige super_admin y, para Brigadas Médicas, el trigger exige al super admin principal).
+  // adicionales (`es_coordinador`, `es_coordinador_brigadas`, `es_gestor_personal`). Solo los
+  // ofrece la interfaz al admin principal; la base lo hace valer: el trigger de `perfiles`
+  // exige al admin principal para cambiar cualquiera de ellos (schema_v33/v35/v36).
   const abrirCambioRol = (u) => {
     setErrorCambioRol('');
     setCambioRol({
@@ -238,15 +239,26 @@ export const Usuarios = () => {
     });
   };
 
+  // Valor que quedará de un rol adicional: los que solo valen en un Admin se quitan si deja de serlo.
+  const valorAdicional = (c, rolAdicional) =>
+    ROLES_SOLO_ADMIN.includes(rolAdicional) && c.nuevoRol !== 'super_admin' ? false : c.adicionales[rolAdicional];
+
   // Campos que realmente cambian respecto al perfil actual.
   const cambiosPendientes = (c) => {
     const cambios = {};
     if (c.nuevoRol !== c.usuario.rol) cambios.rol = c.nuevoRol;
     for (const [rolAdicional, columna] of Object.entries(ROLES_ADICIONALES)) {
-      if (c.adicionales[rolAdicional] !== tieneRol(c.usuario, rolAdicional)) cambios[columna] = c.adicionales[rolAdicional];
+      const valor = valorAdicional(c, rolAdicional);
+      if (valor !== tieneRol(c.usuario, rolAdicional)) cambios[columna] = valor;
     }
     return cambios;
   };
+
+  // Insignias de los roles adicionales de una persona (el de gestión solo cuenta en un Admin).
+  const insigniasAdicionales = (u) =>
+    Object.keys(ROLES_ADICIONALES)
+      .filter(r => tieneRol(u, r) && (!ROLES_SOLO_ADMIN.includes(r) || u.rol === 'super_admin'))
+      .map(r => <React.Fragment key={r}>{getRoleBadge(r)}</React.Fragment>);
 
   const handleCambiarRol = async () => {
     if (!cambioRol || !supabase) return;
@@ -269,14 +281,16 @@ export const Usuarios = () => {
 
       if (updError) {
         console.error('Error al cambiar los roles:', updError);
-        // 42703 / PGRST204: la columna aún no existe (falta schema_v22 o schema_v33).
+        // 42703 / PGRST204: la columna aún no existe (falta schema_v22, v33 o v36).
         const faltaColumna = ['42703', 'PGRST204'].includes(updError.code);
-        const scriptFalta = 'es_coordinador_brigadas' in cambios ? 'schema_v33.sql' : 'schema_v22.sql';
+        const scriptFalta = 'es_gestor_personal' in cambios
+          ? 'schema_v36.sql'
+          : 'es_coordinador_brigadas' in cambios ? 'schema_v33.sql' : 'schema_v22.sql';
         throw new Error(
           faltaColumna
-            ? `La base de datos aún no admite ese rol de Coordinador. Ejecuta ${scriptFalta} en el SQL Editor de Supabase.`
+            ? `La base de datos aún no admite ese rol. Ejecuta ${scriptFalta} en el SQL Editor de Supabase.`
             : updError.code === '42501'
-              ? 'La base de datos rechazó el cambio: solo el super admin principal puede otorgar este rol.'
+              ? 'La base de datos rechazó el cambio: solo el admin principal puede otorgar este rol.'
               : 'No se pudo cambiar el rol.'
         );
       }
@@ -355,8 +369,7 @@ export const Usuarios = () => {
     (u.nombre || '').toLowerCase().includes(search.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
     u.rol.toLowerCase().includes(search.toLowerCase()) ||
-    (u.es_coordinador === true && 'coordinador'.includes(search.toLowerCase())) ||
-    (u.es_coordinador_brigadas === true && 'coordinador de brigadas médicas'.includes(search.toLowerCase()))
+    Object.keys(ROLES_ADICIONALES).some(r => tieneRol(u, r) && ROL_CONFIG[r].titulo.toLowerCase().includes(search.toLowerCase()))
   );
 
   const renderUserTable = (usersList, roleKey) => {
@@ -418,8 +431,7 @@ export const Usuarios = () => {
                     <td style={{ padding: '0.85rem 1.25rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                         {getRoleBadge(u.rol)}
-                        {u.es_coordinador === true && getRoleBadge('coordinador')}
-                        {u.es_coordinador_brigadas === true && getRoleBadge('coordinador_brigadas')}
+                        {insigniasAdicionales(u)}
                       </div>
                     </td>
                     <td style={{ padding: '0.85rem 1.25rem', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
@@ -445,15 +457,18 @@ export const Usuarios = () => {
                                 <UserCog size={16} />
                               </Button>
                             )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteUser(u.id, u.nombre)}
-                              style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto' }}
-                              title="Eliminar usuario"
-                            >
-                              <Trash2 size={16} />
-                            </Button>
+                            {/* Solo el admin principal elimina a un Admin (la base lo hace valer). */}
+                            {(u.rol !== 'super_admin' || isDeveloper) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteUser(u.id, u.nombre)}
+                                style={{ color: 'var(--danger-color)', padding: '0.4rem', height: 'auto' }}
+                                title="Eliminar usuario"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -721,8 +736,7 @@ export const Usuarios = () => {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
                 Rol actual {getRoleBadge(cambioRol.usuario.rol)}
-                {cambioRol.usuario.es_coordinador === true && getRoleBadge('coordinador')}
-                {cambioRol.usuario.es_coordinador_brigadas === true && getRoleBadge('coordinador_brigadas')}
+                {insigniasAdicionales(cambioRol.usuario)}
               </div>
             </div>
 
@@ -738,6 +752,8 @@ export const Usuarios = () => {
                 Sin uno de estos roles, un Admin no accede a Coordinación.
               </span>
               {Object.keys(ROLES_ADICIONALES).map(r => {
+                // Los roles que solo valen en un Admin aparecen solo si la persona será Admin.
+                if (ROLES_SOLO_ADMIN.includes(r) && cambioRol.nuevoRol !== 'super_admin') return null;
                 const cfg = ROL_CONFIG[r];
                 const Icon = ROL_ICONOS[r];
                 const marcado = cambioRol.adicionales[r];
